@@ -1,5 +1,6 @@
 return function(ctx)
   local Record = ctx.load("contracts.record")
+  local V = ctx.load("contracts.validators")
 
   local function native(id, module, family, opaque, reason)
     return Record.native({
@@ -25,9 +26,25 @@ return function(ctx)
     })
   end
 
+  local function battleBase(state)
+    if type(state) ~= "table" then return V.fail("state_type", "table") end
+    if type(rawget(state, "battle")) ~= "table" then
+      return V.fail("shape_type", "battle:table")
+    end
+    if type(rawget(state, "phase")) ~= "string" then
+      return V.fail("shape_type", "phase:string")
+    end
+    return true
+  end
+
   return {
-    deferred("Gen2BattleState", "src.ui.gen2.BattleState", true,
-      "Gold battle and every battle-owned child remain native through 1.0"),
+    Record.new({
+      id = "Gen2BattleState", module = "src.ui.gen2.BattleState",
+      support = "supported", milestone = "1.0.0", family = "battle",
+      preset = "BATTLE", opaque = true, toggle = "battle",
+      validateBase = battleBase,
+      gallery = { "wild_menu", "moves", "message", "portrait" },
+    }),
     deferred("Gen2BattleTransition", "src.ui.gen2.BattleTransition", false,
       "timed battle transition and world capture are deferred with battle"),
     native("Gen2CardFlip", "src.ui.gen2.CardFlip", "minigames", true,
@@ -58,4 +75,3 @@ return function(ctx)
       "direct-manipulation spatial puzzle"),
   }
 end
-

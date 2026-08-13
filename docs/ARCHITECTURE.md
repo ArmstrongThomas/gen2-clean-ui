@@ -25,12 +25,13 @@ main.lua
   Card, Save, Naming, and the PC family.
 - `contracts/families/services.lua`: services, Pokegear, mail, commerce, and
   specialty information screens.
-- `contracts/families/native.lua`: battle/deferred, cinematics, animations,
+- `contracts/families/native.lua`: battle transition, cinematics, animations,
   and minigames that Clean UI must not suppress.
 - `provider/identity.lua`: exact ID, official metatable, opacity, source
   registry ownership, and instance-draw checks.
 - `provider/init.lua`: protected validation and complete-presentation gate.
-- `provider/stack_policy.lua`: whole-visible-stack proof and battle veto.
+- `provider/stack_policy.lua`: whole-visible-stack proof and native fallback for
+  battle transitions or battle-owned child stacks.
 - `provider/live_stack.lua`: exact current-stack discovery and native-toggle
   gating; one unknown or unsupported retained layer keeps the whole frame
   native.
@@ -58,7 +59,8 @@ The provider evaluates a potential replacement in this order:
 6. The record is neither native nor deferred.
 7. A registered model adapter may prepare detached, function-free data while
    the source remains visible.
-8. The complete visible stack passes policy, including the battle veto.
+8. The complete visible stack passes policy, including battle child-stack and
+   transition fallback rules.
 9. The shared core snapshots every presentation model and renders the entire
    replacement to a private canvas.
 10. Only a successfully rendered one-frame candidate may make the exact

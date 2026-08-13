@@ -9,12 +9,76 @@ local MenuLayout = requireCore("presentation.menu_layout")
 local MenuRender = requireCore("presentation.menu_render")
 local DialogueLayout = requireCore("presentation.dialogue_layout")
 local DialogueRender = requireCore("presentation.dialogue_render")
+local BattleLayout = requireCore("presentation.battle_layout")
+local BattleRender = requireCore("presentation.battle_render")
 
 local Runtime = {}
 
+local function inside(outer, rect)
+  return type(rect) == "table"
+    and rect.x >= outer.x and rect.y >= outer.y
+    and rect.x + rect.w <= outer.x + outer.w
+    and rect.y + rect.h <= outer.y + outer.h
+end
+
+local function overlaps(first, second)
+  return type(first) == "table" and type(second) == "table"
+    and first.x < second.x + second.w and second.x < first.x + first.w
+    and first.y < second.y + second.h and second.y < first.y + first.h
+end
+
+local function battleFontMetrics(font)
+  local height = tonumber(font and font.physicalPx) or 15
+  return {
+    getHeight = function() return height end,
+    getWidth = function(_, value)
+      return #tostring(value or "") * height * 0.55
+    end,
+  }
+end
+
+local function battleFits(envelope, model, font, density)
+  local measured = BattleLayout.measure(envelope, model,
+    battleFontMetrics(font), density)
+  if not measured or not inside(measured.inner, measured.field)
+      or not inside(measured.field, measured.hud)
+      or not inside(measured.field, measured.arena)
+      or not inside(measured.inner, measured.panel)
+      or measured.overlaps.cardSprite then
+    return false
+  end
+  if not inside(measured.field, measured.enemyCard)
+      or not inside(measured.field, measured.playerCard)
+      or not inside(measured.arena, measured.enemySprite)
+      or not inside(measured.arena, measured.playerSprite) then
+    return false
+  end
+  local minimumArena = math.max(24 * (envelope.scale or 1),
+    measured.fontHeight + measured.gap)
+  local minimumCard = measured.fontHeight + measured.gap * 2
+  if measured.arena.h < minimumArena
+      or measured.enemyCard.h < minimumCard
+      or measured.playerCard.h < minimumCard then
+    return false
+  end
+  if overlaps(measured.enemyCard, measured.playerCard)
+      or overlaps(measured.enemySprite, measured.playerSprite) then
+    return false
+  end
+  for _, region in ipairs(measured.hitRegions or {}) do
+    if not inside(measured.panel, region.rect) then return false end
+    if region.role == "battle_action"
+        and region.rect.h < measured.fontHeight then
+      return false
+    end
+  end
+  return true
+end
+
 function Runtime.new(core)
   local self = { core=core, mod=core.mod, provider=core.provider,
-    candidate=nil, canvas=nil, canvasW=nil, canvasH=nil }
+    candidate=nil, canvas=nil, canvasW=nil, canvasH=nil,
+    menuWidths=setmetatable({}, { __mode = "k" }), frameId=0 }
   self.fonts = FontCatalog.new(love and love.graphics, {
     plainPixel=core.config.plainPixelPath
       or "assets/fonts/plainpixel/PlainPixel-Regular.ttf",
@@ -139,6 +203,8 @@ function Runtime.new(core)
       return MenuLayout.measure(base, model, font, density)
     elseif model.kind == "dialogue" or model.kind == "choice" then
       return DialogueLayout.measure(base, model, font, density, priorEntries)
+    elseif model.kind == "battle" then
+      return BattleLayout.measure(base, model, font, density)
     end
     return nil, "unsupported_presentation"
   end
@@ -148,6 +214,8 @@ function Runtime.new(core)
       return MenuRender.draw(love.graphics, model, layout, font, theme)
     elseif model.kind == "dialogue" or model.kind == "choice" then
       return DialogueRender.draw(love.graphics, model, layout, font, theme)
+    elseif model.kind == "battle" then
+      return BattleRender.draw(love.graphics, model, layout, font, theme)
     end
     return nil, "unsupported_presentation"
   end
@@ -156,12 +224,28 @@ function Runtime.new(core)
     return self:measureModel(base, model, font, density)
   end
 
+  function self:lockedMenuWidth(state, base, model, font, density, viewport, safe)
+    local width = MenuLayout.contentWidth(base, model, font, density)
+    if not width or type(state) ~= "table" then return nil end
+    local context = table.concat({ viewport.w, viewport.h, safe.w, safe.h,
+      base.scale, font:getHeight(), self:option("ui_size", "auto"),
+      self:option("text_size", "auto"), self:option("font", "plain_pixel"),
+      density or "auto", base.widthMode or "fixed" }, ":")
+    local current = self.menuWidths[state]
+    if not current or current.context ~= context then
+      current = { context=context, width=width }
+      self.menuWidths[state] = current
+    end
+    return current.width
+  end
+
   function self:drawMenu(model, layout, font, theme)
     return self:drawModel(model, layout, font, theme)
   end
 
   function self:prepare(game, viewport)
     self:clear("prepare")
+    self.frameId = self.frameId + 1
     local function failed(reason)
       self.lastReason = reason
       return nil, reason
@@ -179,48 +263,117 @@ function Runtime.new(core)
     for _, state in ipairs(states) do
       local ok, prepared = pcall(self.provider.prepareScreen,
         self.provider, state, { game=game, viewport=vp, safeArea=safe })
-      if not ok or type(prepared) ~= "table" or prepared.suppress ~= true
-          or type(prepared.presentation) ~= "table"
-          or prepared.presentation.complete ~= true then
+      local presentation = ok and type(prepared) == "table"
+        and prepared.presentation or nil
+      local legacyPresentation = type(presentation) == "table"
+        and (presentation.kind == "legacy_surface"
+          or presentation.kind == "legacy_screen")
+      if not ok or type(prepared) ~= "table"
+          or (prepared.suppress ~= true and not legacyPresentation)
+          or type(presentation) ~= "table"
+          or presentation.complete ~= true then
         return failed(ok and (prepared and prepared.reason or "incomplete")
           or tostring(prepared))
       end
-      local sourceModel = prepared.presentation.model or prepared.presentation
-      local model, dataError = Data.snapshot(sourceModel)
-      if not model then return failed("invalid_model:" .. tostring(dataError)) end
-      local supported = model.kind == "menu"
-        or model.kind == "dialogue" or model.kind == "choice"
-      if not supported or type(model.preset) ~= "string"
-          or (model.kind == "menu" and type(model.rows) ~= "table")
-          or (model.kind == "dialogue" and type(model.lines) ~= "table")
-          or (model.kind == "choice" and type(model.options) ~= "table") then
-        return failed("unsupported_presentation")
+      local legacySurface = prepared.presentation.kind == "legacy_surface"
+        and prepared.presentation.surface or nil
+      local legacyScreen = prepared.presentation.kind == "legacy_screen"
+      local model
+      if legacySurface then
+        if type(legacySurface.model) ~= "table"
+            or type(legacySurface.context) ~= "table" then
+          return failed("invalid_legacy_surface")
+        end
+        model = legacySurface.model
+      else
+        local sourceModel = prepared.presentation.model or prepared.presentation
+        local dataError
+        model, dataError = Data.snapshot(sourceModel)
+        if not model then return failed("invalid_model:" .. tostring(dataError)) end
+        local supported = model.kind == "menu"
+          or model.kind == "dialogue" or model.kind == "choice"
+          or model.kind == "battle"
+        if not supported or type(model.preset) ~= "string"
+            or (model.kind == "menu" and type(model.rows) ~= "table")
+            or (model.kind == "dialogue" and type(model.lines) ~= "table")
+            or (model.kind == "choice" and type(model.options) ~= "table")
+            or (model.kind == "battle" and (type(model.player) ~= "table"
+              or type(model.enemy) ~= "table"
+              or type(model.actions) ~= "table")) then
+          return failed("unsupported_presentation")
+        end
       end
-      local solved = Solver.solve({ preset=model.preset, viewport=vp,
-        safeArea=safe, uiSize=self:option("ui_size", "auto"),
-        textSize=self:option("text_size", "auto"),
-        fontFamily=self:option("font", "plain_pixel"),
-        density=self:option("density", "auto") })
-      if not solved.ok then return failed(solved.error.code) end
-      local font, fontCode, fontMessage = self.fonts:get(solved.value.font)
-      if not font then
-        return failed((fontCode or "font_unavailable") .. ":"
-          .. tostring(fontMessage or ""))
+      if prepared.suppress ~= true and not legacySurface and not legacyScreen then
+        return failed("native_suppression_unproven")
       end
-      local layout = self:measureModel(solved.value, model, font,
-        self:option("density", "auto"), entries)
-      if not layout then return failed("layout_unsupported") end
+      if prepared.suppress ~= true and legacySurface
+          and legacySurface.policy ~= "preserve" then
+        return failed("invalid_legacy_surface_policy")
+      end
+      local solved, font, solveRequest
+      if not legacySurface then
+        solveRequest = { preset=model.preset, viewport=vp,
+          safeArea=safe, uiSize=self:option("ui_size", "auto"),
+          textSize=self:option("text_size", "auto"),
+          fontFamily=self:option("font", "plain_pixel"),
+          density=self:option("density", "auto") }
+        if model.kind == "battle" then
+          solveRequest.probe = function(envelope, candidateFont, density)
+            return battleFits(envelope, model, candidateFont, density)
+          end
+        end
+        solved = Solver.solve(solveRequest)
+        if not solved.ok then return failed(solved.error.code) end
+        local fontCode, fontMessage
+        font, fontCode, fontMessage = self.fonts:get(solved.value.font)
+        if not font then
+          return failed((fontCode or "font_unavailable") .. ":"
+            .. tostring(fontMessage or ""))
+        end
+        if model.kind == "menu" and solved.value.widthMode == "content" then
+          local logicalWidth = self:lockedMenuWidth(state, solved.value, model,
+            font, solveRequest.density, vp, safe)
+          if logicalWidth then
+            solveRequest.logicalWidth = logicalWidth
+            solved = Solver.solve(solveRequest)
+            if not solved.ok then return failed(solved.error.code) end
+          end
+        end
+      end
+      local layout
+      if not legacySurface then
+        layout = self:measureModel(solved.value, model, font,
+          self:option("density", "auto"), entries)
+        if not layout then return failed("layout_unsupported") end
+      end
       entries[#entries + 1] = { state=state, model=model, layout=layout,
-        font=font, prepared=prepared }
-      hidden[state] = true
+        font=font, prepared=prepared, presentation=prepared.presentation,
+        surface=legacySurface }
+      hidden[state] = prepared.suppress == true
+    end
+    for _, entry in ipairs(entries) do
+      if entry.surface and entry.surface.policy == "replace"
+          and #entries ~= #states then
+        return failed("legacy_surface_replace_stack")
+      end
     end
     local canvas, canvasError = self:canvasFor(w, h)
     if not canvas then return failed(canvasError) end
     local theme = self.core.themes:get(self:option("theme", "clean"))
     local rendered = Transaction.run(love.graphics, canvas, function()
       for _, entry in ipairs(entries) do
-        local drawOk, drawCode, drawMessage = self:drawModel(entry.model,
-          entry.layout, entry.font, theme)
+        local drawOk, drawCode, drawMessage
+        if entry.surface then
+          if type(self.provider.renderSurface) ~= "function" then
+            return { complete=false, code="surface_runtime_unavailable" }
+          end
+          drawOk, drawCode, drawMessage = self.provider:renderSurface(
+            entry.state, entry.presentation, canvas, vp, safe, theme,
+            self.frameId)
+        else
+          drawOk, drawCode, drawMessage = self:drawModel(entry.model,
+            entry.layout, entry.font, theme)
+        end
         if drawOk ~= true then
           return { complete=false, code=drawCode or "render_incomplete",
             message=drawMessage }

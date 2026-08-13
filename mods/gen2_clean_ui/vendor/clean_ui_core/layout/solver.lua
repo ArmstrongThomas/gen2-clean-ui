@@ -20,6 +20,9 @@ function Solver.solve(request)
   local envelope, code, message = Envelope.measure(request.preset,
     request.viewport, request.safeArea, request.uiSize)
   if not envelope then return Result.err(code, message) end
+  if request.logicalWidth then
+    envelope = Envelope.withLogicalWidth(envelope, request.logicalWidth)
+  end
   local family = request.fontFamily == "system" and "system" or "plain_pixel"
   local candidates = FontPolicy.candidates(request.textSize, envelope.scale)
   for _, candidate in ipairs(candidates) do
@@ -36,6 +39,10 @@ function Solver.solve(request)
       local layout = {
         revision = request.revision or 1,
         preset = request.preset,
+        logical = { w = envelope.logical.w, h = envelope.logical.h },
+        minW = envelope.minW,
+        widthMode = envelope.widthMode,
+        orientation = envelope.orientation,
         viewport = envelope.viewport,
         safeArea = envelope.safeArea,
         outer = envelope.outer,
@@ -55,4 +62,3 @@ function Solver.solve(request)
 end
 
 return Solver
-

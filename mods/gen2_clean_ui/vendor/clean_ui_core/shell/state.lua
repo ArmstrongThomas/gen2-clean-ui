@@ -12,6 +12,7 @@ function State.new(view, payload)
     view = view or "mod_menus", payload = payload, history = {},
     index = 1, scroll = 0, hover = nil, pressed = nil,
     notice = nil, modal = nil, layout = nil,
+    layoutWidth = nil, layoutWidthContext = nil,
     galleryFamily = 1,
     preview = { content = "NORMAL", ui_size = "auto",
       text_size = "auto", font = "plain_pixel" },
@@ -30,7 +31,7 @@ function State.new(view, payload)
     end
     self.view, self.payload = nextView, nextPayload
     self.index, self.scroll, self.hover, self.pressed = 1, 0, nil, nil
-    self.modal = nil
+    self.modal, self.layoutWidth, self.layoutWidthContext = nil, nil, nil
   end
 
   function self:back()
@@ -39,6 +40,7 @@ function State.new(view, payload)
     self.view, self.payload = previous.view, previous.payload
     self.index, self.scroll = previous.index, previous.scroll
     self.hover, self.pressed, self.modal = nil, nil, nil
+    self.layoutWidth, self.layoutWidthContext = nil, nil
     return true
   end
 

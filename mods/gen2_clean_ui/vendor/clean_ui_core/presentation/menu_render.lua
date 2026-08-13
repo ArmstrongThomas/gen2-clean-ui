@@ -339,6 +339,10 @@ local function drawModal(G, model, layout, font, theme)
   end
 end
 
+-- Shared by production menu and battle presenters. The descriptor remains
+-- data-only; the runtime owns the image loader and palette shader.
+MenuRender.drawSprite = drawSprite
+
 function MenuRender.draw(graphics, model, layout, font, theme)
   if model.opaque then
     Color.set(graphics, theme.colors.raised)

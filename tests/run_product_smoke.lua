@@ -100,6 +100,17 @@ assert(type(definedSchema) == "table" and #definedSchema == 12,
   "clean settings schema")
 assert(mod.exports.cleanUiHost.apiVersion == 3, "V3 host surface")
 assert(mod.exports.cleanUiHost.productId == "gen2_clean_ui", "exact product id")
+assert(mod.exports.compatibilityApiVersion == 1
+  and mod.exports.surfaceApiVersion == 2,
+  "Modern UI v1/v2 compatibility surface")
+assert(type(mod.exports.registerAdapter) == "function"
+  and type(mod.exports.unregisterAdapter) == "function"
+  and type(mod.exports.registerTheme) == "function"
+  and type(mod.exports.registerFrame) == "function",
+  "Modern UI compatibility registration methods")
+assert(mod.exports.modernUi == mod.exports.gen2ModernUi
+  and mod.exports.gen2CleanUi.modernUi == mod.exports.modernUi,
+  "Modern UI compatibility aliases share one registry")
 assert(mod.exports.gen2CleanUi.coreStatus == "ready", "vendored core status")
 assert(type(hookWrappers["render.ui.prepare"]) == "function"
   and type(hookWrappers["screen.render_visible"]) == "function"
@@ -112,10 +123,10 @@ assert(type(registeredScreens.Gen2CleanUiShell) == "table",
 assert(#mod.exports.gen2CleanUi.contracts == 51, "51 exported contracts")
 assert(type(mod.exports.gen2CleanUi.extractModel) == "function",
   "foundation model extractor export")
-assert(#mod.exports.gen2CleanUi.modelScreens == 36,
-  "foundation, 0.2, and 0.3 model contracts")
-assert(#mod.exports.gen2CleanUi.presentationScreens == 36,
-  "foundation, 0.2, and 0.3 production presenters")
+assert(#mod.exports.gen2CleanUi.modelScreens == 37,
+  "foundation, 0.2, 0.3, and battle model contracts")
+assert(#mod.exports.gen2CleanUi.presentationScreens == 37,
+  "foundation, 0.2, 0.3, and battle production presenters")
 local implemented = {}
 for _, record in ipairs(mod.exports.gen2CleanUi.contracts) do
   implemented[record.id] = record.implementation

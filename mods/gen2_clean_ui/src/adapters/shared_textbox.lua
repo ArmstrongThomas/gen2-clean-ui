@@ -71,9 +71,17 @@ return function(ctx)
     local shown = rawget(state, "shown")
     local output = {}
     local current = type(shown) == "table" and rawget(shown, #shown) or nil
+    -- A native CONT line is a pagination affordance, not authored prose.
+    -- When the source is waiting before such a continuation, expose the
+    -- complete native page to Clean UI so its wider reflow can present the
+    -- sentence as one message. The source still owns the continuation input;
+    -- this only prevents the old narrow page break from becoming a second
+    -- visually identical Clean UI message.
+    local collapseContinuation = rawget(state, "waiting") == true
+      and lineIndex < #page
     for index = 1, lineIndex do
       local text = tostring(rawget(page, index) or "")
-      if index == lineIndex then
+      if index == lineIndex and not collapseContinuation then
         -- Earlier lines on this source page are already fully revealed, even
         -- though the host keeps only its last two raster lines in `shown`.
         -- The active line still respects the live typewriter prefix.
@@ -81,6 +89,11 @@ return function(ctx)
       end
       text = displayText(text)
       output[#output + 1] = text
+    end
+    if collapseContinuation then
+      for index = lineIndex + 1, #page do
+        output[#output + 1] = displayText(tostring(page[index] or ""))
+      end
     end
     return output
   end

@@ -1,11 +1,11 @@
 # Gen2 Clean UI
 
-Development scaffold for a clean, modular Pokémon Gold UI. Main, Start,
-Options, shared dialogue/choices, Pack, Party, all three Summary purposes,
-Pokédex, Trainer Card, Save, Naming, and the Center/Player/Box/Item PC family
-now have exact-contract production presenters behind a fail-open offscreen
-frame gate. Remaining Gold surfaces stay native until their individual
-validators, actions, Gallery fixtures, and full-stack tests exist.
+Development line for a clean, modular Pokémon Gold UI. Main, Start, Options,
+shared dialogue/choices, the 0.2 gameplay/storage family, and the complete
+audited 0.3 family set now have exact-contract production presenters behind a
+fail-open offscreen frame gate. Stable Gen2 battle menus, move selection, and
+message frames are included; transitions, animations, and battle-owned child
+stacks remain native by design.
 
 The shipped mod is compatible with the upcoming host sandbox: it uses
 `mod:read`, sandboxed source loading, `mod.options`, `mod.save`, and
@@ -22,12 +22,12 @@ Gen2 Clean UI is the installable Pokemon Gold product from the Clean UI
 rebuild. This repository deliberately keeps game-specific contracts and
 presenters separate from the shared `clean-ui-core` design/layout runtime.
 
-This checkout is a **native-safe product scaffold**. It inventories and
-validates all 51 official Gold screen IDs from host `v0.1.79` and vendors an
-exact, hashed shared-core development snapshot. The shell, dropdown, Gallery,
-Mod Menus, and pinning foundations are active. The foundation and first 0.2
-gameplay/storage slice have production presenters; unfinished screens remain
-native.
+This checkout is a **native-safe product development line**. It inventories
+and validates all 51 official Gold screen IDs from host `v0.1.79` and vendors
+an exact, hashed shared-core development snapshot. The shell, dropdown,
+Gallery, Mod Menus, and pinning foundations are active. All 37 supported
+records have production presenters; 13 records are native by design and the
+battle transition remains deferred.
 
 ## Repository shape
 
@@ -58,9 +58,18 @@ family module; reusable behavior belongs in `clean-ui-core`, never in
 ## Current contract status
 
 - 51/51 official `Screens.GEN2_IDS` records are present in official order.
-- 36 records have an audited future Clean UI contract (35 full + Hall viewer).
+- 37 records have production presenters (36 full + Hall viewer-only scope).
 - 13 records are native by design.
-- 2 battle records are deferred until the post-1.0 battle design.
+- `Gen2BattleState` has a responsive production presenter for stable menu,
+  move-selection, and message frames; `Gen2BattleTransition` remains deferred.
+- Battle layout coverage includes short landscape, portrait phone, desktop,
+  ultrawide, 4K, and 5K viewport matrices with native fail-open timing frames.
+- NAV shell views choose and lock a 320–440 logical-pixel width from their
+  required content, so short Start/Mod/settings menus no longer use unused
+  horizontal space.
+- Ordinary M list menus use the same content-driven sizing between 320 and
+  600 logical pixels while preserving their full 420-pixel logical height;
+  rich detail/sprite menus retain the wider envelope when it is required.
 - Shared TextBox, ChoiceBox, and CallerBox seams are inventoried separately.
 - Anonymous `PrizeMenu` objects are explicitly not claimed.
 
@@ -105,7 +114,9 @@ compatibility.
 
 See [Architecture](docs/ARCHITECTURE.md),
 [screen contracts](docs/GEN2_CONTRACTS.md), and
-[core vendoring](docs/CORE_VENDORING.md).
+[core vendoring](docs/CORE_VENDORING.md),
+[release status](docs/RELEASE_STATUS.md), and the
+[changelog](CHANGELOG.md).
 
 ## Development checks
 
@@ -116,6 +127,13 @@ See [Architecture](docs/ARCHITECTURE.md),
 
 The Lua contract tests are in `tests/run_contract_tests.lua` and can be run
 with the project's LÖVE/Lua test harness.
+
+## Modern UI compatibility
+
+Gen2 Clean UI exports the Modern UI v1/v2 registration surface while existing
+source mods migrate to API V3. See [API compatibility](docs/API_COMPATIBILITY.md)
+for the discovery fallback, contract examples, and fail-open rules. New
+integrations should use `exports.cleanUiHost` with `apiVersion == 3`.
 
 Against a host checkout, the Gold compatibility gate is:
 

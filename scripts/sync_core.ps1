@@ -105,6 +105,7 @@ try {
     files = $files
   }
   $json = $lock | ConvertTo-Json -Depth 8
+  $json = $json.Replace("`r`n", "`n")
   [IO.File]::WriteAllText($lockPath, $json + "`n",
     [Text.UTF8Encoding]::new($false))
 }
@@ -123,4 +124,3 @@ finally {
 }
 
 & (Join-Path $PSScriptRoot "verify_core_lock.ps1")
-

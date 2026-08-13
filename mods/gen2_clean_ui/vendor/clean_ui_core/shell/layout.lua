@@ -1,7 +1,45 @@
 local requireCore = ...
 local Rect = requireCore("geometry.rect")
+local Presets = requireCore("design.presets")
+local Envelope = requireCore("layout.envelope")
 
 local Layout = {}
+
+local function textWidth(font, value)
+  local text = tostring(value or "")
+  if font and type(font.getWidth) == "function" then
+    local ok, width = pcall(font.getWidth, font, text)
+    if ok and type(width) == "number" then return width end
+  end
+  return #text * math.max(1, (font:getHeight() or 15) * 0.6)
+end
+
+local function adaptiveWidth(shell, state, result, rows, font, pad, frame)
+  local preset = Presets[state:preset()]
+  if not preset or preset.widthMode ~= "content" then return result end
+  local scale = result.scale or 1
+  local gap = math.max(8, math.floor(10 * scale))
+  local required = textWidth(font, shell.content.title(state.view))
+  for _, row in ipairs(rows or {}) do
+    local right = tostring(row.right or "")
+    local rightWidth = right ~= "" and textWidth(font, right) or 0
+    local pinReserve = state.view == "mod_menus" and row.pinnable
+      and math.max(44, math.floor(72 * scale)) or 0
+    required = math.max(required,
+      textWidth(font, row.label) + rightWidth + pinReserve + gap * 3,
+      rightWidth / 0.42 + pinReserve + gap * 3)
+  end
+  local chrome = 2 * (frame + pad)
+  local logical = math.ceil((required + chrome) / scale)
+  logical = math.max(preset.minW or 1, math.min(preset.w, logical))
+  local context = table.concat({ state.view, result.safeArea.w,
+    result.safeArea.h, result.scale, shell.settingsRevision or 0,
+    font:getHeight(), shell:setting(state, "density") or "auto" }, ":")
+  if state.layoutWidth == nil or state.layoutWidthContext ~= context then
+    state.layoutWidth, state.layoutWidthContext = logical, context
+  end
+  return Envelope.withLogicalWidth(result, state.layoutWidth)
+end
 
 function Layout.measure(shell, state, viewport, safeArea, rows, font)
   local solved = shell.core.pipeline.solver.solve({
@@ -22,6 +60,7 @@ function Layout.measure(shell, state, viewport, safeArea, rows, font)
   local footerH = math.max(font:getHeight() + pad,
     math.floor((compact and 34 or 42) * scale))
   local frame = math.max(2, math.floor(2 * scale + 0.5))
+  result = adaptiveWidth(shell, state, result, rows, font, pad, frame)
   local inner = Rect.inset(result.outer, {
     left = frame + pad, right = frame + pad,
     top = frame + pad, bottom = frame + pad,

@@ -26,6 +26,7 @@ return function(ctx)
   local MailSpecialtyModels = ctx.load("presenters.mail_specialty_models")
   local MailSpecialtyPresenters = ctx.load(
     "presenters.mail_specialty_presenters")
+  local BattlePresenter = ctx.load("presenters.battle")
   local ProductionGalleryModels = ctx.load(
     "presenters.production_gallery_models")
   local PokegearGalleryModels = ctx.load(
@@ -35,6 +36,7 @@ return function(ctx)
   local MailSpecialtyGalleryModels = ctx.load(
     "presenters.mail_specialty_gallery_models")
   local CoreBridge = ctx.load("integration.core_bridge")
+  local ModernCompatibility = ctx.load("compatibility.modern_api")
   local Gallery = ctx.load("gallery.catalog")
 
   local Product = {}
@@ -68,6 +70,8 @@ return function(ctx)
       shared = shared,
       mod = mod,
     })
+    local modernCompatibility = ModernCompatibility.new(mod, provider)
+    provider.compatibility = modernCompatibility
     mustRegister("Gen2 foundation models",
       function() return FoundationModels.register(provider) end)
     mustRegister("shared models",
@@ -105,12 +109,15 @@ return function(ctx)
       function() return ServicesCommercePresenters.register(provider) end)
     mustRegister("Gen2 mail/specialty presenters",
       function() return MailSpecialtyPresenters.register(provider) end)
+    mustRegister("Gen2 battle presenter",
+      function() return BattlePresenter.register(provider) end)
 
     local productionScreens = {}
     append(productionScreens, FoundationModels.ids())
     append(productionScreens, PartyModels.ids())
     append(productionScreens, {
-      "Gen2PackMenu", "Gen2PokedexMenu", "Gen2TrainerCard", "Gen2SaveMenu",
+      "Gen2BattleState", "Gen2PackMenu", "Gen2PokedexMenu",
+      "Gen2TrainerCard", "Gen2SaveMenu",
     })
     append(productionScreens, NamingStorageModels.ids())
     append(productionScreens, { "Gen2Pokegear", "Gen2MapRadio" })
@@ -134,6 +141,13 @@ return function(ctx)
     })
 
     if bridge.status == "ready" then mod.exports.cleanUiHost = bridge.host end
+    local modernApi = modernCompatibility:api()
+    -- Keep the Modern UI v1/v2 registration surface available under the
+    -- current Clean UI product. V3 remains the preferred host contract; this
+    -- facade exists so source mods can migrate one product lookup at a time.
+    for key, value in pairs(modernApi) do mod.exports[key] = value end
+    mod.exports.modernUi = modernApi
+    mod.exports.gen2ModernUi = modernApi
     mod.exports.gen2CleanUi = {
       version = mod.version,
       contractVersion = "gen2-v0.1.79",
@@ -144,6 +158,9 @@ return function(ctx)
       inspect = function(state, context)
         return provider:inspect(state, context)
       end,
+      diagnostics = function()
+        return provider.diagnostics:snapshot()
+      end,
       extractModel = function(state, context)
         return provider:extractModel(state, context)
       end,
@@ -153,6 +170,7 @@ return function(ctx)
       resetDefaults = function()
         return settings:resetDefaults()
       end,
+      modernUi = modernApi,
     }
 
     bridge:attachProvider(provider)

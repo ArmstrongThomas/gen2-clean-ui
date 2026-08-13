@@ -130,6 +130,20 @@ local function shallow(source)
   for key, value in pairs(source) do output[key] = value end
   return setmetatable(output, getmetatable(source))
 end
+
+local continuation = shallow(text)
+continuation.pages = {{ "GOLD, I want you to have this", "for your errand." }}
+continuation.pageIndex, continuation.lineIndex = 1, 1
+continuation.shown = { glyphs(27) }
+continuation.codes, continuation.charIndex = glyphs(27), 27
+continuation.waiting, continuation.done = true, false
+local continuationModel = provider:extractModel(continuation,
+  { game=game }).presentation.model
+check(#continuationModel.lines == 2
+  and continuationModel.lines[1] == "GOLD, I want you to have this"
+  and continuationModel.lines[2] == "for your errand.",
+  "native continuation breaks remain one reflowable Clean UI message")
+
 local noShown = shallow(text)
 noShown.shown = {}
 check(provider:inspect(noShown, { game=game }).reason == "shape_range",

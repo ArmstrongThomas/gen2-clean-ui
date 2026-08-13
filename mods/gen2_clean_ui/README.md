@@ -1,11 +1,13 @@
 # Gen2 Clean UI 0.1.0 scaffold
 
-This is the modular Pokemon Gold product for the Clean UI rebuild.
+This is the modular Pokemon Gold product for the Clean UI rebuild. Version
+0.1.0 is an intentionally early, experimental public release.
 
 The current source package contains the complete audited `v0.1.79` Gen2 screen
 registry, native-safety provider, and a pinned shared `clean-ui-core` snapshot.
 Production presenters still remain native until each exact contract passes its
-complete-stack fallback tests. This is a development build, not a release.
+complete-stack fallback tests. The package targets official host builds from
+v0.1.79 through (but not including) v2.0.0.
 
 Key safety guarantees:
 

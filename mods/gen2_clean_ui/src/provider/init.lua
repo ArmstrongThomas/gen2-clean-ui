@@ -35,6 +35,7 @@ return function(ctx)
       presenters = {},
       pointerPress = {},
       gallery = options.gallery,
+      compatibility = options.compatibility,
       diagnostics = Diagnostics.new(128),
     }, Provider)
   end
@@ -183,6 +184,16 @@ return function(ctx)
   Provider.modelFor = Provider.extractModel
 
   function Provider:prepare(state, context)
+    if self.compatibility and type(self.compatibility.prepareScreen) == "function" then
+      local legacy = self.compatibility:prepareScreen(
+        context and context.game, state, context)
+      if legacy and legacy.matched then
+        if legacy.failed then
+          return self:recordFailure(nil, legacy.reason or "legacy_ui_invalid")
+        end
+        return legacy.result
+      end
+    end
     local inspected = self:inspect(state, context)
     if not inspected.valid then return inspected end
     local presenter = inspected.record and self.presenters[inspected.record.id]
@@ -206,11 +217,27 @@ return function(ctx)
   end
 
   function Provider:pointer(state, model, layout, event, game)
+    if self.compatibility and type(self.compatibility.pointer) == "function" then
+      local handled = self.compatibility:pointer(state, model, layout, event, game)
+      if handled ~= nil then return handled end
+    end
     return SourceInput.pointer(self, state, model, layout, event, game)
   end
 
   function Provider:wheel(state, model, layout, event, game)
+    if self.compatibility and type(self.compatibility.wheel) == "function" then
+      local handled = self.compatibility:wheel(state, model, layout, event, game)
+      if handled ~= nil then return handled end
+    end
     return SourceInput.wheel(self, state, model, layout, event, game)
+  end
+
+  function Provider:renderSurface(state, presentation, target, viewport, safe, theme)
+    if self.compatibility and type(self.compatibility.renderSurface) == "function" then
+      return self.compatibility:renderSurface(state, presentation, target,
+        viewport, safe, theme)
+    end
+    return nil, "surface_runtime_unavailable"
   end
 
   function Provider:openGallery(_, filter)

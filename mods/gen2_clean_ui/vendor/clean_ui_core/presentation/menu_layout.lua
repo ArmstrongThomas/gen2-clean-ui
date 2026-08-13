@@ -9,6 +9,70 @@ local function inset(rect, amount)
   return Rect.inset(rect, { x = amount })
 end
 
+local function textWidth(font, value)
+  local text = tostring(value or "")
+  if font and type(font.getWidth) == "function" then
+    local ok, width = pcall(font.getWidth, font, text)
+    if ok and type(width) == "number" then return width end
+  end
+  return #text * math.max(1, (font:getHeight() or 15) * 0.6)
+end
+
+function MenuLayout.contentWidth(base, model, font, density)
+  if type(base) ~= "table" or base.widthMode ~= "content"
+      or type(model) ~= "table" then return nil end
+  local scale = base.scale or 1
+  local compact = density == "compact"
+  local pad = math.max(8, math.floor((compact and 10 or 14) * scale))
+  local frame = math.max(2, math.floor(2 * scale + 0.5))
+  local gap = math.max(8, math.floor(10 * scale))
+  local required = textWidth(font, model.title)
+  local description = model.description or model.controls
+  if type(description) == "table" then description = table.concat(description, " ") end
+  required = math.max(required, textWidth(font, description))
+  for _, row in ipairs(model.rows or {}) do
+    local right = tostring(row.right or row.valueLabel or "")
+    local rightWidth = right ~= "" and textWidth(font, right) or 0
+    local pinReserve = row.pinnable
+      and math.max(44, math.floor(72 * scale)) or 0
+    required = math.max(required,
+      textWidth(font, row.label) + rightWidth + pinReserve + gap * 3,
+      rightWidth / 0.45 + pinReserve + gap * 3)
+  end
+  local listRequired = required
+  local details = model.details
+  local richDetails = type(details) == "table"
+    and (details.fields or details.custom_fields
+      or details.footer_lists or details.sprite)
+  -- Rich details and sprites have an explicit information-density contract;
+  -- keep the preset width for those screens. Plain label/value details can
+  -- participate in content sizing, with enough room for both columns.
+  if richDetails then return base.logical.w end
+  if type(details) == "table" and #details > 0 then
+    local detailRequired = 0
+    for _, field in ipairs(details) do
+      if type(field) == "table" then
+        local labelWidth = textWidth(font, field.label)
+        local valueWidth = textWidth(font, field.value)
+        detailRequired = math.max(detailRequired,
+          labelWidth / 0.42, valueWidth / 0.50,
+          labelWidth + valueWidth + gap * 2)
+      end
+    end
+    if detailRequired > 0 then
+      -- Plain details render in a right-hand column that occupies 42% of
+      -- the body. Account for that column and the list column together so
+      -- labels and values are measured against the layout they actually use.
+      local detailPanel = math.ceil(detailRequired / 0.42)
+      required = math.max(listRequired, listRequired + gap + detailPanel)
+    end
+  end
+  local logical = math.ceil((required + 2 * (frame + pad)) / scale)
+  local minimum = tonumber(base.minW) or 320
+  local maximum = tonumber(base.logical and base.logical.w) or 440
+  return math.max(minimum, math.min(maximum, logical))
+end
+
 function MenuLayout.measure(base, model, font, density)
   local scale = base.scale or 1
   local compact = density == "compact"

@@ -3,17 +3,22 @@
 Authority: official host `v0.1.79`, commit
 `04490c9b9ad03b814f297793dd7a950dad7c3adf`.
 
-“Supported” denotes an audited Clean UI target contract. Main Menu, Start
-Menu, and Options expose detached `model_ready` snapshots for
-Gallery and future presenters; they still render natively until a complete
-renderer and stack proof are available. Other supported contracts remain
-`pending_presenter`. “Native” is native by design. “Deferred” is reserved for
-the later complete Gold battle design.
+“Supported” denotes an audited Clean UI target contract with a registered
+production model adapter and presenter. Suppression still requires a complete
+offscreen frame and whole-visible-stack proof at runtime. “Native” is native by
+design. “Deferred” is reserved for a later host integration milestone.
+
+Current implementation status: all 37 supported records are integrated into
+product composition, production Gallery conversion, and aggregate tests. Hall
+of Fame is viewer/display-only; its induction phase remains native. Trade and
+other nested party-picker/animation stacks remain native whenever the complete
+stack cannot be proven. Shared `gold.CallerBox` remains native/pending because
+the public host API has no proven exact identity seam.
 
 | # | Exact ID | Target | Milestone | Envelope |
 |---:|---|---|---|---|
 | 1 | `Gen2BankOfMom` | Supported | 0.3.0 | XS |
-| 2 | `Gen2BattleState` | Deferred | Post-1.0 | -- |
+| 2 | `Gen2BattleState` | Supported: stable frames | 1.0.0 | BATTLE |
 | 3 | `Gen2BattleTransition` | Deferred | Post-1.0 | -- |
 | 4 | `Gen2BoxMenu` | Supported | 0.2.0 | XL |
 | 5 | `Gen2CardFlip` | Native | Native | -- |

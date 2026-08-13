@@ -34,9 +34,9 @@ for index, record in ipairs(catalog.records) do
   check(ok, "empty state validator is protected " .. record.id)
   check(not valid, "empty state fails open " .. record.id)
 end
-check(counts.supported == 36, "36 audited target contracts")
+check(counts.supported == 37, "37 audited target contracts")
 check(counts.native == 13, "13 native contracts")
-check(counts.deferred == 2, "2 deferred contracts")
+check(counts.deferred == 1, "1 deferred contract")
 
 local shared = Shared.build()
 check(#shared.records == 3, "three shared seams")
@@ -167,8 +167,13 @@ check(provider:inspect(nativeCard, {}).reason == "native_by_design",
 
 local battleClass = classFor(catalog.byId.Gen2BattleState)
 local battle = setmetatable({ screenId = "Gen2BattleState" }, battleClass)
-check(provider:inspect(battle, {}).reason == "deferred",
-  "deferred battle never suppresses")
+check(provider:inspect(battle, {}).reason == "shape_type",
+  "incomplete battle remains native")
+local validBattle = setmetatable({
+  screenId = "Gen2BattleState", phase = "menu", battle = {},
+}, battleClass)
+check(provider:inspect(validBattle, {}).reason == "presenter_unavailable",
+  "valid battle awaits its production presenter")
 check(provider:inspect({ screenId = "Gen2FutureScreen" }, {}).reason == "unknown_screen",
   "future id remains native")
 
@@ -193,7 +198,7 @@ check(provider:prepare(malformed, {}).suppress == false,
   "valid-to-invalid drift restores native immediately")
 
 local proved, stackReason = provider:assessStack({ validMain, battle }, {})
-check(proved == nil and stackReason == "battle_owned",
-  "battle veto covers the complete visible stack")
+check(proved == nil and stackReason == "shape_type",
+  "incomplete battle keeps the complete visible stack native")
 
 print(("Gen2 contract tests: %d checks passed"):format(checks))

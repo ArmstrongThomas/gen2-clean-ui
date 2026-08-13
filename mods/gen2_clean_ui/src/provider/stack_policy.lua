@@ -1,15 +1,14 @@
 return function()
   local StackPolicy = {}
 
-  local BATTLE_IDS = {
-    Gen2BattleState = true,
-    Gen2BattleTransition = true,
-  }
+  local BATTLE_IDS = { Gen2BattleTransition = true }
 
   function StackPolicy.containsBattle(states, context)
     if context and context.battleActive then return true end
-    for _, state in ipairs(states or {}) do
-      if type(state) == "table" and BATTLE_IDS[rawget(state, "screenId")] then
+    for index, state in ipairs(states or {}) do
+      local id = type(state) == "table" and rawget(state, "screenId") or nil
+      if BATTLE_IDS[id] or (id == "Gen2BattleState"
+          and index < #(states or {})) then
         return true
       end
     end
@@ -38,4 +37,3 @@ return function()
 
   return StackPolicy
 end
-

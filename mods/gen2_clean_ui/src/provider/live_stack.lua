@@ -21,6 +21,27 @@ return function(ctx)
   function LiveStack.visible(provider, game, context)
     local states = statesFor(game)
     if not states or #states == 0 then return {} end
+    -- An opaque battle owns the full frame. Lower layers may be the overworld
+    -- or the transition that handed control to it, but a battle-owned child
+    -- menu above the battle must keep the entire native stack visible.
+    local battleIndex
+    for index, state in ipairs(states) do
+      if type(state) == "table" and rawget(state, "screenId")
+          == "Gen2BattleState" then
+        battleIndex = index
+      end
+    end
+    if battleIndex then
+      if battleIndex ~= #states then return {} end
+      local battle = states[battleIndex]
+      local record = provider:recordForState(battle, context)
+      if not record or record.support ~= "supported"
+          or not provider.presenters[record.id]
+          or not enabled(provider, record) then
+        return {}
+      end
+      return { battle }
+    end
     if StackPolicy.containsBattle(states, context) then return {} end
 
     -- Hiding only the top opaque state would make StateStack:visibleBase()
