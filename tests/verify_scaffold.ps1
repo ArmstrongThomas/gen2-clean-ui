@@ -63,13 +63,15 @@ foreach ($relative in $requiredModules) {
 
 $catalogPath = Join-Path $modRoot "src\contracts\catalog.lua"
 $catalogText = Get-Content -LiteralPath $catalogPath -Raw
-$matches = [regex]::Matches($catalogText, '(?m)^    "(Gen2[^"\r\n]+)",$')
+$matches = [regex]::Matches($catalogText,
+  '(?m)^    "(Gen2[^"\r\n]+)",\r?$')
 $ids = @($matches | ForEach-Object { $_.Groups[1].Value })
 Assert-True ($ids.Count -eq 51) "catalog must enumerate exactly 51 official IDs"
 Assert-True (@($ids | Select-Object -Unique).Count -eq 51) "catalog IDs must be unique"
 
 $optionsText = Get-Content -LiteralPath (Join-Path $modRoot "options.lua") -Raw
-$optionKeys = [regex]::Matches($optionsText, '(?m)^    key = "([^"]+)",$')
+$optionKeys = [regex]::Matches($optionsText,
+  '(?m)^    key = "([^"]+)",\r?$')
 Assert-True ($optionKeys.Count -eq 12) "clean settings schema must have 12 rows"
 
 $lock = Get-Content -LiteralPath (Join-Path $root "clean-ui-core.lock.json") -Raw |
