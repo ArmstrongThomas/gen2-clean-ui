@@ -12,6 +12,7 @@ permissions:
 jobs:
   test:
     runs-on: windows-latest
+    timeout-minutes: 10
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -22,4 +23,6 @@ jobs:
 
       - name: Verify scaffold, core lock, and sandbox
         shell: pwsh
+        env:
+          GEN2_CLEAN_UI_HEADLESS: "1"
         run: .\tests\verify_scaffold.ps1

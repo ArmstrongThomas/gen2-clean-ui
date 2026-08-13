@@ -15,6 +15,7 @@ concurrency:
 jobs:
   validate:
     runs-on: windows-latest
+    timeout-minutes: 10
     outputs:
       version: ${{ steps.metadata.outputs.version }}
       tag: ${{ steps.metadata.outputs.tag }}
@@ -49,12 +50,15 @@ jobs:
 
       - name: Run release gate
         shell: pwsh
+        env:
+          GEN2_CLEAN_UI_HEADLESS: "1"
         run: .\tests\verify_scaffold.ps1
 
   release:
     needs: validate
     if: needs.validate.outputs.releaseable == 'true'
     runs-on: windows-latest
+    timeout-minutes: 10
     steps:
       - name: Check out source
         uses: actions/checkout@v4
