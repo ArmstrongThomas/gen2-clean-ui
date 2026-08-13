@@ -1,0 +1,133 @@
+return function(ctx)
+  local mod = ctx.mod
+  local Settings = ctx.load("settings")
+  local Catalog = ctx.load("contracts.catalog")
+  local Shared = ctx.load("contracts.shared")
+  local Provider = ctx.load("provider.init")
+  local FoundationModels = ctx.load("presenters.foundation_models")
+  local FoundationPresenters = ctx.load("presenters.foundation_presenters")
+  local SharedModels = ctx.load("presenters.shared_models")
+  local SharedPresenters = ctx.load("presenters.shared_presenters")
+  local PartyModels = ctx.load("presenters.party_models")
+  local PartyPresenters = ctx.load("presenters.party_presenters")
+  local PackPresenter = ctx.load("presenters.pack")
+  local PokedexPresenter = ctx.load("presenters.pokedex")
+  local TrainerCardPresenter = ctx.load("presenters.trainer_card")
+  local SaveMenuPresenter = ctx.load("presenters.save_menu")
+  local NamingStorageModels = ctx.load("presenters.naming_storage_models")
+  local NamingStoragePresenters = ctx.load(
+    "presenters.naming_storage_presenters")
+  local ProductionGalleryModels = ctx.load(
+    "presenters.production_gallery_models")
+  local CoreBridge = ctx.load("integration.core_bridge")
+  local Gallery = ctx.load("gallery.catalog")
+
+  local Product = {}
+
+  local function append(target, source)
+    for _, value in ipairs(source or {}) do target[#target + 1] = value end
+    return target
+  end
+
+  local function mustRegister(label, callback)
+    local ok, code, detail = callback()
+    if not ok then
+      error(("unable to register %s: %s: %s"):format(label,
+        tostring(code), tostring(detail)), 0)
+    end
+  end
+
+  local function markImplemented(catalog, ids)
+    for _, id in ipairs(ids or {}) do
+      local record = catalog.byId[id]
+      if record then record.implementation = "production_presenter" end
+    end
+  end
+
+  function Product.start()
+    local settings = Settings.new(mod, ctx)
+    local catalog = Catalog.build()
+    local shared = Shared.build()
+    local provider = Provider.new({
+      catalog = catalog,
+      shared = shared,
+      mod = mod,
+    })
+    mustRegister("Gen2 foundation models",
+      function() return FoundationModels.register(provider) end)
+    mustRegister("shared models",
+      function() return SharedModels.register(provider) end)
+    mustRegister("Gen2 Party/Summary models",
+      function() return PartyModels.register(provider) end)
+    mustRegister("Gen2 Naming/Storage models",
+      function() return NamingStorageModels.register(provider) end)
+    mustRegister("Gen2 Pack",
+      function() return PackPresenter.register(provider) end)
+    mustRegister("Gen2 Pokedex",
+      function() return PokedexPresenter.register(provider) end)
+    mustRegister("Gen2 Trainer Card",
+      function() return TrainerCardPresenter.register(provider) end)
+    mustRegister("Gen2 Save",
+      function() return SaveMenuPresenter.register(provider) end)
+    mustRegister("Gen2 foundation presenters",
+      function() return FoundationPresenters.register(provider) end)
+    mustRegister("shared presenters",
+      function() return SharedPresenters.register(provider) end)
+    mustRegister("Gen2 Party/Summary presenters",
+      function() return PartyPresenters.register(provider) end)
+    mustRegister("Gen2 Naming/Storage presenters",
+      function() return NamingStoragePresenters.register(provider) end)
+
+    local productionScreens = {}
+    append(productionScreens, FoundationModels.ids())
+    append(productionScreens, PartyModels.ids())
+    append(productionScreens, {
+      "Gen2PackMenu", "Gen2PokedexMenu", "Gen2TrainerCard", "Gen2SaveMenu",
+    })
+    append(productionScreens, NamingStorageModels.ids())
+    markImplemented(catalog, productionScreens)
+    markImplemented(shared, SharedModels.ids())
+
+    local galleryFixtures = FoundationModels.galleryFixtures()
+    append(galleryFixtures, SharedModels.galleryFixtures())
+    append(galleryFixtures, ProductionGalleryModels.galleryFixtures())
+    local gallery = Gallery.build(catalog, shared, galleryFixtures)
+    provider.gallery = gallery
+    local bridge = CoreBridge.new(mod, ctx, {
+      provider = provider,
+      settings = settings,
+      gallery = gallery,
+    })
+
+    if bridge.status == "ready" then mod.exports.cleanUiHost = bridge.host end
+    mod.exports.gen2CleanUi = {
+      version = mod.version,
+      contractVersion = "gen2-v0.1.79",
+      coreStatus = bridge.status,
+      contracts = catalog.records,
+      sharedContracts = shared.records,
+      gallery = gallery,
+      inspect = function(state, context)
+        return provider:inspect(state, context)
+      end,
+      extractModel = function(state, context)
+        return provider:extractModel(state, context)
+      end,
+      modelScreens = productionScreens,
+      presentationScreens = productionScreens,
+      sharedPresentationScreens = SharedModels.ids(),
+      resetDefaults = function()
+        return settings:resetDefaults()
+      end,
+    }
+
+    bridge:attachProvider(provider)
+    if mod.log and mod.log.info then
+      mod.log:info("loaded %d Gen2 contracts; core=%s",
+        #catalog.records, bridge.status)
+    end
+    return Product
+  end
+
+  return Product
+end

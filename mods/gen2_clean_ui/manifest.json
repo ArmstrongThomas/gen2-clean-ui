@@ -1,0 +1,21 @@
+{
+  "id": "gen2_clean_ui",
+  "name": "Gen2 Clean UI",
+  "version": "0.1.0",
+  "api": 2,
+  "entry": "main.lua",
+  "profile": "overhaul",
+  "games": ["gen2"],
+  "game_version": "0.0.0-dev",
+  "category": "UI",
+  "priority": 100,
+  "dependencies": [],
+  "optional_dependencies": [],
+  "conflicts": ["gen1_modern_ui"],
+  "incompatible": [],
+  "github": "ArmstrongThomas/gen2-clean-ui",
+  "options_schema": "options.lua",
+  "experimental": true,
+  "affects_link": false,
+  "description": "Clean, modular, native-safe UI framework for Pokemon Gold"
+}
