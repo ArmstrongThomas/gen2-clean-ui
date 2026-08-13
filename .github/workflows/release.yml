@@ -116,6 +116,7 @@ jobs:
           VERSION: ${{ needs.validate.outputs.version }}
           ASSET: ${{ needs.validate.outputs.asset }}
           PRERELEASE: ${{ needs.validate.outputs.prerelease }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if (-not (gh release view $env:TAG 2>$null)) {
             $args = @('release', 'create', $env:TAG, $env:ASSET, '--title', "Gen2 Clean UI v$env:VERSION", '--notes-file', 'release-notes.md')
