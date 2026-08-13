@@ -1,0 +1,25 @@
+name: Gen2 Clean UI checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install LÖVE
+        shell: pwsh
+        run: choco install love --yes --no-progress
+
+      - name: Verify scaffold, core lock, and sandbox
+        shell: pwsh
+        run: .\tests\verify_scaffold.ps1

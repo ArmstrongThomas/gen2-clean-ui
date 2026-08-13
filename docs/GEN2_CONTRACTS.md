@@ -65,7 +65,9 @@ the later complete Gold battle design.
 | 51 | `Gen2UnownPuzzle` | Native | Native | -- |
 
 Shared, unregistered seams are tracked as `shared.TextBox`,
-`shared.ChoiceBox`, and `gold.CallerBox`. Anonymous `PrizeMenu` is denied;
+`shared.ChoiceBox`, and `gold.CallerBox`. `CallerBox` remains explicitly
+native/pending because the public host API has no proven exact identity seam.
+Anonymous `PrizeMenu` is denied;
 prize-counter fixtures use `Gen2ScriptMenu`.
 
 The executable source of truth is

@@ -8,6 +8,12 @@ return function(ctx)
   local SaveMenuPresenter = ctx.load("presenters.save_menu")
   local NamingStoragePresenters = ctx.load(
     "presenters.naming_storage_presenters")
+  local PokegearPresenters = ctx.load("presenters.pokegear")
+  local MapRadioPresenters = ctx.load("presenters.map_radio")
+  local ServicesCommercePresenters = ctx.load(
+    "presenters.services_commerce_presenters")
+  local MailSpecialtyPresenters = ctx.load(
+    "presenters.mail_specialty_presenters")
   local Gallery = {}
 
   local function slug(id)
@@ -41,21 +47,35 @@ return function(ctx)
         or screenId == "Gen2BoxMenu"
         or screenId == "Gen2ItemPcMenu" then
       return NamingStoragePresenters.convert(screenId, sourceModel)
+    elseif screenId == "Gen2Pokegear" then
+      return PokegearPresenters.convert(sourceModel)
+    elseif screenId == "Gen2MapRadio" then
+      return MapRadioPresenters.convert(sourceModel)
+    elseif ServicesCommercePresenters.presenterFor(screenId) then
+      return ServicesCommercePresenters.convert(screenId, sourceModel)
+    elseif MailSpecialtyPresenters.presenterFor(screenId) then
+      return MailSpecialtyPresenters.convert(screenId, sourceModel)
     end
     return FoundationPresenters.convert(screenId, sourceModel)
   end
 
   function Gallery.build(catalog, shared, modelFixtures)
-    local models = {}
+    local models, sourceFixtures = {}, {}
     for _, fixture in ipairs(modelFixtures or {}) do
-      if type(fixture) == "table" and type(fixture.model) == "table" then
-        models[modelKey(fixture.screenId, fixture.variant)] = fixture.model
+      if type(fixture) == "table" then
+        local key = modelKey(fixture.screenId, fixture.variant)
+        sourceFixtures[key] = fixture
+        if type(fixture.model) == "table" then models[key] = fixture.model end
       end
     end
     local fixtures = {}
     for _, record in ipairs(catalog.records) do
       for _, variant in ipairs(record.gallery or { "status" }) do
-        local sourceModel = models[modelKey(record.id, variant)]
+        local sourceFixture = sourceFixtures[modelKey(record.id, variant)]
+        local sourceModel
+        if not (sourceFixture and sourceFixture.expectedNative) then
+          sourceModel = models[modelKey(record.id, variant)]
+        end
         local model = sourceModel and convert(record.id, sourceModel) or nil
         fixtures[#fixtures + 1] = {
           id = ("gen2.%s.%s.%s"):format(record.family, slug(record.id), variant),
@@ -72,13 +92,19 @@ return function(ctx)
           modelReady = model ~= nil,
           model = model,
           sourceModel = sourceModel,
-          nativeReason = record.nativeReason,
+          nativeReason = record.nativeReason
+            or (sourceFixture and sourceFixture.nativeDetail),
+          nativeCode = sourceFixture and sourceFixture.nativeCode,
         }
       end
     end
     for _, record in ipairs(shared.records) do
       for _, variant in ipairs(record.gallery or { "status" }) do
-        local sourceModel = models[modelKey(record.id, variant)]
+        local sourceFixture = sourceFixtures[modelKey(record.id, variant)]
+        local sourceModel
+        if not (sourceFixture and sourceFixture.expectedNative) then
+          sourceModel = models[modelKey(record.id, variant)]
+        end
         local model = sourceModel and SharedPresenters.convert(
           record.id, sourceModel) or nil
         fixtures[#fixtures + 1] = {
@@ -89,6 +115,8 @@ return function(ctx)
           milestone = record.milestone, preset = record.preset,
           synthetic = true, statusOnly = model == nil,
           modelReady = model ~= nil, model = model, sourceModel = sourceModel,
+          nativeReason = sourceFixture and sourceFixture.nativeDetail,
+          nativeCode = sourceFixture and sourceFixture.nativeCode,
         }
       end
     end

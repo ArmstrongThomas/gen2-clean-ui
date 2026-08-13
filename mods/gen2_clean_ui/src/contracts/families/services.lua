@@ -192,9 +192,9 @@ return function(ctx)
       col = "number", tiles = "table",
     })
     if not ok then return nil, code, detail end
-    ok, code, detail = V.integer(state.row, "row", 1)
+    ok, code, detail = V.integer(state.row, "row", 0, 5)
     if not ok then return nil, code, detail end
-    return V.integer(state.col, "col", 1, 10)
+    return V.integer(state.col, "col", 0, 9)
   end
 
   local function mailMenuBase(state)
@@ -257,7 +257,7 @@ return function(ctx)
     ok, code, detail = V.enum(state.martType, "martType",
       { "STANDARD", "BITTER", "BARGAIN", "PHARMACY" })
     if not ok then return nil, code, detail end
-    ok, code, detail = V.integer(state.martId, "martId", 1)
+    ok, code, detail = V.integer(state.martId, "martId", 0)
     if not ok then return nil, code, detail end
     ok, code, detail = V.array(state.entries, "entries", 0)
     if not ok then return nil, code, detail end
@@ -379,7 +379,7 @@ return function(ctx)
       id = "number", row = "table",
     })
     if not ok then return nil, code, detail end
-    return V.integer(state.id, "id", 1)
+    return V.integer(state.id, "id", 0, 5)
   end
 
   local function tradeMode(state)
@@ -449,7 +449,8 @@ return function(ctx)
       photoBase, nil, { "photo" }),
     supported("Gen2Pokegear", "src.ui.gen2.Pokegear", "L", true,
       pokegearBase, pokegearMode,
-      { "strip", "clock", "map", "fly", "radio", "phone", "call", "no_signal" }),
+      { "strip", "clock", "map", "fly", "radio", "phone",
+        "phone_submenu", "call", "no_signal" }),
     supported("Gen2ScriptMenu", "src.ui.gen2.ScriptMenu", "M", false,
       scriptBase, nil, { "vertical", "grid", "money", "coins", "prizes" }),
     supported("Gen2TradeMenu", "src.ui.gen2.TradeMenu", "L", false,

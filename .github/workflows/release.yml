@@ -1,0 +1,120 @@
+name: Build and release Gen2 Clean UI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gen2-clean-ui-release
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+      tag: ${{ steps.metadata.outputs.tag }}
+      asset: ${{ steps.metadata.outputs.asset }}
+      prerelease: ${{ steps.metadata.outputs.prerelease }}
+      releaseable: ${{ steps.metadata.outputs.releaseable }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install LÖVE
+        shell: pwsh
+        run: choco install love --yes --no-progress
+
+      - name: Validate manifest and version
+        id: metadata
+        shell: pwsh
+        run: |
+          $manifest = Get-Content -LiteralPath 'mods\gen2_clean_ui\manifest.json' -Raw | ConvertFrom-Json
+          $version = [string]$manifest.version
+          if ($version -notmatch '^(0|[1-9]\d*)\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') {
+            throw "manifest version is not semver: $version"
+          }
+          if ($manifest.id -ne 'gen2_clean_ui') { throw 'manifest id must remain gen2_clean_ui' }
+          $prerelease = $version.Contains('-')
+          $releaseable = $manifest.game_version -ne '0.0.0-dev'
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "tag=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "asset=gen2_clean_ui-$version.zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "prerelease=$($prerelease.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "releaseable=$($releaseable.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Run release gate
+        shell: pwsh
+        run: .\tests\verify_scaffold.ps1
+
+  release:
+    needs: validate
+    if: needs.validate.outputs.releaseable == 'true'
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build launcher-ready archive
+        shell: pwsh
+        run: |
+          .\build_release.ps1
+          $asset = Join-Path $PWD '${{ needs.validate.outputs.asset }}'
+          if (-not (Test-Path -LiteralPath $asset -PathType Leaf)) { throw "Missing release asset: $asset" }
+
+      - name: Create version tag if needed
+        shell: pwsh
+        env:
+          TAG: ${{ needs.validate.outputs.tag }}
+        run: |
+          git fetch --tags --force
+          if (-not (git show-ref --tags --verify --quiet "refs/tags/$env:TAG")) {
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git tag -a $env:TAG -m "Gen2 Clean UI $($env:TAG.Substring(1))"
+            git push origin $env:TAG
+          }
+
+      - name: Write release notes
+        shell: pwsh
+        env:
+          TAG: ${{ needs.validate.outputs.tag }}
+          VERSION: ${{ needs.validate.outputs.version }}
+          ASSET: ${{ needs.validate.outputs.asset }}
+        run: |
+          $previous = @(git tag --sort=-version:refname | Where-Object { $_ -match '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$' -and $_ -ne $env:TAG } | Select-Object -First 1)
+          if ($previous.Count -gt 0) { $changes = git log --pretty=format:'- %s (%h)' "$($previous[0])..HEAD" } else { $changes = git log -n 20 --pretty=format:'- %s (%h)' }
+          if ([string]::IsNullOrWhiteSpace(($changes -join "`n"))) { $changes = '- Initial release.' }
+          $assetPath = Join-Path $PWD $env:ASSET
+          $sha256 = (Get-FileHash -LiteralPath $assetPath -Algorithm SHA256).Hash
+          @(
+            "# Gen2 Clean UI v$env:VERSION"
+            ''
+            'Modular, fail-open Gen2 Clean UI package.'
+            ''
+            '## Changes in this release'
+            ''
+            $changes
+            ''
+            "**SHA-256:** ``$sha256``"
+          ) | Set-Content -LiteralPath release-notes.md -Encoding utf8
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          TAG: ${{ needs.validate.outputs.tag }}
+          VERSION: ${{ needs.validate.outputs.version }}
+          ASSET: ${{ needs.validate.outputs.asset }}
+          PRERELEASE: ${{ needs.validate.outputs.prerelease }}
+        run: |
+          if (-not (gh release view $env:TAG 2>$null)) {
+            $args = @('release', 'create', $env:TAG, $env:ASSET, '--title', "Gen2 Clean UI v$env:VERSION", '--notes-file', 'release-notes.md')
+            if ($env:PRERELEASE -eq 'true') { $args += '--prerelease' }
+            & gh @args
+          }

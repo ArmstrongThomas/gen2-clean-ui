@@ -41,6 +41,44 @@ check(counts.deferred == 2, "2 deferred contracts")
 local shared = Shared.build()
 check(#shared.records == 3, "three shared seams")
 check(shared.denyAnonymous.PrizeMenu == true, "anonymous PrizeMenu denied")
+check(shared.byId["gold.CallerBox"].support == "native"
+  and shared.byId["gold.CallerBox"].implementation == "pending_native"
+  and type(shared.byId["gold.CallerBox"].nativeReason) == "string",
+  "CallerBox remains explicitly native without an exact host identity seam")
+
+local function accepts(recordId, state, message)
+  local record = catalog.byId[recordId]
+  local ok, accepted = pcall(record.validateBase, state)
+  check(ok and accepted == true, message)
+end
+
+accepts("Gen2MartMenu", {
+  save={}, items={}, marts={}, martType="STANDARD", martId=0,
+  entries={}, index=1, scroll=0, phase="buy",
+}, "Mart accepts the host's zero-based martId")
+local mart = {
+  save={}, items={}, marts={}, martType="STANDARD", martId=-1,
+  entries={}, index=1, scroll=0, phase="buy",
+}
+check(select(2, catalog.byId.Gen2MartMenu.validateBase(mart))
+  == "shape_range", "Mart rejects negative martId")
+
+accepts("Gen2MailCompose", {
+  text="", lower=false, row=0, col=0, tiles={},
+}, "Mail Compose accepts the host's zero-based origin")
+accepts("Gen2MailCompose", {
+  text="", lower=false, row=5, col=9, tiles={},
+}, "Mail Compose accepts the host's zero-based maximum cursor")
+
+accepts("Gen2TradeMenu", {
+  save={}, data={}, eventTables={}, id=0, row={},
+}, "Trade accepts the host's zero-based first trade id")
+accepts("Gen2TradeMenu", {
+  save={}, data={}, eventTables={}, id=5, row={},
+}, "Trade accepts the host's zero-based maximum trade id")
+local tradeInvalid = { save={}, data={}, eventTables={}, id=6, row={} }
+check(select(2, catalog.byId.Gen2TradeMenu.validateBase(tradeInvalid))
+  == "shape_range", "Trade rejects ids outside the host range")
 
 local gallery = Gallery.build(catalog, shared)
 check(gallery.count > 54, "variant-rich Gallery status catalog")
@@ -159,4 +197,3 @@ check(proved == nil and stackReason == "battle_owned",
   "battle veto covers the complete visible stack")
 
 print(("Gen2 contract tests: %d checks passed"):format(checks))
-

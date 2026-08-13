@@ -17,6 +17,9 @@ return function(ctx)
     Gen2ElevatorMenu={ "floors" },
     Gen2MoveDeleter={ "moves" },
   }
+  local NATIVE = {
+    ["Gen2DayCareMenu\0party_picker"] = "native_child",
+  }
   local definitions = {}
 
   local function clone(value)
@@ -30,6 +33,9 @@ return function(ctx)
       screenId .. "." .. variant .. " must be function-free")
     definitions[#definitions + 1] = {
       screenId=screenId, variant=variant, model=model,
+      expectedNative=NATIVE[screenId .. "\0" .. variant] ~= nil,
+      nativeCode=NATIVE[screenId .. "\0" .. variant],
+      nativeDetail=NATIVE[screenId .. "\0" .. variant],
     }
   end
 
@@ -278,6 +284,9 @@ return function(ctx)
       output[index] = {
         screenId=definition.screenId, variant=definition.variant,
         model=clone(definition.model),
+        expectedNative=definition.expectedNative,
+        nativeCode=definition.nativeCode,
+        nativeDetail=definition.nativeDetail,
       }
     end
     return output

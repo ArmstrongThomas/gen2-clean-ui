@@ -371,5 +371,10 @@ return function(ctx)
     return model
   end
 
+  function Presenters.presenterFor(screenId)
+    if not CONVERT[screenId] then return nil end
+    return presenter(screenId)
+  end
+
   return Presenters
 end

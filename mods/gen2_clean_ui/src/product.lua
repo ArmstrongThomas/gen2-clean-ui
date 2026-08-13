@@ -17,8 +17,23 @@ return function(ctx)
   local NamingStorageModels = ctx.load("presenters.naming_storage_models")
   local NamingStoragePresenters = ctx.load(
     "presenters.naming_storage_presenters")
+  local PokegearPresenters = ctx.load("presenters.pokegear")
+  local MapRadioPresenters = ctx.load("presenters.map_radio")
+  local ServicesCommerceModels = ctx.load(
+    "presenters.services_commerce_models")
+  local ServicesCommercePresenters = ctx.load(
+    "presenters.services_commerce_presenters")
+  local MailSpecialtyModels = ctx.load("presenters.mail_specialty_models")
+  local MailSpecialtyPresenters = ctx.load(
+    "presenters.mail_specialty_presenters")
   local ProductionGalleryModels = ctx.load(
     "presenters.production_gallery_models")
+  local PokegearGalleryModels = ctx.load(
+    "presenters.pokegear_gallery_models")
+  local ServicesCommerceGalleryModels = ctx.load(
+    "presenters.services_commerce_gallery_models")
+  local MailSpecialtyGalleryModels = ctx.load(
+    "presenters.mail_specialty_gallery_models")
   local CoreBridge = ctx.load("integration.core_bridge")
   local Gallery = ctx.load("gallery.catalog")
 
@@ -61,6 +76,15 @@ return function(ctx)
       function() return PartyModels.register(provider) end)
     mustRegister("Gen2 Naming/Storage models",
       function() return NamingStorageModels.register(provider) end)
+    mustRegister("Gen2 Pokegear/MapRadio", function()
+      local ok, code, detail = PokegearPresenters.register(provider)
+      if not ok then return nil, code, detail end
+      return MapRadioPresenters.register(provider)
+    end)
+    mustRegister("Gen2 services/commerce models",
+      function() return ServicesCommerceModels.register(provider) end)
+    mustRegister("Gen2 mail/specialty models",
+      function() return MailSpecialtyModels.register(provider) end)
     mustRegister("Gen2 Pack",
       function() return PackPresenter.register(provider) end)
     mustRegister("Gen2 Pokedex",
@@ -77,6 +101,10 @@ return function(ctx)
       function() return PartyPresenters.register(provider) end)
     mustRegister("Gen2 Naming/Storage presenters",
       function() return NamingStoragePresenters.register(provider) end)
+    mustRegister("Gen2 services/commerce presenters",
+      function() return ServicesCommercePresenters.register(provider) end)
+    mustRegister("Gen2 mail/specialty presenters",
+      function() return MailSpecialtyPresenters.register(provider) end)
 
     local productionScreens = {}
     append(productionScreens, FoundationModels.ids())
@@ -85,12 +113,18 @@ return function(ctx)
       "Gen2PackMenu", "Gen2PokedexMenu", "Gen2TrainerCard", "Gen2SaveMenu",
     })
     append(productionScreens, NamingStorageModels.ids())
+    append(productionScreens, { "Gen2Pokegear", "Gen2MapRadio" })
+    append(productionScreens, ServicesCommerceModels.ids())
+    append(productionScreens, MailSpecialtyModels.ids())
     markImplemented(catalog, productionScreens)
     markImplemented(shared, SharedModels.ids())
 
     local galleryFixtures = FoundationModels.galleryFixtures()
     append(galleryFixtures, SharedModels.galleryFixtures())
     append(galleryFixtures, ProductionGalleryModels.galleryFixtures())
+    append(galleryFixtures, PokegearGalleryModels.galleryFixtures())
+    append(galleryFixtures, ServicesCommerceGalleryModels.galleryFixtures())
+    append(galleryFixtures, MailSpecialtyGalleryModels.galleryFixtures())
     local gallery = Gallery.build(catalog, shared, galleryFixtures)
     provider.gallery = gallery
     local bridge = CoreBridge.new(mod, ctx, {

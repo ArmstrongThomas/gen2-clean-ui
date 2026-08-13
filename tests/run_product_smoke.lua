@@ -112,18 +112,20 @@ assert(type(registeredScreens.Gen2CleanUiShell) == "table",
 assert(#mod.exports.gen2CleanUi.contracts == 51, "51 exported contracts")
 assert(type(mod.exports.gen2CleanUi.extractModel) == "function",
   "foundation model extractor export")
-assert(#mod.exports.gen2CleanUi.modelScreens == 14,
-  "foundation and 0.2 gameplay model contracts")
-assert(#mod.exports.gen2CleanUi.presentationScreens == 14,
-  "foundation and 0.2 production presenters")
+assert(#mod.exports.gen2CleanUi.modelScreens == 36,
+  "foundation, 0.2, and 0.3 model contracts")
+assert(#mod.exports.gen2CleanUi.presentationScreens == 36,
+  "foundation, 0.2, and 0.3 production presenters")
 local implemented = {}
 for _, record in ipairs(mod.exports.gen2CleanUi.contracts) do
   implemented[record.id] = record.implementation
 end
 assert(implemented.Gen2PartyMenu == "production_presenter"
   and implemented.Gen2BoxMenu == "production_presenter"
-  and implemented.Gen2Pokegear == "pending_presenter",
-  "runtime metadata distinguishes production and pending contracts")
+  and implemented.Gen2Pokegear == "production_presenter"
+  and implemented.Gen2MartMenu == "production_presenter"
+  and implemented.Gen2MailCompose == "production_presenter",
+  "runtime metadata distinguishes production and native/pending contracts")
 local modelFixtureCount = 0
 for _, fixture in ipairs(mod.exports.gen2CleanUi.gallery.fixtures) do
   if fixture.modelReady then
@@ -131,8 +133,8 @@ for _, fixture in ipairs(mod.exports.gen2CleanUi.gallery.fixtures) do
     assert(type(fixture.model) == "table", "model-backed Gallery fixture")
   end
 end
-assert(modelFixtureCount == 59,
-  "foundation, shared, and all 47 gameplay/storage Gallery fixtures")
+assert(modelFixtureCount == 113,
+  "foundation, shared, and all integrated 0.2/0.3 Gallery fixtures")
 assert(#mod.exports.gen2CleanUi.sharedPresentationScreens == 2,
   "TextBox and ChoiceBox shared presenters are exported")
 
