@@ -69,16 +69,17 @@ return function(ctx)
     local lineIndex = math.max(1, math.min(
       Data.integer(rawget(state, "lineIndex"), 1), #page))
     local shown = rawget(state, "shown")
-    local shownCount = math.max(1, math.min(2,
-      type(shown) == "table" and #shown or 1))
-    local first = math.max(1, lineIndex - shownCount + 1)
     local output = {}
-    for index = first, lineIndex do
+    local current = type(shown) == "table" and rawget(shown, #shown) or nil
+    for index = 1, lineIndex do
       local text = tostring(rawget(page, index) or "")
-      local shownLine = type(shown) == "table"
-        and rawget(shown, index - first + 1) or nil
-      text = displayText(glyphPrefix(text,
-        type(shownLine) == "table" and #shownLine or 0))
+      if index == lineIndex then
+        -- Earlier lines on this source page are already fully revealed, even
+        -- though the host keeps only its last two raster lines in `shown`.
+        -- The active line still respects the live typewriter prefix.
+        text = glyphPrefix(text, type(current) == "table" and #current or 0)
+      end
+      text = displayText(text)
       output[#output + 1] = text
     end
     return output

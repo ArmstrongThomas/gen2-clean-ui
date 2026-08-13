@@ -76,6 +76,20 @@ local textBundle = provider:extractModel(text, { game=game }).presentation
 check(textBundle.model.lines[1] == "POK\195\169MON"
   and textBundle.model.lines[2] == "REA",
   "TextBox reconstructs the two source-shown glyph prefixes")
+local revealedState = setmetatable({
+  game=game,
+  pages={{ "FIRST REVEALED LINE", "SECOND REVEALED LINE", "THIRD" }},
+  pageIndex=1, lineIndex=3,
+  codes=glyphs(5), charIndex=2,
+  shown={ glyphs(19), glyphs(2) },
+  waiting=false, done=false, blink=0,
+  boxTx=0, boxTy=12, boxTw=20, boxTh=6, maxCols=18,
+}, textClass)
+local revealedModel = provider:extractModel(revealedState, { game=game }).presentation.model
+check(#revealedModel.lines == 3
+  and revealedModel.lines[1] == "FIRST REVEALED LINE"
+  and revealedModel.lines[3] == "TH",
+  "TextBox exposes all revealed page lines while preserving the active prefix")
 check(textBundle.model.inputReady == false and textBundle.model.controls == "",
   "typing TextBox does not advertise an input it cannot accept")
 check(Data.isFunctionFree(textBundle.model),

@@ -15,9 +15,56 @@ local function normalizedLines(model)
   for _, value in ipairs(source) do
     local text = tostring(value or ""):gsub("%s+", " ")
       :gsub("^%s+", ""):gsub("%s+$", "")
-    if text ~= "" then parts[#parts + 1] = text end
+    if text ~= "" then
+      local previous = parts[#parts]
+      if previous and previous:sub(-1) == "-"
+          and text:match("^[%a%d]") then
+        -- Source dialogue sometimes uses a visible hyphen only because the
+        -- ROM line ended in the middle of a word. Once the source lines are
+        -- reflowed into the wider Clean UI envelope, that marker is no longer
+        -- part of the prose and should not survive as a dangling dash.
+        parts[#parts] = previous:sub(1, -2) .. text
+      else
+        parts[#parts + 1] = text
+      end
+    end
   end
   return { table.concat(parts, " ") }
+end
+
+local function nextCodepointEnd(text, position)
+  local byte = text:byte(position)
+  if not byte then return position end
+  local width = byte >= 240 and 4
+    or byte >= 224 and 3
+    or byte >= 192 and 2 or 1
+  return math.min(#text, position + width - 1)
+end
+
+local function hardWrapWord(font, word, width)
+  if word == "" or textWidth(font, word) <= width then return { word } end
+  local output, current, position = {}, "", 1
+  while position <= #word do
+    local finish = nextCodepointEnd(word, position)
+    local piece = word:sub(position, finish)
+    local candidate = current .. piece
+    if current ~= "" and textWidth(font, candidate) > width then
+      output[#output + 1] = current
+      current = piece
+    else
+      current = candidate
+    end
+    if textWidth(font, current) > width then
+      -- A single glyph can be wider than the available body. Keep it intact;
+      -- inserting a hyphen would change the source dialogue and make the
+      -- overflow look like a second, authored line break.
+      output[#output + 1] = current
+      current = ""
+    end
+    position = finish + 1
+  end
+  if current ~= "" then output[#output + 1] = current end
+  return #output > 0 and output or { word }
 end
 
 local function wrapLine(font, value, width)
@@ -26,11 +73,17 @@ local function wrapLine(font, value, width)
   local output, current = {}, ""
   for word in text:gmatch("%S+") do
     local candidate = current == "" and word or (current .. " " .. word)
-    if current ~= "" and textWidth(font, candidate) > width then
-      output[#output + 1] = current
-      current = word
-    else
+    if current == "" then
+      local chunks = hardWrapWord(font, word, width)
+      for index = 1, #chunks - 1 do output[#output + 1] = chunks[index] end
+      current = chunks[#chunks]
+    elseif textWidth(font, candidate) <= width then
       current = candidate
+    else
+      output[#output + 1] = current
+      local chunks = hardWrapWord(font, word, width)
+      for index = 1, #chunks - 1 do output[#output + 1] = chunks[index] end
+      current = chunks[#chunks]
     end
   end
   if current ~= "" then output[#output + 1] = current end
