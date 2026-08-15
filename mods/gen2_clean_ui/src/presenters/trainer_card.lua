@@ -2,6 +2,12 @@ return function(ctx)
   local Adapter = ctx.load("adapters.trainer_card")
   local Presenter = {}
 
+  local function canonical(model)
+    model.schema = "clean_ui.v3.presentation.v1"
+    model.apiVersion = 3
+    return model
+  end
+
   local function trainerRows(model)
     local time = model.playTime or {}
     return {
@@ -48,7 +54,7 @@ return function(ctx)
       and "A NEXT PAGE   LEFT/RIGHT PAGE   B/START BACK"
       or ("%d / 8 BADGES   LEFT/RIGHT PAGE   A/B BACK"):format(
         page.ownedCount or 0)
-    return {
+    return canonical({
       kind = "menu",
       preset = "L",
       opaque = true,
@@ -61,7 +67,7 @@ return function(ctx)
       description = description,
       sourcePage = model.page,
       sourcePageId = page.id,
-    }
+    })
   end
 
   function Presenter.prepare(_, state, context)

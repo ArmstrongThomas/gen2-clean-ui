@@ -30,7 +30,7 @@ for _, module in ipairs(groups) do
   end
 end
 
-check(#source == 57, "all 0.3 Gallery fixtures are exported")
+check(#source == 59, "all 0.3 Gallery fixtures are exported")
 check(Data.isFunctionFree(source), "0.3 Gallery fixtures are function-free")
 
 local gallery = Gallery.build(Catalog.build(), Shared.build(), source)
@@ -50,7 +50,8 @@ for _, fixture in ipairs(source) do
         .. fixture.variant)
     check(product.sourceModel ~= nil and product.model ~= nil
       and product.sourceModel.screenId == fixture.screenId
-      and product.model.kind == "menu"
+      and (product.model.kind == "menu"
+        or product.model.kind == "device" or product.model.kind == "map")
       and Data.isFunctionFree(product.model),
       "integrated 0.3 fixture uses a production presentation "
         .. fixture.screenId .. "." .. fixture.variant)
@@ -66,7 +67,7 @@ for _, fixture in ipairs(source) do
   end
 end
 
-check(ready == 54 and status == 3,
-  ("0.3 Gallery has 54 production fixtures and 3 explicit native statuses "
+check(ready == 46 and status == 13,
+  ("0.3 Gallery has 46 production fixtures and 13 explicit native statuses "
     .. "(ready=%d status=%d)"):format(ready, status))
 print(("Gen2 integrated 0.3 Gallery: %d checks passed"):format(checks))

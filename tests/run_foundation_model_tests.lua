@@ -256,8 +256,10 @@ check(prepared.valid and prepared.suppress
   and prepared.presentation.complete == true,
   "production presenter prepares a complete suppressible model")
 check(prepared.presentation.model.kind == "menu"
-  and prepared.presentation.model.preset == "M",
-  "Main production model uses the stable M menu envelope")
+  and prepared.presentation.model.preset == "M"
+  and prepared.presentation.model.apiVersion == 3
+  and prepared.presentation.model.schema == "clean_ui.v3.presentation.v1",
+  "Main production model uses the stable V3 M menu envelope")
 check(Data.isFunctionFree(prepared.presentation.model),
   "production presentation model remains function-free")
 
@@ -303,12 +305,16 @@ local convertedStart = assert(FoundationPresenters.convert(
   "Gen2StartMenu", quitBundle.model))
 check(convertedStart.preset == "NAV" and convertedStart.opaque == false,
   "Start production model keeps the tall NAV overlay")
+check(convertedStart.apiVersion == 3
+  and convertedStart.schema == "clean_ui.v3.presentation.v1",
+  "Start production model uses the canonical V3 schema")
 check(convertedStart.modal and convertedStart.modal.selected == 2,
   "Start confirmation becomes a stable modal overlay")
 local convertedOptions = assert(FoundationPresenters.convert(
   "Gen2OptionsMenu", optionBundle.model))
 check(convertedOptions.rows[2].right == "OFF"
-  and convertedOptions.selected == 2,
+  and convertedOptions.selected == 2
+  and convertedOptions.apiVersion == 3,
   "Options production rows preserve values and source selection")
 
 -- Gallery models come from the same production adapters and contain no calls.
@@ -336,7 +342,8 @@ for _, fixture in ipairs(gallery.fixtures) do
     check(fixture.sourceModel.screenId == screenId,
       "Gallery exact source model screen " .. fixture.id)
     check(fixture.model.kind == "menu"
-      and fixture.model.preset == catalog.byId[screenId].preset,
+      and fixture.model.preset == catalog.byId[screenId].preset
+      and fixture.model.apiVersion == 3,
       "Gallery uses the production presenter " .. fixture.id)
     check(Data.isFunctionFree(fixture.model),
       "Gallery model is function-free " .. fixture.id)

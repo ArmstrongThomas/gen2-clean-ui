@@ -57,12 +57,6 @@ return {
     },
   },
   {
-    key = "pointer_touch",
-    type = "toggle",
-    label = "POINTER & TOUCH",
-    default = true,
-  },
-  {
     key = "native_dialogue",
     type = "toggle",
     label = "NATIVE DIALOGUE",
@@ -99,4 +93,3 @@ return {
     default = false,
   },
 }
-

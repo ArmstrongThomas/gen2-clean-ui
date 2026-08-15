@@ -10,6 +10,19 @@ $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $lockPath = Join-Path $projectRoot "clean-ui-core.lock.json"
 $vendorRoot = Join-Path $projectRoot "mods\gen2_clean_ui\vendor\clean_ui_core"
 
+function Get-Sha256Hex([string]$Path) {
+  $sha = [Security.Cryptography.SHA256]::Create()
+  $stream = $null
+  try {
+    $stream = [IO.File]::OpenRead($Path)
+    return ([BitConverter]::ToString($sha.ComputeHash($stream))).Replace("-", "")
+  }
+  finally {
+    if ($null -ne $stream) { $stream.Dispose() }
+    $sha.Dispose()
+  }
+}
+
 if (-not [IO.File]::Exists($lockPath)) {
   throw "Missing core lock: $lockPath"
 }
@@ -43,7 +56,7 @@ foreach ($file in (Get-ChildItem -LiteralPath $vendorRoot -File -Recurse |
     Sort-Object FullName)) {
   $relative = $file.FullName.Substring($vendorRoot.Length + 1).Replace("\", "/")
   $actual[$relative] = @{
-    sha256 = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+    sha256 = (Get-Sha256Hex $file.FullName).ToLowerInvariant()
     size = $file.Length
   }
 }
@@ -68,4 +81,3 @@ foreach ($entry in $expected) {
 }
 
 Write-Host "Verified clean-ui-core $($lock.core.tag) at $($lock.core.commit)."
-

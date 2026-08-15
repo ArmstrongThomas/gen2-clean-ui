@@ -42,6 +42,31 @@ return function(ctx)
     } }
   end
 
+  local function nativeMapGraphic()
+    local maps = { johto={}, kanto={} }
+    for index = 1, 20 * 18 do
+      maps.johto[index] = (index - 1) % 0x30
+      maps.kanto[index] = (index + 6) % 0x30
+    end
+    local palettes = {}
+    for paletteIndex = 1, 6 do
+      palettes[paletteIndex] = {}
+      for colorIndex = 1, 4 do
+        local shade = (paletteIndex - 1) * 32 + (colorIndex - 1) * 16
+        palettes[paletteIndex][colorIndex] = { shade, shade, shade }
+      end
+    end
+    local palMap = {}
+    for index = 1, 96 do palMap[index] = (index - 1) % 6 + 1 end
+    return {
+      pokegear={
+        tiles="assets/generated/pokegear/gear.png", tilesWide=16,
+        sprites="assets/generated/pokegear/sprites.png", spritesWide=2,
+        maps=maps, palettes=palettes, palMap=palMap,
+      },
+    }
+  end
+
   local function saveData()
     return {
       phone={ list={ 1, 4, 15, 0, 0, 0, 0, 0, 0, 0 } },
@@ -71,6 +96,7 @@ return function(ctx)
       world={ map={ def={ id="NEW_BARK_TOWN", phoneService=true } } },
       stack={ states={} },
     }
+    data.gen2MenuGfx = nativeMapGraphic()
     return {
       screenId="Gen2Pokegear",
       game=game,
@@ -215,6 +241,16 @@ return function(ctx)
         screenId=fixture.screenId,
         variant=fixture.variant,
         model=bundle.model,
+        expectedNative=fixture.screenId == "Gen2Pokegear"
+          or fixture.screenId == "Gen2MapRadio",
+        nativeCode=(fixture.screenId == "Gen2Pokegear"
+          or fixture.screenId == "Gen2MapRadio")
+          and "native_by_design" or nil,
+        nativeDetail=(fixture.screenId == "Gen2Pokegear"
+          and "Pokegear replacement disabled pending a clean redesign; keep the official device renderer source-owned"
+          or fixture.screenId == "Gen2MapRadio"
+          and "Pokegear-family replacement disabled pending a clean redesign; keep the official radio renderer source-owned")
+          or nil,
       }
     end
     return output

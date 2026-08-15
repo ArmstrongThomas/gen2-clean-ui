@@ -5,6 +5,7 @@ return function(ctx)
   local function convert(id, source)
     if id == "shared.TextBox" then
       return {
+        schema="clean_ui.v3.presentation.v1", apiVersion=3,
         kind="dialogue", preset="XS", opaque=false, anchor="bottom",
         lines=source.lines, reflow=source.reflow, more=source.more,
         controls=source.controls, inputReady=source.inputReady,
@@ -12,6 +13,7 @@ return function(ctx)
     end
     if id == "shared.ChoiceBox" then
       return {
+        schema="clean_ui.v3.presentation.v1", apiVersion=3,
         kind="choice", preset="XS", opaque=false, anchor=source.anchor,
         selected=source.selected, pending=source.pending,
         inputReady=source.inputReady, options=source.options,

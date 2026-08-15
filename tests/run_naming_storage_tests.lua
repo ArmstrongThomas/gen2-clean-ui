@@ -7,6 +7,7 @@ local function run()
   local ctx = Helper.new(root)
   local Data = ctx.load("adapters.data")
   local Naming = ctx.load("adapters.naming_screen")
+  local NamingKeyboard = ctx.load("adapters.naming_keyboard")
   local CenterPc = ctx.load("adapters.storage_center_pc")
   local Pc = ctx.load("adapters.storage_pc")
   local Box = ctx.load("adapters.storage_box")
@@ -134,6 +135,50 @@ local function run()
     "Naming presenter is renderable and retains exact semantic geometry")
   check(Data.isFunctionFree(namingPresentation),
     "Naming presentation remains function-free")
+
+  -- The adapter must remain source-faithful until the released hook is
+  -- actually installed by the product bootstrap.
+  local nativeNickname = functionFree(assert(Naming.extract({
+    screenId="Gen2NamingScreen", kind={ prompt="NICKNAME?" },
+    isBox=false, maxLength=10, prompt="NICKNAME?", monName="TOTODILE",
+    lower=false, text="TOT", col=0, row=0, tiles={},
+  })), "Native nickname before hook")
+  check(nativeNickname.keyboard.letterRows == 4
+    and nativeNickname.keyboard.rows[4][1] == "-",
+    "Nickname remains native before the released grid hook is installed")
+
+  NamingKeyboard.setNicknameHookAvailable(true)
+  -- Caught-Pokemon nicknames use the Gen1 Modern compact keyboard through the
+  -- released Gen2 ui.naming.grid hook. Player/rival/box naming above remains
+  -- the exact stock board.
+  local nicknameState = {
+    screenId="Gen2NamingScreen", kind={ prompt="NICKNAME?" },
+    isBox=false, maxLength=10, prompt="NICKNAME?", monName="TOTODILE",
+    lower=false, text="TOT", col=0, row=0, tiles={},
+  }
+  local nickname = functionFree(assert(Naming.extract(nicknameState)),
+    "Caught-Pokemon nickname")
+  check(nickname.context == "nickname"
+    and nickname.keyboard.letterRows == 7
+    and nickname.keyboard.rows[6][9] == "9"
+    and nickname.keyboard.rows[7][1] == "0",
+    "Nickname uses the modern seven-row board with all digits")
+  check(nickname.keyboard.rows[7][2] == ""
+    and nickname.keyboard.rows[5][4] == "\xe2\x99\x82"
+    and nickname.keyboard.rows[5][5] == "\xe2\x99\x80",
+    "Nickname keeps modern gender/punctuation keys without a fake END cell")
+  nicknameState.lower=true
+  local nicknameLower = functionFree(assert(Naming.extract(nicknameState)),
+    "Lower caught-Pokemon nickname")
+  check(nicknameLower.keyboard.rows[1][1] == "a"
+    and nicknameLower.keyboard.rows[6][1] == "1"
+    and nicknameLower.keyboard.bottom[1].label == "UPPER",
+    "Nickname lower case changes glyphs while retaining source controls")
+  local nicknamePresentation = assert(Presenters.convert(
+    "Gen2NamingScreen", nicknameLower))
+  check(nicknamePresentation.naming.context == "nickname"
+    and nicknamePresentation.naming.keyboard.letterRows == 7,
+    "V3 naming presentation carries the modern keyboard payload")
 
   local save = {
     player={ name="GOLD" }, currentBox=2,

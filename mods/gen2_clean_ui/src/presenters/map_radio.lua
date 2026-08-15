@@ -2,6 +2,12 @@ return function(ctx)
   local Adapter = ctx.load("adapters.map_radio")
   local Presenter = {}
 
+  local function canonical(model)
+    model.schema = "clean_ui.v3.presentation.v1"
+    model.apiVersion = 3
+    return model
+  end
+
   function Presenter.convert(model)
     if type(model) ~= "table" or model.screenId ~= "Gen2MapRadio"
         or model.view ~= "station" or type(model.station) ~= "table"
@@ -9,7 +15,7 @@ return function(ctx)
       return nil, "invalid_model"
     end
     local lines = model.broadcast.lines or {}
-    return {
+    return canonical({
       kind="menu",
       preset="L",
       opaque=false,
@@ -31,7 +37,7 @@ return function(ctx)
       sourceView="station",
       hold=model.hold,
       inputReady=model.inputReady == true,
-    }
+    })
   end
 
   function Presenter.prepare(_, state, context)

@@ -17,7 +17,6 @@ return function()
 
   function StackPolicy.assess(states, context, inspect)
     if type(states) ~= "table" then return nil, "stack_unavailable" end
-    if StackPolicy.containsBattle(states, context) then return nil, "battle_owned" end
 
     local proved = {}
     for index, state in ipairs(states) do

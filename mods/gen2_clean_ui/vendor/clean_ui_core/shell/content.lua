@@ -1,12 +1,105 @@
 local requireCore = ...
+local PresentationModel = requireCore("presentation.model")
 
 local Content = {}
+
+local DIRECT_V3_KINDS = PresentationModel.KINDS
+local V3_PRESENTATION_SCHEMA = PresentationModel.SCHEMA
+
+local function isPresentationModel(value)
+  return PresentationModel.is(value)
+end
+
+function Content.isV3Screen(value)
+  return type(value) == "table"
+    and (value.type == "panel" or isPresentationModel(value))
+end
 
 local TITLES = {
   mod_menus = "MOD MENUS", settings = "CLEAN UI SETTINGS",
   compatibility = "COMPATIBILITY", gallery = "UI GALLERY",
   gallery_preview = "UI GALLERY PREVIEW",
 }
+
+local function selectedLabel(options, value)
+  for _, option in ipairs(options or {}) do
+    if option.value == value then return tostring(option.label or value) end
+  end
+  return tostring(value == nil and "----" or value)
+end
+
+-- Convert the public V3 panel vocabulary into the shared menu model used by
+-- the shell preview. This keeps V3 screen descriptors data-only while still
+-- giving editor/example contracts a real interactive host target.
+function Content.v3Model(screen)
+  if type(screen) ~= "table" then return nil end
+  if DIRECT_V3_KINDS[screen.kind] then
+    return isPresentationModel(screen) and screen or nil
+  end
+  if screen.kind == "menu" then return screen end
+  if screen.type ~= "panel" then return nil end
+  local rows = {}
+  for _, component in ipairs(screen.components or {}) do
+    if type(component) == "table" and component.visible ~= false then
+      local kind = component.type
+      if kind == "label" then
+        rows[#rows + 1] = { id=component.id, label=component.text or "",
+          kind="v3_label", disabled=true }
+      elseif kind == "button" then
+        rows[#rows + 1] = { id=component.id,
+          label=component.label or component.id, right=">",
+          kind="v3_action", action=component.action,
+          disabled=component.enabled == false }
+      elseif kind == "dropdown" then
+        rows[#rows + 1] = { id=component.id,
+          label=component.label or component.id,
+          right=selectedLabel(component.options, component.value),
+          value=component.value,
+          choices=component.options or {}, kind="v3_dropdown",
+          action=component.action,
+          disabled=component.enabled == false }
+      elseif kind == "list" then
+        for _, item in ipairs(component.items or {}) do
+          rows[#rows + 1] = { id=tostring(component.id) .. "."
+              .. tostring(item.id), label=item.label or item.id,
+            right=item.value == component.value and "*" or "",
+            kind="v3_item", action=component.action,
+            v3ComponentId=component.id, v3ItemId=item.id,
+            v3Value=item.value, disabled=component.enabled == false
+              or item.disabled == true }
+        end
+      elseif kind == "tabs" then
+        for _, tab in ipairs(component.tabs or {}) do
+          rows[#rows + 1] = { id=tostring(component.id) .. "."
+              .. tostring(tab.id), label=tab.label or tab.id,
+            right=tab.value == component.value and "*" or "",
+            kind="v3_item", action=component.action,
+            v3ComponentId=component.id, v3ItemId=tab.id,
+            v3Value=tab.value, disabled=component.enabled == false }
+        end
+      elseif kind == "details" then
+        for _, field in ipairs(component.fields or {}) do
+          rows[#rows + 1] = { id=tostring(component.id) .. "."
+              .. tostring(field.id or field.label),
+            label=field.label or field.id, right=tostring(field.value or ""),
+            kind="v3_label", disabled=true }
+        end
+      end
+    end
+  end
+  local footer = type(screen.footer) == "table" and screen.footer.text
+    or screen.footer
+  local selected = 1
+  for index, row in ipairs(rows) do
+    if not row.disabled then selected = index break end
+  end
+  return {
+    schema=V3_PRESENTATION_SCHEMA, apiVersion=3,
+    kind="menu", opaque=true, preset=screen.preset or "M",
+    title=screen.title or screen.id or "V3 SCREEN", rows=rows, selected=selected,
+    scroll=0, description=footer or "A CHOOSE   B BACK",
+  }
+end
 
 local function choiceLabel(row, value)
   for _, choice in ipairs(row.choices or {}) do
@@ -20,7 +113,11 @@ local function optionRows(shell, compatibility)
   for _, source in ipairs(shell.core.settingsSchema or {}) do
     local native = tostring(source.key):match("^native_") ~= nil
     if native == compatibility then
-      local value = shell.mod.options:get(source.key)
+      -- Read through the shared V3 settings adapter. The released host may
+      -- expose options:define/get without options:set, so bypassing Core's
+      -- session-local fallback makes a setting appear stuck at its persisted
+      -- value after reset or an in-session change.
+      local value = shell:setting(nil, source.key)
       rows[#rows + 1] = {
         id = source.key, label = source.label or source.key,
         kind = source.type, value = value, choices = source.choices,
@@ -134,7 +231,9 @@ function Content.rows(shell, state)
   elseif state.view == "gallery_preview" then
     local fixture = state.payload and (state.payload.fixture or state.payload) or {}
     local preview = state.preview or {}
-    if type(fixture.model) == "table" and fixture.model.kind == "menu" then
+    if type(fixture.model) == "table"
+        and (fixture.model.kind == "menu"
+          or fixture.model.kind == "device" or fixture.model.kind == "map") then
       local rows = {}
       for _, source in ipairs(fixture.model.rows or {}) do
         rows[#rows + 1] = {
@@ -160,8 +259,11 @@ function Content.rows(shell, state)
       { id = "text_size", label = "TEXT SIZE",
         right = tostring(preview.text_size or "AUTO"):upper() },
       { id = "font", label = "FONT",
-        right = preview.font == "system" and "SYSTEM" or "PLAIN PIXEL" },
+      right = preview.font == "system" and "SYSTEM" or "PLAIN PIXEL" },
     }
+  elseif state.view == "v3_screen" then
+    local model = state.payload and state.payload.model or {}
+    return model.rows or {}
   end
   return {}
 end

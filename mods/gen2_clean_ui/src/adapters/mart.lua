@@ -19,6 +19,20 @@ return function(ctx)
     return type(definition) == "table" and definition or nil
   end
 
+  local function ownedCount(state, itemId, source)
+    local save = rawget(state, "save")
+    local inventory = type(save) == "table" and rawget(save, "inventory") or nil
+    local value = type(inventory) == "table" and rawget(inventory, itemId) or nil
+    if value == nil and type(source) == "table" then
+      value = rawget(source, "ownedCount") or rawget(source, "owned")
+    end
+    if type(value) == "table" then
+      value = rawget(value, "count") or rawget(value, "quantity")
+    end
+    if value == true then value = 1 end
+    return Common.integer(value, 0, 999999) or 0
+  end
+
   local function moveDefinition(state, moveId)
     local data = Common.gameData(state)
     local moves = rawget(data, "moves")
@@ -46,6 +60,7 @@ return function(ctx)
       name=Data.text(rawget(source, "name"),
         Data.text(definition and rawget(definition, "name"), itemId)),
       price=price,
+      ownedCount=ownedCount(state, itemId, source),
       soldOut=rawget(source, "soldOut") == true,
       description=Data.text(move and rawget(move, "description")
         or (definition and rawget(definition, "description")), ""),
@@ -137,7 +152,10 @@ return function(ctx)
     for index, item in ipairs(output) do
       rows[index] = {
         id=item.id, sourceIndex=index, label=item.name,
-        right=item.soldOut and "SOLD OUT" or ("Y" .. tostring(item.price)),
+        right=item.soldOut
+          and ("OWN " .. tostring(item.ownedCount or 0) .. "  SOLD OUT")
+          or ("OWN " .. tostring(item.ownedCount or 0)
+            .. "  Y" .. tostring(item.price)),
         selected=index == selected,
         actionId=Common.sourceInput(actions, "buy.choose." .. index,
           "choose", item.id, "a", index),

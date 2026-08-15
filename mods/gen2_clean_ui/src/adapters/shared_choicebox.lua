@@ -6,7 +6,8 @@ return function()
     local pending = rawget(state, "pending") ~= nil
     return {
       model = {
-        schema = "clean_ui.presenter_model.v1",
+        schema = "clean_ui.v3.presentation.v1",
+        apiVersion = 3,
         screenId = "shared.ChoiceBox",
         family = "dialogue",
         preset = "XS",

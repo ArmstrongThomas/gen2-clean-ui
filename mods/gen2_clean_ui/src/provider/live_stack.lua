@@ -18,49 +18,59 @@ return function(ctx)
     return true
   end
 
+  local function eligible(provider, state, context)
+    if type(state) ~= "table" or rawget(state, "cleanUiShell") == true then
+      return nil
+    end
+    local record = provider:recordForState(state, context)
+    if not record or record.support ~= "supported"
+        or not provider.presenters[record.id]
+        or not enabled(provider, record) then
+      return nil
+    end
+    return record
+  end
+
+  local function opaque(record, state)
+    -- The contract is the source of truth for replacement geometry. Keep the
+    -- state fallback for older host builds whose constructors do not expose a
+    -- screenId-specific record in every hand-off frame.
+    return record and record.opaque == true
+      or (type(state) == "table" and rawget(state, "isOpaque") == true)
+  end
+
   function LiveStack.visible(provider, game, context)
     local states = statesFor(game)
     if not states or #states == 0 then return {} end
-    -- An opaque battle owns the full frame. Lower layers may be the overworld
-    -- or the transition that handed control to it, but a battle-owned child
-    -- menu above the battle must keep the entire native stack visible.
-    local battleIndex
-    for index, state in ipairs(states) do
-      if type(state) == "table" and rawget(state, "screenId")
-          == "Gen2BattleState" then
-        battleIndex = index
-      end
-    end
-    if battleIndex then
-      if battleIndex ~= #states then return {} end
-      local battle = states[battleIndex]
-      local record = provider:recordForState(battle, context)
-      if not record or record.support ~= "supported"
-          or not provider.presenters[record.id]
-          or not enabled(provider, record) then
-        return {}
-      end
-      return { battle }
-    end
+    -- Battle and battle-owned child stacks are deliberately outside the
+    -- active Clean UI product. Leave the complete source-owned stack visible
+    -- while the future battle rewrite is deferred.
     if StackPolicy.containsBattle(states, context) then return {} end
 
-    -- Hiding only the top opaque state would make StateStack:visibleBase()
-    -- reveal its parent. Prove and replace every retained UI state instead;
-    -- one unknown, native, overridden, or disabled layer keeps the whole
-    -- stack native for this frame.
+    -- Only native/unknown states ABOVE a clean state are unsafe. Native
+    -- parents and the source-owned overworld below an opaque clean screen
+    -- will never be drawn by StateStack:visibleBase(), and transparent clean
+    -- overlays are allowed to sit over those source-owned backdrops. The old
+    -- all-or-nothing scan rejected an otherwise valid child whenever a
+    -- native parent remained on the stack, which made most production UIs
+    -- fall back even though their own V3 presenter was ready.
     local visible = {}
-    for index = 1, #states do
+    local index = #states
+    local top = states[index]
+    local topRecord = eligible(provider, top, context)
+    if not topRecord then return {} end
+    while index >= 1 do
       local state = states[index]
-      if type(state) ~= "table" or rawget(state, "cleanUiShell") == true then
-        return {}
+      local record = eligible(provider, state, context)
+      if not record then
+        -- Leave the lower source-owned/native portion to the host. It is
+        -- safe because every clean state collected above is transparent; an
+        -- opaque clean state would already have stopped this walk.
+        break
       end
-      local record = provider:recordForState(state, context)
-      if not record or record.support ~= "supported"
-          or not provider.presenters[record.id]
-          or not enabled(provider, record) then
-        return {}
-      end
-      visible[#visible + 1] = state
+      table.insert(visible, 1, state)
+      if opaque(record, state) then break end
+      index = index - 1
     end
     return visible
   end

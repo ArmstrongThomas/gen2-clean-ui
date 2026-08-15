@@ -191,7 +191,8 @@ return function(ctx)
 
     local selected = output[selectedIndex]
     local model = {
-      schema = "clean_ui.presenter_model.v1",
+      schema = "clean_ui.v3.presentation.v1",
+      apiVersion = 3,
       screenId = "Gen2OptionsMenu",
       family = "core",
       preset = "M",

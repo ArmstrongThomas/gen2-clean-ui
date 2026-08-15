@@ -3,11 +3,17 @@ return function(ctx)
   local Adapter = ctx.load("adapters.pokedex")
   local Presenter = {}
 
-  local function row(source, right)
+  local function canonical(model)
+    model.schema = "clean_ui.v3.presentation.v1"
+    model.apiVersion = 3
+    return model
+  end
+
+  local function row(source, right, label)
     return {
       id = source.id,
       sourceIndex = source.sourceIndex,
-      label = source.label,
+      label = label or source.label,
       right = right or source.right or source.value,
       disabled = source.disabled == true,
     }
@@ -23,11 +29,28 @@ return function(ctx)
     return descriptor
   end
 
-  local function richDetails(art, fields)
+  local function richDetails(art, fields, title, typeBadges)
     return {
+      title=title,
       sprite=sprite(art),
       fields=fields or {},
+      typeBadges=typeBadges and Data.copy(typeBadges) or nil,
+      -- The shared menu renderer already provides the stable right-hand
+      -- preview rail. This marker documents that the rail is the Pokédex
+      -- preview composition, rather than a generic key/value inspector.
+      preview=true,
     }
+  end
+
+  local function dexNumber(value)
+    value = tonumber(value) or 0
+    return value > 0 and ("No.%03d"):format(value) or "No.---"
+  end
+
+  local function status(current)
+    if current.caught then return "OWNED" end
+    if current.seen then return "SEEN" end
+    return "UNSEEN"
   end
 
   local function listPresentation(model)
@@ -35,8 +58,10 @@ return function(ctx)
     for index, source in ipairs(model.rows or {}) do
       local number = source.dex and source.dex > 0
         and ("No.%03d"):format(source.dex) or ""
-      local owned = source.caught and "  OWNED" or ""
-      rows[index] = row(source, number .. owned)
+      local marker = source.caught and "OWNED"
+        or source.seen and "SEEN" or ""
+      local label = number .. " " .. tostring(source.label or "-----")
+      rows[index] = row(source, marker, label)
     end
     local current = model.current or {}
     return {
@@ -44,12 +69,11 @@ return function(ctx)
       selected = model.navigation.selectedIndex,
       scroll = model.navigation.scroll,
       details = richDetails(current.art, {
-        { label = "MODE", value = model.sortMode },
-        { label = "SEEN", value = model.totals.seen },
-        { label = "OWNED", value = model.totals.caught, style = "accent" },
-        { label = "SELECTED", value = current.name or "-----" },
-      }),
-      description = "A DATA   SELECT OPTIONS   START SEARCH   B BACK",
+        { label = "NUMBER", value = dexNumber(current.dex) },
+        { label = "STATUS", value = status(current), style = "accent" },
+      }, current.name or "-----", current.types),
+      description = ("SEEN %d  OWNED %d   A DATA   A OPTIONS   B BACK")
+        :format(model.totals.seen or 0, model.totals.caught or 0),
       art = Data.copy(current.art),
     }
   end
@@ -63,16 +87,13 @@ return function(ctx)
         rows[index] = row(source)
       end
     end
-    local typeLabel = table.concat(current.types or {}, " / ")
     local details = richDetails(current.art, {
-      { label = "NUMBER", value = current.dex or 0 },
+      { label = "NUMBER", value = dexNumber(current.dex) },
       { label = "SPECIES", value = current.kind or "" },
-      { label = "TYPE", value = typeLabel },
       { label = "HEIGHT", value = current.caught and current.height or "?" },
       { label = "WEIGHT", value = current.caught and current.weight or "?" },
-      { label = "STATUS", value = current.caught and "OWNED" or "SEEN",
-        style = "accent" },
-    })
+      { label = "STATUS", value = status(current), style = "accent" },
+    }, current.name or "ENTRY", current.types)
     return {
       rows = rows,
       selected = model.entry.newEntry and nil or model.entry.selectedAction,
@@ -116,7 +137,7 @@ return function(ctx)
         { label = "REGION", value = (area.region or "johto"):upper(),
           style = "accent" },
         { label = "KNOWN NESTS", value = #area.nests },
-      }),
+      }, area.name or "AREA"),
       description = "LEFT/RIGHT REGION   A/B RETURN",
       title = (area.name or "POKEMON") .. " NESTS",
       art = Data.copy(area.art),
@@ -179,7 +200,7 @@ return function(ctx)
         { label = "FORM", value = selected.label, style = "accent" },
         { label = "WORD", value = selected.word },
         { label = "CAUGHT ORDER", value = selected.sourceIndex },
-      }) or {},
+      }, selected.label, nil) or {},
       description = "LEFT/RIGHT FORM   A/B OPTIONS",
       title = "UNOWN MODE",
       art = selected and Data.copy(selected.art) or nil,
@@ -209,7 +230,7 @@ return function(ctx)
     content.title = content.title or ("POKEDEX  /  " .. tostring(model.sortMode))
     content.sourceView = model.view
     content.sourceMode = model.sortMode
-    return content
+    return canonical(content)
   end
 
   function Presenter.prepare(_, state, context)

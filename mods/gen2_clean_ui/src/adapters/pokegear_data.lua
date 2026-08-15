@@ -10,6 +10,12 @@ return function(ctx)
     clock = "CLOCK", map = "MAP", phone = "PHONE", radio = "RADIO",
   }
   local CARD_ORDER = { clock=1, map=2, phone=3, radio=4 }
+  local CARD_META = {
+    clock={ icon="clock", accent="amber", subtitle="TIME & DAY" },
+    map={ icon="map", accent="green", subtitle="JOHTO / KANTO" },
+    phone={ icon="phone", accent="blue", subtitle="CONTACTS" },
+    radio={ icon="radio", accent="violet", subtitle="BROADCAST" },
+  }
   local FREQUENCIES = {
     { knob=16, frequency="04.5" },
     { knob=28, frequency="07.5" },
@@ -59,6 +65,78 @@ return function(ctx)
   local function tableAt(source, key)
     local value = type(source) == "table" and rawget(source, key) or nil
     return type(value) == "table" and value or nil
+  end
+
+  local function numberArray(value, maximum)
+    if type(value) ~= "table" then return nil end
+    local count = arrayCount(value, maximum)
+    if not count then return nil end
+    local output = {}
+    for index = 1, count do
+      local item = Data.integer(rawget(value, index))
+      if item == nil then return nil end
+      output[index] = item
+    end
+    return output
+  end
+
+  local function nativeGraphic(state)
+    local menuGfx = tableAt(state, "menuGfx")
+    local gfx = menuGfx and tableAt(menuGfx, "pokegear")
+    local directGfx = tableAt(state, "gfx")
+    if not gfx then gfx = directGfx and tableAt(directGfx, "pokegear") end
+    if not gfx then gfx = directGfx end
+    local game = tableAt(state, "game")
+    local data = tableAt(game, "data")
+    local dataMenuGfx = tableAt(data, "gen2MenuGfx")
+      or tableAt(data, "menuGfx")
+    if not gfx then gfx = dataMenuGfx and tableAt(dataMenuGfx, "pokegear") end
+    if not gfx then return nil end
+
+    local tiles = Data.text(rawget(gfx, "tiles"))
+    if tiles == "" then return nil end
+    local output = {
+      kind="tilemap",
+      sheet={
+        path=tiles,
+        wide=Data.integer(rawget(gfx, "tilesWide"), 16),
+        townMapTiles=Data.integer(rawget(gfx, "townMapTiles"), 48),
+      },
+      width=20,
+      height=18,
+    }
+    local sprites = Data.text(rawget(gfx, "sprites"))
+    if sprites ~= "" then
+      output.cursorSheet={
+        path=sprites,
+        wide=Data.integer(rawget(gfx, "spritesWide"), 2),
+      }
+    end
+
+    local maps = tableAt(gfx, "maps")
+    if maps then
+      output.maps = {}
+      for _, region in ipairs({ "johto", "kanto" }) do
+        local values = numberArray(rawget(maps, region), 1024)
+        if values then output.maps[region] = values end
+      end
+    end
+    local cards = tableAt(gfx, "cards")
+    if cards then
+      output.cards = {}
+      for _, card in ipairs({ "clock", "phone", "radio" }) do
+        local values = numberArray(rawget(cards, card), 1024)
+        if values then output.cards[card] = values end
+      end
+    end
+    local palMap = numberArray(rawget(gfx, "palMap"), 256)
+    if palMap then output.palMap = palMap end
+    if type(rawget(gfx, "palettes")) == "table" then
+      output.palettes = Data.copy(rawget(gfx, "palettes"), {
+        maxDepth=4, maxEntries=64,
+      })
+    end
+    return output
   end
 
   local function numberAt(source, key, fallback)
@@ -277,6 +355,11 @@ return function(ctx)
         }
       end
     end
+    local graphic = nativeGraphic(state)
+    if graphic then
+      graphic.region = region
+      graphic.map = graphic.maps and graphic.maps[region] or nil
+    end
     return {
       region=region,
       firstIndex=first,
@@ -287,7 +370,85 @@ return function(ctx)
       rows=rows,
       flyRows=flyRows,
       flyIndex=fly and selectedIndex or nil,
+      graphic=graphic,
     }
+  end
+
+  local function clockLabel(clock)
+    if type(clock) ~= "table" then return "--:--" end
+    local hour = clock.hour % 12
+    if hour == 0 then hour = 12 end
+    return ("%d:%02d %s"):format(hour, clock.minute or 0,
+      clock.period or "")
+  end
+
+  function PokegearData.shell(state, cards, cardIndex, view, clock,
+      map, radio, phone)
+    local apps = {}
+    for index, card in ipairs(cards or {}) do
+      local meta = CARD_META[card.id] or {}
+      apps[index] = {
+        id=card.id,
+        label=card.label,
+        icon=meta.icon or card.id,
+        accent=meta.accent or "blue",
+        subtitle=meta.subtitle or "APP",
+        order=index,
+        selected=index == cardIndex,
+        actionId=card.actionId,
+      }
+    end
+
+    local active = apps[cardIndex] or {}
+    local region = map and map.region or PokegearData.region(state)
+    local service = phone and phone.service ~= false
+    local signal = service and "ONLINE" or "NO SIGNAL"
+    if radio and radio.on and not radio.current.station then
+      signal = "DEAD AIR"
+    end
+    local shell = {
+      schema="clean_ui.pokegear_shell.v1",
+      device={
+        kind="smartphone",
+        family="pokegear",
+        orientation="portrait",
+        aspect="9:16",
+        title="POKEGEAR",
+        chrome="rounded",
+      },
+      launcher={
+        kind="app_rail",
+        axis="horizontal",
+        selected=cardIndex,
+        count=#apps,
+        cards=Data.copy(apps),
+      },
+      apps=apps,
+      activeApp=Data.copy(active),
+      screen={
+        id=view,
+        kind=view == "strip" and "launcher" or "app",
+        title=(view == "fly" and "FLY"
+          or CARD_LABELS[active.id] or view):upper(),
+      },
+      statusBar={
+        time=clockLabel(clock),
+        day=clock and clock.day or "",
+        region=(region or "johto"):upper(),
+        signal=signal,
+        radioOn=radio and radio.on == true or false,
+      },
+      navigation={
+        source="native_pokegear",
+        focus=view == "strip" and "app_rail" or view,
+        horizontal=view == "strip" or view == "map",
+        primary="a",
+        back="b",
+      },
+    }
+    local graphic = nativeGraphic(state)
+    if graphic then shell.graphic = graphic end
+    return shell
   end
 
   local function radioContext(state, clock)

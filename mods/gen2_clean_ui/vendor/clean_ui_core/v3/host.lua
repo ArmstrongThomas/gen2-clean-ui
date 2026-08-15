@@ -39,6 +39,13 @@ function Host.new(config)
     if config.openGallery then return config.openGallery(filter) end
     return nil, "gallery_unavailable", "Gallery is unavailable"
   end
+  facade.listContracts = function(first, second)
+    local filter = first == facade and second or first
+    if filter ~= nil and type(filter) ~= "table" then
+      return nil, "invalid_filter", "contract catalog filter must be a table"
+    end
+    return registry:descriptors(filter)
+  end
   return facade
 end
 

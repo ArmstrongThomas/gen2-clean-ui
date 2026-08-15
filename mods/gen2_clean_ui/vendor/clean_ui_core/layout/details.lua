@@ -82,6 +82,7 @@ function Details.measure(region, model, metrics)
     footerSections = footerSections,
     fieldX = fieldX,
     fieldWidth = fieldWidth,
+    barLineHeight = lineHeight,
     overflow = y > footer.y + footer.h + 0.01,
   }
 end

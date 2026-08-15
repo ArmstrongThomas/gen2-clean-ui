@@ -4,6 +4,13 @@ return function(ctx)
   local Models = ctx.load("presenters.naming_storage_models")
   local Presenters = {}
 
+  local function canonical(model)
+    if type(model) ~= "table" then return model end
+    model.schema = "clean_ui.v3.presentation.v1"
+    model.apiVersion = 3
+    return model
+  end
+
   local function copyRows(source)
     local output = {}
     for index, row in ipairs(source or {}) do
@@ -246,7 +253,7 @@ return function(ctx)
         if type(bundle) ~= "table" or type(bundle.model) ~= "table" then
           return nil, code or "model_incomplete", detail
         end
-        local model = CONVERT[screenId](bundle.model)
+        local model = canonical(CONVERT[screenId](bundle.model))
         if type(model) ~= "table" or not Data.isFunctionFree(model) then
           return nil, "conversion_failed"
         end
@@ -272,7 +279,7 @@ return function(ctx)
     if not convert then return nil, "unknown_screen" end
     local model = convert(sourceModel)
     if not Data.isFunctionFree(model) then return nil, "conversion_failed" end
-    return model
+    return canonical(model)
   end
 
   return Presenters

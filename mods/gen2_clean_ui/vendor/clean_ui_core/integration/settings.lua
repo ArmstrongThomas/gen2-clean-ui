@@ -2,6 +2,54 @@ local requireCore = ...
 local Result = requireCore("foundation.result")
 
 local Settings = {}
+local fallbackValues = setmetatable({}, { __mode = "k" })
+
+local function fallbackFor(mod)
+  local values = fallbackValues[mod]
+  if not values then
+    values = {}
+    fallbackValues[mod] = values
+  end
+  return values
+end
+
+local function schemaDefault(schema, key)
+  for _, row in ipairs(schema or Settings.schema) do
+    if row.key == key then return row.default end
+  end
+  return nil
+end
+
+-- v0.1.86 exposes the option schema and reader but not the writer. Keep the
+-- V3 settings surface usable on that host: native writers still win, while
+-- older hosts get a session-local override instead of a hard failure. The
+-- fallback is deliberately in-memory; the public API gives a mod no safe
+-- profile-wide persistence channel before options:set exists.
+function Settings.get(mod, key, schema, fallback)
+  local values = mod and fallbackValues[mod]
+  if values and values[key] ~= nil then return values[key] end
+  local options = mod and mod.options
+  if options and type(options.get) == "function" then
+    local ok, value = pcall(options.get, options, key)
+    if ok and value ~= nil then return value end
+  end
+  if fallback ~= nil then return fallback end
+  return schemaDefault(schema, key)
+end
+
+function Settings.set(mod, key, value, schema)
+  local options = mod and mod.options
+  if options and type(options.set) == "function" then
+    local ok, a, b, c = pcall(options.set, options, key, value)
+    if not ok then return nil, "options_set_failed", tostring(a) end
+    return a, b, c
+  end
+  if schemaDefault(schema, key) == nil then
+    return nil, "unknown_option", tostring(key)
+  end
+  fallbackFor(mod)[key] = value
+  return true
+end
 
 Settings.schema = {
   { key = "theme", label = "THEME", type = "choice", default = "clean",
@@ -19,7 +67,7 @@ Settings.schema = {
     choices = { { "AUTO", "auto" }, { "COMFORTABLE", "comfortable" },
       { "COMPACT", "compact" } } },
   { key = "pointer_touch", label = "POINTER & TOUCH", type = "toggle",
-    default = true },
+    default = false },
 }
 
 function Settings.define(mod, schema)
@@ -36,12 +84,10 @@ function Settings.define(mod, schema)
 end
 
 function Settings.reset(mod, extraSchema)
-  if not (mod and mod.options and mod.options.set) then
-    return Result.err("option_writer_unavailable", "mod.options:set is required")
-  end
   local failures = {}
-  for _, row in ipairs(extraSchema or Settings.schema) do
-    local ok, code, message = mod.options:set(row.key, row.default)
+  local schema = extraSchema or Settings.schema
+  for _, row in ipairs(schema) do
+    local ok, code, message = Settings.set(mod, row.key, row.default, schema)
     if not ok then failures[#failures + 1] = { key = row.key, code = code,
       message = message } end
   end

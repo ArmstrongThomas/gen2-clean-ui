@@ -10,6 +10,32 @@ local MapRadio = ctx.load("adapters.map_radio")
 local MapRadioPresenter = ctx.load("presenters.map_radio")
 local GalleryModels = ctx.load("presenters.pokegear_gallery_models")
 
+local vendorRoot = root .. "/mods/gen2_clean_ui/vendor/clean_ui_core"
+local coreCache = {}
+local function loadCore(name)
+  if coreCache[name] ~= nil then return coreCache[name] end
+  local path = vendorRoot .. "/" .. name:gsub("%.", "/") .. ".lua"
+  local chunk, loadError = loadfile(path)
+  assert(chunk, loadError)
+  local exported = chunk(loadCore)
+  coreCache[name] = exported
+  return exported
+end
+
+local MenuLayout = loadCore("presentation.menu_layout")
+local function fakeFont()
+  return {
+    getHeight=function() return 15 end,
+    getWidth=function(_, value) return #tostring(value or "") * 8 end,
+  }
+end
+
+local function inside(outer, rect)
+  return rect.x >= outer.x and rect.y >= outer.y
+    and rect.x + rect.w <= outer.x + outer.w
+    and rect.y + rect.h <= outer.y + outer.h
+end
+
 local checks = 0
 local function check(condition, message)
   checks = checks + 1
@@ -76,6 +102,23 @@ for index, source in ipairs(sourceFixtures) do
       .. tostring(presentCode))
   check(Data.isFunctionFree(presentation),
     source.screenId .. "." .. source.variant .. " presentation is data-only")
+  if source.screenId == "Gen2Pokegear" then
+    local expectedKind = (source.variant == "map" or source.variant == "fly")
+      and "map" or "device"
+    check(presentation.kind == expectedKind,
+      source.screenId .. "." .. source.variant
+        .. " uses the portable V3 " .. expectedKind .. " kind")
+    check(bundle.model.shell.device.kind == "smartphone"
+        and bundle.model.shell.device.orientation == "portrait"
+        and #bundle.model.shell.apps == #bundle.model.cards,
+      source.screenId .. "." .. source.variant
+        .. " exposes a smartphone shell with all active apps")
+    check(presentation.appShell == true
+        and presentation.activeApp.id == bundle.model.activeCard.id
+        and presentation.statusBar.time ~= "",
+      source.screenId .. "." .. source.variant
+        .. " presents shell status and active app metadata")
+  end
   check(presentation.preset == "L",
     source.screenId .. "." .. source.variant .. " uses stable L envelope")
   check(galleryFixtures[index].screenId == source.screenId
@@ -117,6 +160,9 @@ local clockView = assert(PokegearPresenter.convert(clock.model))
 check(clockView.details[1].value == "MONDAY"
   and clockView.details[2].value == "10:37 AM",
   "clock presenter exposes measured clean details")
+check(clockView.schema == "clean_ui.v3.presentation.v1"
+  and clockView.apiVersion == 3,
+  "Pokegear presenter emits the canonical V3 model")
 
 local mapSource = { state=freshState("Gen2Pokegear", "map") }
 local mapBundle = assert(Pokegear.extract(mapSource.state))
@@ -125,15 +171,80 @@ check(mapBundle.model.map.region == "johto"
   and mapBundle.model.map.player.name == "NEW BARK TOWN",
   "map separates movable cursor from player landmark")
 local mapView = assert(PokegearPresenter.convert(mapBundle.model))
+check(mapView.kind == "map"
+    and mapView.schema == "clean_ui.v3.presentation.v1"
+    and mapView.apiVersion == 3,
+  "map uses the canonical first-class V3 map kind")
 check(mapView.map.cursorIndex == 4 and mapView.selected ~= nil,
   "map presenter preserves exact cursor geometry data")
+check(mapView.mapView == true and type(mapView.mapCanvas) == "table"
+    and #mapView.mapCanvas.rows >= 1,
+  "map presenter exposes its documented product-scoped visual extension")
+check(type(mapBundle.model.map.graphic) == "table"
+    and mapBundle.model.map.graphic.kind == "tilemap"
+    and mapBundle.model.map.graphic.sheet.path
+    == "assets/generated/pokegear/gear.png"
+    and #mapBundle.model.map.graphic.maps.johto == 20 * 18
+    and #mapBundle.model.map.graphic.maps.kanto == 20 * 18,
+  "map adapter carries native Johto and Kanto tilemap data")
+check(type(mapView.nativeGraphic) == "table"
+    and mapView.nativeGraphic.width == 20
+    and mapView.nativeGraphic.height == 18
+    and mapView.nativeGraphic.cursorSheet.path
+    == "assets/generated/pokegear/sprites.png"
+    and #mapView.nativeGraphic.palettes == 6
+    and #mapView.nativeGraphic.palMap == 96,
+  "map presenter preserves the native sheet, palettes, and cursor art")
+
+for _, dimensions in ipairs({ { 360, 640 }, { 640, 360 }, { 1920, 1080 },
+    { 3840, 2160 } }) do
+  local measured = MenuLayout.measure({
+    outer={ x=0, y=0, w=dimensions[1], h=dimensions[2] }, scale=1,
+  }, mapView, fakeFont(), "comfortable")
+  local shellContained = type(measured.shell) == "table"
+      and inside(measured.body, measured.shell.device)
+      and inside(measured.shell.device, measured.shell.screen)
+      and inside(measured.shell.screen, measured.shell.status)
+      and inside(measured.shell.screen, measured.shell.content)
+      and inside(measured.shell.screen, measured.shell.rail)
+  check(shellContained,
+    ("Pokegear smartphone shell stays contained at %sx%s"):format(
+      dimensions[1], dimensions[2]))
+  local expectedOrientation = dimensions[1] >= dimensions[2] * 1.15
+    and "landscape" or "portrait"
+  check(measured.shell.orientation == expectedOrientation,
+    ("Pokegear selects %s shell geometry at %sx%s"):format(
+      expectedOrientation, dimensions[1], dimensions[2]))
+  check(measured.shell.content.h > fakeFont():getHeight()
+      and measured.shell.rail.h > fakeFont():getHeight(),
+    ("Pokegear shell preserves readable content and app rail at %sx%s"):format(
+      dimensions[1], dimensions[2]))
+end
 
 local flyBundle = assert(Pokegear.extract(freshState("Gen2Pokegear", "fly")))
 check(flyBundle.model.map.flyIndex == 2
   and flyBundle.model.map.flyRows[2].spawn == "SPAWN_CHERRYGROVE",
   "fly snapshot keeps exact selected source destination")
-check(assert(PokegearPresenter.convert(flyBundle.model)).selected == 2,
+local flyView = assert(PokegearPresenter.convert(flyBundle.model))
+check(flyView.selected == 2 and flyView.mapView == true
+  and flyView.flyView == true and type(flyView.mapCanvas) == "table",
   "fly presenter preserves source selection")
+local flyMeasured = MenuLayout.measure({
+  outer={x=0,y=0,w=640,h=360}, scale=1,
+}, flyView, fakeFont(), "comfortable")
+check(type(flyMeasured.shell.map) == "table"
+  and type(flyMeasured.shell.list) == "table"
+  and inside(flyMeasured.shell.content, flyMeasured.shell.map)
+  and inside(flyMeasured.shell.content, flyMeasured.shell.list)
+  and flyMeasured.shell.map.y + flyMeasured.shell.map.h
+    <= flyMeasured.shell.list.y,
+  "fly view separates the native map from its destination list")
+for _, region in ipairs(flyMeasured.hitRegions or {}) do
+  if region.role == "menu_row" then
+    check(inside(flyMeasured.shell.list, region.rect),
+      "fly destination pointer regions stay inside the list panel")
+  end
+end
 
 local radioBundle = assert(Pokegear.extract(freshState("Gen2Pokegear", "radio")))
 check(radioBundle.model.radio.current.frequency == "04.5"
@@ -181,6 +292,9 @@ check(wallBundle.model.station.id == "LUCKY_CHANNEL"
   and wallBundle.model.broadcast.lines[1]:find("lucky", 1, true)
   and wallView.opaque == false,
   "wall radio keeps its exact non-opaque station seam")
+check(wallView.schema == "clean_ui.v3.presentation.v1"
+  and wallView.apiVersion == 3,
+  "Map Radio presenter emits the canonical V3 model")
 check(descriptor(wallBundle.model, "map_radio.close_b").dispatch
     == "source_input",
   "wall-radio close remains owned by source update")

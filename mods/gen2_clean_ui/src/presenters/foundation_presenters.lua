@@ -47,6 +47,7 @@ return function(ctx)
     local confirm = model.confirm
     if confirm then
       return {
+        schema = "clean_ui.v3.presentation.v1", apiVersion = 3,
         kind = "menu", preset = "M", opaque = true,
         title = "CONTINUE", selected = 1, scroll = 0,
         rows = {{
@@ -68,6 +69,7 @@ return function(ctx)
       }
     end
     return {
+      schema = "clean_ui.v3.presentation.v1", apiVersion = 3,
       kind = "menu", preset = "M", opaque = true,
       title = model.title or "MAIN MENU",
       rows = rows(model.items),
@@ -88,6 +90,7 @@ return function(ctx)
       }
     end
     return {
+      schema = "clean_ui.v3.presentation.v1", apiVersion = 3,
       kind = "menu", preset = "NAV", opaque = false,
       title = (model.title or "START") .. "  " .. (model.playerName or ""),
       rows = rows(model.items),
@@ -101,6 +104,7 @@ return function(ctx)
 
   local function options(model)
     return {
+      schema = "clean_ui.v3.presentation.v1", apiVersion = 3,
       kind = "menu", preset = "M", opaque = true,
       title = model.title or "OPTIONS",
       rows = rows(model.rows),

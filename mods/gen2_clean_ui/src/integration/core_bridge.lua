@@ -24,8 +24,8 @@ return function(ctx)
       return nil, "core_unavailable",
         "clean-ui-core is not available; source UI remains native"
     end
-    host.register, host.unregister, host.openGallery =
-      unavailable, unavailable, unavailable
+    host.register, host.unregister, host.openGallery, host.listContracts =
+      unavailable, unavailable, unavailable, unavailable
     host.contracts = function() return services.provider.catalog.records end
     return host
   end

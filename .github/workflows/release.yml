@@ -47,12 +47,25 @@ jobs:
           "asset=gen2_clean_ui-$version.zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "prerelease=$($prerelease.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "releaseable=$($releaseable.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          if ($releaseable) {
+            $blurbPath = Join-Path $PWD ("docs\\releases\\v{0}.md" -f $version)
+            if (-not (Test-Path -LiteralPath $blurbPath -PathType Leaf)) {
+              throw "Missing curated release blurb: $blurbPath"
+            }
+            if ([string]::IsNullOrWhiteSpace((Get-Content -LiteralPath $blurbPath -Raw))) {
+              throw "Curated release blurb is empty: $blurbPath"
+            }
+          }
 
       - name: Run release gate
         shell: pwsh
         env:
           GEN2_CLEAN_UI_HEADLESS: "1"
         run: .\tests\verify_scaffold.ps1
+
+      - name: Smoke-test release tooling
+        shell: pwsh
+        run: .\tests\smoke_release_tools.ps1
 
   release:
     needs: validate
@@ -92,22 +105,11 @@ jobs:
           VERSION: ${{ needs.validate.outputs.version }}
           ASSET: ${{ needs.validate.outputs.asset }}
         run: |
-          $previous = @(git tag --sort=-version:refname | Where-Object { $_ -match '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$' -and $_ -ne $env:TAG } | Select-Object -First 1)
-          if ($previous.Count -gt 0) { $changes = git log --pretty=format:'- %s (%h)' "$($previous[0])..HEAD" } else { $changes = git log -n 20 --pretty=format:'- %s (%h)' }
-          if ([string]::IsNullOrWhiteSpace(($changes -join "`n"))) { $changes = '- Initial release.' }
-          $assetPath = Join-Path $PWD $env:ASSET
-          $sha256 = (Get-FileHash -LiteralPath $assetPath -Algorithm SHA256).Hash
-          @(
-            "# Gen2 Clean UI v$env:VERSION"
-            ''
-            'Modular, fail-open Gen2 Clean UI package.'
-            ''
-            '## Changes in this release'
-            ''
-            $changes
-            ''
-            "**SHA-256:** ``$sha256``"
-          ) | Set-Content -LiteralPath release-notes.md -Encoding utf8
+          .\scripts\write_release_notes.ps1 `
+            -Version "$env:VERSION" `
+            -Tag "$env:TAG" `
+            -AssetPath "$env:ASSET" `
+            -OutputPath 'release-notes.md'
 
       - name: Create GitHub release
         shell: pwsh

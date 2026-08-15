@@ -312,6 +312,7 @@ return function(ctx)
       sourceIndex=sourceIndex, species=species, name=name, level=level,
       isEgg=isEgg, gender=isEgg and nil or Data.scalar(rawget(mon, "gender")),
       hp=hp, maxHp=maxHp, status=status,
+      hpFraction=maxHp > 0 and hp / maxHp or 0,
       shiny=rawget(mon, "shiny") == true,
       types=types, item=item, icon=icon,
     }
@@ -342,7 +343,6 @@ return function(ctx)
     local submenu = rawget(state, "submenu")
     if submenu == nil then return nil end
     if type(submenu) ~= "table" then return fail("shape_type", "submenu") end
-    if rawget(submenu, "battle") then return fail("battle_owned", "submenu") end
     local sourceItems = rawget(submenu, "items")
     local count, arrayCode = arrayCount(sourceItems, MAX_SUBMENU)
     if not count then return fail(arrayCode, "submenu.items") end
@@ -385,9 +385,6 @@ return function(ctx)
 
   function Party.extract(state)
     if type(state) ~= "table" then return fail("state_type", "table") end
-    if rawget(state, "wantsBattleSubmenu") == true then
-      return fail("battle_owned", "party")
-    end
     if type(rawget(state, "wantsSubmenu")) ~= "boolean"
         or type(rawget(state, "wantsBattleSubmenu")) ~= "boolean" then
       return fail("shape_type", "submenu flags")

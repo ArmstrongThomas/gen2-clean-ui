@@ -1,6 +1,9 @@
 local requireCore = ...
 local Version = requireCore("version")
 local Presets = requireCore("design.presets")
+local Contract = requireCore("v3.contract")
+local Content = requireCore("shell.content")
+local PresentationModel = requireCore("presentation.model")
 local Themes = requireCore("design.themes")
 local Session = requireCore("layout.session")
 local Solver = requireCore("layout.solver")
@@ -26,6 +29,8 @@ local CAPABILITIES = {
   footer_lists = "0.1.0", custom_surface = "0.1.0",
   isolated_shader = "0.1.0", themes = "0.1.0", frames = "0.1.0",
   gallery = "0.1.0", start_menu_pinning = "0.1.0",
+  contract_catalog = "0.1.0",
+  presentation_models = "0.1.0",
 }
 
 function Core.new(config)
@@ -133,6 +138,14 @@ function Core.new(config)
     return Settings.reset(self.mod, self.settingsSchema):unpack()
   end
 
+  function self:setting(key, fallback)
+    return Settings.get(self.mod, key, self.settingsSchema, fallback)
+  end
+
+  function self:setSetting(key, value)
+    return Settings.set(self.mod, key, value, self.settingsSchema)
+  end
+
   function self:composeStartMenu(items, game)
     return StartMenu.compose(items, self.catalog, self.pins, {
       activate = function(key, selectedGame)
@@ -150,6 +163,86 @@ function Core.new(config)
   end
   function self:togglePin(key)
     return self.modMenus:togglePin(key):unpack()
+  end
+
+  -- These methods form the small embedding bridge used by Clean UI Studio.
+  -- They deliberately run the same contract/model/layout/render pipeline as a
+  -- product host, so the editor cannot drift into a second V3 implementation.
+  function self:validateV3(contract)
+    local result = Contract.validate(self.provider.productId, contract,
+      self.provider.game)
+    if result.ok then return {} end
+    local error = result.error or {}
+    return { { severity = "error", code = error.code or "invalid_contract",
+      path = "contract", message = error.message or "Contract is invalid." } }
+  end
+
+  local function v3Model(screen)
+    local model = Content.v3Model(screen)
+    if not model then return nil, "invalid_model", "screen is not a V3 presentation" end
+    local valid, code, message = PresentationModel.validate(model)
+    if not valid then return nil, code, message end
+    return model
+  end
+
+  local function v3Font(presentation, policy, supplied)
+    if supplied then return supplied end
+    local font = presentation.fonts and presentation.fonts:get(policy)
+    if font then return font end
+    if love and love.graphics and love.graphics.newFont then
+      return love.graphics.newFont(policy.physicalPx or 15)
+    end
+  end
+
+  function self:measureV3(screen, width, height, options)
+    options = options or {}
+    local model, modelCode, modelMessage = v3Model(screen)
+    if not model then return nil, modelCode, modelMessage end
+    local viewport = options.viewport or { x = 0, y = 0, w = width, h = height }
+    local safeArea = options.safeArea or viewport
+    local solved = self.pipeline.solver.solve({
+      preset = model.preset, viewport = viewport, safeArea = safeArea,
+      uiSize = options.uiSize or "auto", textSize = options.textSize or "auto",
+      fontFamily = options.fontFamily or "plain_pixel",
+      density = options.density or "auto",
+    })
+    if not solved.ok then
+      local error = solved.error or {}
+      return nil, error.code, error.message
+    end
+    local font = v3Font(self.presentation, solved.value.font, options.font)
+    if not font then return nil, "font_unavailable", "V3 preview font is unavailable" end
+    local layout, code, message = self.presentation:measureModel(solved.value,
+      model, font, options.density or "auto")
+    if not layout then return nil, code, message end
+    layout.v3Model, layout.v3Font = model, font
+    return layout
+  end
+
+  function self:drawV3(g, screen, layout, options)
+    options = options or {}
+    local model, modelCode, modelMessage = v3Model(screen)
+    if not model then return nil, modelCode, modelMessage end
+    model = layout and layout.v3Model or model
+    local font = options.font or (layout and layout.v3Font)
+    if not font then
+      local solved = self.pipeline.solver.solve({
+        preset = model.preset, viewport = options.viewport or { x = 0, y = 0,
+          w = layout and layout.outer.w or 640, h = layout and layout.outer.h or 360 },
+        safeArea = options.safeArea or options.viewport,
+        uiSize = options.uiSize or "auto", textSize = options.textSize or "auto",
+        fontFamily = options.fontFamily or "plain_pixel",
+        density = options.density or "auto",
+      })
+      if solved.ok then font = v3Font(self.presentation, solved.value.font) end
+    end
+    if not font then return nil, "font_unavailable", "V3 preview font is unavailable" end
+    local theme = self.themes:get(options.theme or "clean")
+    return self.presentation:drawModel(model, layout, font, theme)
+  end
+
+  function self:renderV3(screen, width, height, options)
+    return self:measureV3(screen, width, height, options)
   end
 
   function self:refreshMenuCatalog(sourceItems, game, baseSignatures)

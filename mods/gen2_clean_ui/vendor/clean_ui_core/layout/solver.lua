@@ -48,6 +48,7 @@ function Solver.solve(request)
         outer = envelope.outer,
         frameInset = { left = inset, top = inset, right = inset, bottom = inset },
         scale = envelope.scale,
+        aspect = envelope.aspect,
         font = font,
         density = request.density or "comfortable",
         nodes = {}, clipRects = {}, scrollRanges = {}, hitRegions = {},

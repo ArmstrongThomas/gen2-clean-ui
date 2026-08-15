@@ -36,6 +36,17 @@ function Registry.new(game)
     return out
   end
 
+  function self:descriptors(filter)
+    local out = {}
+    for _, record in ipairs(self:list()) do
+      local matches = type(filter) ~= "table"
+        or (filter.ownerId == nil or filter.ownerId == record.ownerId)
+        and (filter.id == nil or filter.id == record.id)
+      if matches then out[#out + 1] = Contract.public(record) end
+    end
+    return out
+  end
+
   function self:actions()
     local out = {}
     for _, record in ipairs(self:list()) do

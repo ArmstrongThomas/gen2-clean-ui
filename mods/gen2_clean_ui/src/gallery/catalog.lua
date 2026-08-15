@@ -14,6 +14,11 @@ return function(ctx)
     "presenters.services_commerce_presenters")
   local MailSpecialtyPresenters = ctx.load(
     "presenters.mail_specialty_presenters")
+  local BootAnimationPresenter = ctx.load("presenters.boot_animations")
+  local CreditsPresenter = ctx.load("presenters.credits")
+  local EggHatchPresenter = ctx.load("presenters.egg_hatch")
+  local EvolutionPresenter = ctx.load("presenters.evolution")
+  local GoldSilverIntroPresenter = ctx.load("presenters.gold_silver_intro")
   local Gallery = {}
 
   local function slug(id)
@@ -55,6 +60,18 @@ return function(ctx)
       return ServicesCommercePresenters.convert(screenId, sourceModel)
     elseif MailSpecialtyPresenters.presenterFor(screenId) then
       return MailSpecialtyPresenters.convert(screenId, sourceModel)
+    elseif screenId == "Gen2CopyrightSplash"
+        or screenId == "Gen2GameFreakPresents"
+        or screenId == "Gen2TitleState" then
+      return BootAnimationPresenter.convert(screenId, sourceModel)
+    elseif screenId == "Gen2Credits" then
+      return CreditsPresenter.convert(sourceModel)
+    elseif screenId == "Gen2EggHatchAnim" then
+      return EggHatchPresenter.convert(sourceModel)
+    elseif screenId == "Gen2EvolutionAnim" then
+      return EvolutionPresenter.convert(sourceModel)
+    elseif screenId == "Gen2GoldSilverIntro" then
+      return GoldSilverIntroPresenter.convert(screenId, sourceModel)
     end
     return FoundationPresenters.convert(screenId, sourceModel)
   end

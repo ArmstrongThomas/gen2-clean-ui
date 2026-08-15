@@ -401,9 +401,9 @@ return function(ctx)
   local function supported(id, module, preset, opaque, base, mode, gallery, extra)
     local spec = {
       id = id, module = module, support = "supported", milestone = "0.3.0",
-      family = "services", preset = preset, opaque = opaque,
-      toggle = "services", validateBase = base, validateMode = mode,
-      gallery = gallery,
+        family = "services", preset = preset, opaque = opaque,
+        toggle = "services", validateBase = base, validateMode = mode,
+        gallery = gallery, presentationApi = 3,
     }
     for key, value in pairs(extra or {}) do spec[key] = value end
     return Record.new(spec)
@@ -437,20 +437,18 @@ return function(ctx)
       mailReadBase, nil, { "read" }),
     supported("Gen2MailboxMenu", "src.ui.gen2.MailboxMenu", "M", false,
       mailboxBase, mailboxMode, { "list", "submenu", "message", "confirm" }),
-    supported("Gen2MapRadio", "src.ui.gen2.MapRadio", "L", false,
-      mapRadioBase, nil, { "station" }),
-    supported("Gen2MartMenu", "src.ui.gen2.MartMenu", "L", true,
-      martBase, martMode, { "standard", "herb", "bargain", "pharmacy", "sell" }),
+    -- Official MartMenu keeps the overworld visible underneath the shop
+    -- surface (`MartMenu.isOpaque = false`). A true value makes identity
+    -- validation reject every live Mart state as opacity_mismatch.
+    supported("Gen2MartMenu", "src.ui.gen2.MartMenu", "L", false,
+      martBase, martMode, { "standard", "buy", "herb", "bargain", "pharmacy",
+        "sell", "sell_quantity" }),
     supported("Gen2MoveDeleter", "src.ui.gen2.MoveDeleter", "L", false,
       deleterBase, nil, { "moves" }),
     supported("Gen2NamePick", "src.ui.gen2.NamePick", "M", true,
       namePickBase, nil, { "presets", "slide" }),
     supported("Gen2PhotoStudio", "src.ui.gen2.PhotoStudio", "L", true,
       photoBase, nil, { "photo" }),
-    supported("Gen2Pokegear", "src.ui.gen2.Pokegear", "L", true,
-      pokegearBase, pokegearMode,
-      { "strip", "clock", "map", "fly", "radio", "phone",
-        "phone_submenu", "call", "no_signal" }),
     supported("Gen2ScriptMenu", "src.ui.gen2.ScriptMenu", "M", false,
       scriptBase, nil, { "vertical", "grid", "money", "coins", "prizes" }),
     supported("Gen2TradeMenu", "src.ui.gen2.TradeMenu", "L", false,

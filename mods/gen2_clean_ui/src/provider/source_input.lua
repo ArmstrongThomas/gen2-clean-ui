@@ -25,25 +25,6 @@ return function()
   end
 
   local function select(state, screenId, region)
-    if screenId == "Gen2BattleState" and region.role == "battle_advance" then
-      return true
-    end
-    if screenId == "Gen2BattleState" and region.role == "battle_action" then
-      local index = tonumber(region.sourceIndex) or region.index
-      local phase = rawget(state, "phase")
-      if phase == "menu" then
-        state.menuIndex = index
-      elseif phase == "moves" or phase == "choose-forget" then
-        state.moveIndex = index
-      elseif phase == "ask-nickname" then
-        state.nicknameIndex = index
-      elseif phase == "ask-shift" then
-        state.shiftIndex = index
-      elseif phase == "ask-forget" or phase == "stop-learning" then
-        state.forgetChoice = index
-      end
-      return true
-    end
     if screenId == nil and region.role == "choice_option"
         and rawget(state, "index") ~= nil then
       local sourceIndex = tonumber(region.sourceIndex) or region.index

@@ -188,6 +188,9 @@ function Render.draw(shell, state, layout, rows, font, theme)
     controls = "LEFT/RIGHT FAMILY   A PREVIEW   B BACK"
   elseif state.view == "gallery_preview" then
     controls = "LEFT/RIGHT FIXTURE   UP/DOWN CONTENT   A SIZE   SELECT TEXT   START FONT"
+  elseif state.view == "v3_screen" then
+    local model = state.payload and state.payload.model or {}
+    controls = model.description or "A CHOOSE   B BACK"
   else
     controls = "A CHOOSE   B BACK"
   end

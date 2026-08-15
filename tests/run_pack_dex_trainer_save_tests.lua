@@ -76,6 +76,9 @@ check(packBundle.model.selectedItem.description == "Powerful punch.",
 check(descriptor(packBundle.model, "item.2.choose").dispatch == "source_input",
   "Pack activation remains owned by screen.update")
 local packPresentation = assert(PackPresenter.convert(packBundle.model))
+check(packPresentation.schema == "clean_ui.v3.presentation.v1"
+  and packPresentation.apiVersion == 3,
+  "Pack presenter emits the canonical V3 model")
 check(packPresentation.kind == "menu" and packPresentation.preset == "L"
   and packPresentation.selected == 2 and packPresentation.scroll == 1,
   "Pack presenter preserves stable envelope and navigation")
@@ -208,12 +211,26 @@ check(dexList.model.rows[3].disabled and dexList.model.totals.seen == 2
   and dexList.model.totals.caught == 1,
   "Pokedex snapshots seen/caught visibility and totals")
 local dexListView = assert(PokedexPresenter.convert(dexList.model))
+check(dexListView.schema == "clean_ui.v3.presentation.v1"
+  and dexListView.apiVersion == 3,
+  "Pokedex presenter emits the canonical V3 model")
 check(dexListView.kind == "menu" and dexListView.preset == "L"
   and dexListView.selected == 1,
   "Pokedex list uses stable L presentation")
 check(dexListView.details.sprite.path == "pokemon/chikorita/front.png"
   and dexListView.details.sprite.palette[2][1] == 120,
   "Pokedex presentation carries its full-color sprite descriptor")
+check(dexListView.details.title == "CHIKORITA"
+  and dexListView.details.fields[1].label == "NUMBER"
+  and dexListView.details.fields[1].value == "No.152"
+  and dexListView.details.fields[2].value == "OWNED"
+  and dexListView.details.typeBadges[1] == "GRASS"
+  and dexListView.rows[1].label == "No.152 CHIKORITA"
+  and dexListView.rows[1].right == "OWNED",
+  "Pokedex list uses a Gen1 Modern-inspired number/status preview rail")
+check(dexListView.description:find("SEEN 2", 1, true)
+  and dexListView.description:find("OWNED 1", 1, true),
+  "Pokedex footer keeps totals and clean navigation hints")
 
 dexState.view, dexState.page, dexState.entryAction = "entry", 2, 3
 local dexEntry = assert(Pokedex.extract(dexState))
@@ -225,8 +242,11 @@ check(dexEntry.model.entry.selectedAction == 3
   "Pokedex entry preserves the native action cursor")
 local dexEntryView = assert(PokedexPresenter.convert(dexEntry.model))
 check(dexEntryView.sourceView == "entry" and dexEntryView.selected == 3
-  and dexEntryView.art.paletteKey == "CHIKORITA",
-  "Pokedex entry presenter retains action and color-art data")
+  and dexEntryView.art.paletteKey == "CHIKORITA"
+  and dexEntryView.details.title == "CHIKORITA"
+  and dexEntryView.details.typeBadges[1] == "GRASS"
+  and dexEntryView.details.fields[1].value == "No.152",
+  "Pokedex entry presenter retains action, preview, and color-art data")
 
 dexState.view, dexState.areaRegion = "area", "johto"
 local dexArea = assert(Pokedex.extract(dexState))
@@ -293,6 +313,9 @@ check(trainer.model.pokedexCaught == 2
   and trainer.model.playTime.hours == 27,
   "Trainer Card snapshots trainer summary")
 local trainerView = assert(TrainerPresenter.convert(trainer.model))
+check(trainerView.schema == "clean_ui.v3.presentation.v1"
+  and trainerView.apiVersion == 3,
+  "Trainer Card presenter emits the canonical V3 model")
 check(trainerView.preset == "L" and trainerView.sourcePage == 1
   and trainerView.rows[2].right == "00123",
   "Trainer page uses stable L layout and padded source ID")
@@ -332,6 +355,9 @@ check(saveConfirm.model.summary.badges == 2
   and saveConfirm.model.summary.map == "VIOLET_CITY",
   "Save snapshots continue-card data")
 local saveConfirmView = assert(SavePresenter.convert(saveConfirm.model))
+check(saveConfirmView.schema == "clean_ui.v3.presentation.v1"
+  and saveConfirmView.apiVersion == 3,
+  "Save presenter emits the canonical V3 model")
 check(saveConfirmView.preset == "M" and saveConfirmView.selected == 2
   and saveConfirmView.sourcePhase == "confirm",
   "Save confirm uses stable M presentation")

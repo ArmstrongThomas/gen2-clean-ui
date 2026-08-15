@@ -76,6 +76,9 @@ local textBundle = provider:extractModel(text, { game=game }).presentation
 check(textBundle.model.lines[1] == "POK\195\169MON"
   and textBundle.model.lines[2] == "REA",
   "TextBox reconstructs the two source-shown glyph prefixes")
+check(textBundle.model.apiVersion == 3
+  and textBundle.model.schema == "clean_ui.v3.presentation.v1",
+  "TextBox emits the canonical V3 dialogue model")
 local revealedState = setmetatable({
   game=game,
   pages={{ "FIRST REVEALED LINE", "SECOND REVEALED LINE", "THIRD" }},
@@ -136,13 +139,22 @@ continuation.pages = {{ "GOLD, I want you to have this", "for your errand." }}
 continuation.pageIndex, continuation.lineIndex = 1, 1
 continuation.shown = { glyphs(27) }
 continuation.codes, continuation.charIndex = glyphs(27), 27
-continuation.waiting, continuation.done = true, false
+continuation.waiting, continuation.contAdvance, continuation.done = true, true, false
 local continuationModel = provider:extractModel(continuation,
   { game=game }).presentation.model
 check(#continuationModel.lines == 2
   and continuationModel.lines[1] == "GOLD, I want you to have this"
   and continuationModel.lines[2] == "for your errand.",
   "native continuation breaks remain one reflowable Clean UI message")
+continuation.waiting, continuation.contAdvance, continuation.lineIndex = false, false, 2
+continuation.shown = { glyphs(27), glyphs(1) }
+continuation.codes, continuation.charIndex = glyphs(1), 1
+local continuedModel = provider:extractModel(continuation,
+  { game=game }).presentation.model
+check(#continuedModel.lines == 2
+  and continuedModel.lines[1] == "GOLD, I want you to have this"
+  and continuedModel.lines[2] == "for your errand.",
+  "a collapsed continuation remains one stable message while the source catches up")
 
 local noShown = shallow(text)
 noShown.shown = {}
@@ -168,7 +180,9 @@ local choice = setmetatable({
 }, choiceClass)
 local choicePrepared = provider:prepare(choice, { game=game })
 check(choicePrepared.suppress
-  and choicePrepared.presentation.model.selected == 2,
+  and choicePrepared.presentation.model.selected == 2
+  and choicePrepared.presentation.model.apiVersion == 3
+  and choicePrepared.presentation.model.schema == "clean_ui.v3.presentation.v1",
   "ChoiceBox preserves its one-based NO selection")
 check(choicePrepared.presentation.model.options[1].sourceIndex == 1
   and choicePrepared.presentation.model.options[2].sourceIndex == 2,

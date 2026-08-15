@@ -1,5 +1,6 @@
 local requireCore = ...
 local Result = requireCore("foundation.result")
+local Data = requireCore("foundation.data")
 local Viewport = requireCore("geometry.viewport")
 local Modal = requireCore("components.modal")
 local FontCatalog = requireCore("text.font_catalog")
@@ -9,6 +10,11 @@ local Layout = requireCore("shell.layout")
 local Render = requireCore("shell.render")
 
 local Shell = {}
+
+-- Pointer/touch hit testing remains implemented for a future input pass, but
+-- the current Clean UI deliberately leaves it disabled. The released host
+-- exposes the hook, while several screens still have incomplete behavior.
+local POINTER_TOUCH_ENABLED = false
 
 local function slug(value)
   local text = tostring(value):lower():gsub("[^a-z0-9]+", "_")
@@ -84,7 +90,7 @@ function Shell.new(core)
     subscriptions[#subscriptions + 1] = self.mod.hooks:wrap("input.pointer",
       function(nextFn, game, event)
         local screen = self:active(game)
-        if screen and self.mod.options:get("pointer_touch") ~= false
+        if screen and POINTER_TOUCH_ENABLED
             and self:pointer(screen, event) then return true end
         return nextFn(game, event)
       end, 100000)
@@ -125,6 +131,7 @@ function Shell.new(core)
     local fixture = state.payload and state.payload.fixture
     local model = fixture and fixture.model
     local supported = type(model) == "table" and (model.kind == "menu"
+      or model.kind == "device" or model.kind == "map"
       or model.kind == "dialogue" or model.kind == "choice")
     return supported and model or nil
   end
@@ -134,14 +141,14 @@ function Shell.new(core)
         and state.preview[key] ~= nil then
       return state.preview[key]
     end
-    return self.mod.options:get(key)
+    return self.core:setting(key)
   end
 
   function self:previewSetting(state, key)
     if state and state.preview and state.preview[key] ~= nil then
       return state.preview[key]
     end
-    return self.mod.options:get(key)
+    return self.core:setting(key)
   end
 
   function self:fontPolicy(viewport, safeArea, state)
@@ -163,6 +170,28 @@ function Shell.new(core)
     local policy = self:fontPolicy(viewport, safeArea, screen.model)
     local font = self.fonts:get(policy)
     if not font then font = love.graphics.newFont(policy.physicalPx or 15) end
+    if screen.model.view == "v3_screen" then
+      local model = screen.model.payload and screen.model.payload.model
+      if type(model) ~= "table" then return end
+      local solved = self.core.pipeline.solver.solve({
+        preset=model.preset or "M", viewport=viewport, safeArea=safeArea,
+        uiSize=self:setting(screen.model, "ui_size") or "auto",
+        textSize=self:setting(screen.model, "text_size") or "auto",
+        fontFamily=self:setting(screen.model, "font") or "plain_pixel",
+        density=self:setting(screen.model, "density") or "auto",
+        settingsRevision=self.settingsRevision,
+      })
+      if not solved.ok then return end
+      local v3Font = self.fonts:get(solved.value.font)
+      if not v3Font then return end
+      local layout = self.core.presentation:measureModel(solved.value, model,
+        v3Font, self:setting(screen.model, "density") or "auto")
+      if not layout then return end
+      screen.model.layout, screen.rows = layout, model.rows or {}
+      local theme = self.core.themes:get(self.core:setting("theme") or "clean")
+      self.core.presentation:drawModel(model, layout, v3Font, theme)
+      return
+    end
     local preview = self:previewModel(screen.model)
     if preview then
       local solved = self.core.pipeline.solver.solve({
@@ -221,7 +250,7 @@ function Shell.new(core)
     end
     self.core.dropdown:open({ type="dropdown", id=row.id,
       label=row.label, value=row.value, options=options,
-      action="change_setting" }, trigger, layout.safeArea, {
+      action=row.action or "change_setting" }, trigger, layout.safeArea, {
         rowHeight = layout.rowHeight,
         headingHeight = math.max(24, math.floor(layout.rowHeight * 0.7)),
         descriptionHeight = math.max((layout.fontHeight or 15) + 4,
@@ -233,14 +262,58 @@ function Shell.new(core)
       })
   end
 
-  function self:commitDropdown(result)
+  function self:commitDropdown(result, screen)
     local payload = result and result.value and result.value.payload
     if not payload then return end
-    local ok, code, message = self.mod.options:set(payload.componentId, payload.value)
+    if screen and screen.model.view == "v3_screen"
+        and result.value.action then
+      return self:invokeV3Action(screen, result.value.action, payload)
+    end
+    local ok, code, message = self.core:setSetting(payload.componentId, payload.value)
     if ok then
       self.settingsRevision = self.settingsRevision + 1
     else
       return nil, code, message
+    end
+    return true
+  end
+
+  function self:openV3Screen(screen, descriptor, actions)
+    local model = Content.v3Model(descriptor)
+    if not model then return nil, "invalid_screen", "V3 action did not return a screen" end
+    screen.model:show("v3_screen", { model=model, actions=actions or {} }, true)
+    return true
+  end
+
+  function self:invokeV3Action(screen, actionId, payload)
+    local actions = screen.model.payload and screen.model.payload.actions or {}
+    local action = actions and actions[actionId]
+    if type(action) ~= "function" then
+      return nil, "unknown_action", tostring(actionId)
+    end
+    local ok, value = xpcall(function()
+      return action({ game=screen.game, productId=self.core.provider.productId,
+        contractId=screen.model.payload.contractId }, payload or {})
+    end, function(message) return tostring(message) end)
+    if not ok then
+      screen.model.notice = "ACTION FAILED: " .. value
+      return nil, "action_failed", value
+    end
+    if value ~= nil then
+      local snapshot, snapshotError = Data.snapshot(value)
+      if not snapshot then
+        screen.model.notice = "ACTION FAILED: " .. tostring(snapshotError)
+        return nil, "invalid_action_result", snapshotError
+      end
+      value = snapshot
+    end
+    if type(value) == "table" and value.type == "modal_overlay" then
+      return self:openModal(screen, value, actions)
+    elseif type(value) == "table" and value.type == "close" then
+      self:close(screen)
+      return true
+    elseif Content.isV3Screen(value) then
+      return self:openV3Screen(screen, value, actions)
     end
     return true
   end
@@ -334,9 +407,9 @@ function Shell.new(core)
   function self:activate(screen)
     local rows = self:rows(screen)
     local row = rows[screen.model.index]
-    if not row then return end
+    if not row or row.disabled then return end
     if row.kind == "toggle" then
-      local ok, code, message = self.mod.options:set(row.id, not row.value)
+      local ok, code, message = self.core:setSetting(row.id, not row.value)
       screen.model.notice = ok and "SETTING UPDATED"
         or (tostring(code) .. ": " .. tostring(message))
       if ok then self.settingsRevision = self.settingsRevision + 1 end
@@ -360,7 +433,23 @@ function Shell.new(core)
         if not opened then
           screen.model.notice = tostring(modalCode) .. ": " .. tostring(modalMessage)
         end
+      elseif Content.isV3Screen(value) then
+        local record = self.core.catalog.records[row.id]
+        local opened, openCode, openMessage = self:openV3Screen(screen, value,
+          record and record.actions)
+        if not opened then
+          screen.model.notice = tostring(openCode) .. ": "
+            .. tostring(openMessage)
+        end
       end
+    elseif screen.model.view == "v3_screen"
+        and (row.kind == "v3_action" or row.kind == "v3_item") then
+      local payload = { componentId=row.v3ComponentId or row.id,
+        itemId=row.v3ItemId, value=row.v3Value }
+      local ok, code, message = self:invokeV3Action(screen, row.action, payload)
+      if not ok then screen.model.notice = tostring(code) .. ": " .. tostring(message) end
+    elseif screen.model.view == "v3_screen" and row.kind == "v3_dropdown" then
+      self:openDropdown(screen, row)
     elseif row.kind == "gallery" then
       screen.model:show("gallery_preview", {
         fixture = row.source, catalog = screen.model.payload,
@@ -384,7 +473,7 @@ function Shell.new(core)
         dropdown:dispatch({ type="cancel" })
       end
       if result and result.ok and result.value.action then
-        local ok, code, message = self:commitDropdown(result)
+          local ok, code, message = self:commitDropdown(result, screen)
         if not ok then screen.model.notice = tostring(code) .. ": " .. tostring(message) end
       end
       return
@@ -425,9 +514,17 @@ function Shell.new(core)
       screen.model.preview.font = screen.model.preview.font == "system"
         and "plain_pixel" or "system"
     elseif input:wasPressed("up") then
-      screen.model:move(-1, #rows)
+      if screen.model.view == "v3_screen" then
+        screen.model:moveSelectable(-1, rows)
+      else
+        screen.model:move(-1, #rows)
+      end
     elseif input:wasPressed("down") then
-      screen.model:move(1, #rows)
+      if screen.model.view == "v3_screen" then
+        screen.model:moveSelectable(1, rows)
+      else
+        screen.model:move(1, #rows)
+      end
     elseif input:wasPressed("a") then
       self:activate(screen)
     elseif input:wasPressed("select") and screen.model.view == "mod_menus" then
@@ -541,7 +638,7 @@ function Shell.new(core)
         elseif model.pressed and option and model.pressed.id == option.id then
           local result = dropdown:dispatch({ type="activate", optionId=option.id })
           if result.ok and result.value.action then
-            local ok, code, message = self:commitDropdown(result)
+            local ok, code, message = self:commitDropdown(result, screen)
             if not ok then model.notice = tostring(code) .. ": " .. tostring(message) end
           end
         end
@@ -570,6 +667,7 @@ function Shell.new(core)
       model.hover = hit and hit.index or nil
       return hit ~= nil
     elseif event.phase == "pressed" and hit then
+      if hit.row and hit.row.disabled then return true end
       model.index = hit.index
       local pin = model.view == "mod_menus"
         and event.x >= hit.rect.x + hit.rect.w - model.layout.pinWidth
