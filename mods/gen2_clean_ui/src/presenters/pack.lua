@@ -3,6 +3,12 @@ return function(ctx)
   local Adapter = ctx.load("adapters.pack")
   local Presenter = {}
 
+  local function canonical(model)
+    model.schema = "clean_ui.v3.presentation.v1"
+    model.apiVersion = 3
+    return model
+  end
+
   local function rows(source)
     local output = {}
     for index, item in ipairs(source or {}) do
@@ -77,14 +83,13 @@ return function(ctx)
     if type(model) ~= "table" or model.screenId ~= "Gen2PackMenu" then
       return nil, "invalid_model"
     end
-    if model.battleOwned then return nil, "battle_owned" end
     local pocket = model.pocket or {}
     local selected = model.selectedItem
     local description = selected and selected.description or ""
     if description == "" then
       description = "LEFT/RIGHT POCKET   A CHOOSE   B BACK"
     end
-    return {
+    return canonical({
       kind = "menu",
       preset = "L",
       opaque = true,
@@ -97,7 +102,7 @@ return function(ctx)
       modal = modal(model),
       sourceMode = model.mode,
       sourcePocket = pocket.id,
-    }
+    })
   end
 
   function Presenter.prepare(_, state, context)

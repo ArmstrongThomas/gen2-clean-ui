@@ -19,6 +19,12 @@ thread, package, debug, native-code, or bytecode access.
 - Graphics use the provided LÖVE graphics/window APIs. The product does not use
   blocked `love.filesystem`, `love.thread`, `love.system`, or `love.event`
   namespaces.
+- Generated UI images prefer `mod.ui.sourceImage` on hosts that provide it. On
+  v0.1.86, the runtime instead uses sandboxed `love.graphics.newImage` only for
+  validated forward-slash `assets/generated/*.png` paths; traversal,
+  backslashes, drive separators, and non-PNG paths are rejected. This remains
+  read-only asset loading and does not use blocked filesystem APIs or modify
+  the host.
 
 The complete installable mod root, including the pinned core snapshot, was
 audited on 2026-08-12. The scanner passed 108 UTF-8 Lua source files with no
@@ -28,6 +34,12 @@ point, native binary, or Lua/LuaJIT bytecode.
 The sandbox boundary is `mods/gen2_clean_ui`. Repository-only PowerShell and
 test harnesses run outside the game and may use host filesystem APIs to inspect
 the package; they are not included in the updater ZIP's mod root.
+
+The external `gen1recomp` source checkouts and released launcher are read-only
+compatibility targets. This product never patches, rebuilds, or commits host
+changes. Release-floor differences are handled by feature-detected mod seams;
+the drop-in package must remain usable with the latest released host that
+satisfies its manifest.
 
 ## Local release gate
 

@@ -25,16 +25,20 @@ main.lua
   Card, Save, Naming, and the PC family.
 - `contracts/families/services.lua`: services, Pokegear, mail, commerce, and
   specialty information screens.
-- `contracts/families/native.lua`: battle transition, cinematics, animations,
-  and minigames that Clean UI must not suppress.
+- `contracts/families/native.lua`: battle transition metadata plus cinematics,
+  animations, and minigames that Clean UI must not suppress. The transition is
+  now a supported transparent V3 overlay; the remaining records are native by
+  design.
 - `provider/identity.lua`: exact ID, official metatable, opacity, source
   registry ownership, and instance-draw checks.
 - `provider/init.lua`: protected validation and complete-presentation gate.
 - `provider/stack_policy.lua`: whole-visible-stack proof and native fallback for
-  battle transitions or battle-owned child stacks.
+  unproven or unsupported battle-owned child stacks; supported Party, Pack, and
+  naming children are allowed to compose over the clean battle presenter, and
+  transparent battle transitions compose over the lower world stack.
 - `provider/live_stack.lua`: exact current-stack discovery and native-toggle
-  gating; one unknown or unsupported retained layer keeps the whole frame
-  native.
+  gating; one unknown or unsupported retained layer keeps the frame native,
+  except for the explicitly supported battle-child composition path.
 - `provider/source_input.lua`: maps measured pointer/wheel geometry back to
   source-owned selection and queued GB input.
 - `adapters/*.lua`: bounded, defensive snapshots of exact official state.

@@ -173,6 +173,9 @@ return function(ctx)
       end
     end
 
+    local shell = GearData.shell(state, cards, cardIndex, view, clock,
+      map, radio, phone)
+
     local model = {
       schema="clean_ui.presenter_model.v1",
       screenId="Gen2Pokegear",
@@ -188,6 +191,7 @@ return function(ctx)
       map=map,
       radio=radio,
       phone=phone,
+      shell=shell,
       controls=addControls(actions, view),
     }
     model.actionDescriptors = Actions.describe(actions)

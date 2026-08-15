@@ -401,9 +401,9 @@ return function(ctx)
   local function supported(id, module, preset, opaque, base, mode, gallery, extra)
     local spec = {
       id = id, module = module, support = "supported", milestone = "0.3.0",
-      family = "services", preset = preset, opaque = opaque,
-      toggle = "services", validateBase = base, validateMode = mode,
-      gallery = gallery,
+        family = "services", preset = preset, opaque = opaque,
+        toggle = "services", validateBase = base, validateMode = mode,
+        gallery = gallery, presentationApi = 3,
     }
     for key, value in pairs(extra or {}) do spec[key] = value end
     return Record.new(spec)
@@ -438,7 +438,7 @@ return function(ctx)
     supported("Gen2MailboxMenu", "src.ui.gen2.MailboxMenu", "M", false,
       mailboxBase, mailboxMode, { "list", "submenu", "message", "confirm" }),
     supported("Gen2MapRadio", "src.ui.gen2.MapRadio", "L", false,
-      mapRadioBase, nil, { "station" }),
+      mapRadioBase, nil, { "station" }, { presentationApi = 3 }),
     supported("Gen2MartMenu", "src.ui.gen2.MartMenu", "L", true,
       martBase, martMode, { "standard", "herb", "bargain", "pharmacy", "sell" }),
     supported("Gen2MoveDeleter", "src.ui.gen2.MoveDeleter", "L", false,
@@ -450,7 +450,8 @@ return function(ctx)
     supported("Gen2Pokegear", "src.ui.gen2.Pokegear", "L", true,
       pokegearBase, pokegearMode,
       { "strip", "clock", "map", "fly", "radio", "phone",
-        "phone_submenu", "call", "no_signal" }),
+        "phone_submenu", "call", "no_signal" },
+      { presentationApi = 3 }),
     supported("Gen2ScriptMenu", "src.ui.gen2.ScriptMenu", "M", false,
       scriptBase, nil, { "vertical", "grid", "money", "coins", "prizes" }),
     supported("Gen2TradeMenu", "src.ui.gen2.TradeMenu", "L", false,

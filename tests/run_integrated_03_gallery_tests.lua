@@ -50,7 +50,8 @@ for _, fixture in ipairs(source) do
         .. fixture.variant)
     check(product.sourceModel ~= nil and product.model ~= nil
       and product.sourceModel.screenId == fixture.screenId
-      and product.model.kind == "menu"
+      and (product.model.kind == "menu"
+        or product.model.kind == "device" or product.model.kind == "map")
       and Data.isFunctionFree(product.model),
       "integrated 0.3 fixture uses a production presentation "
         .. fixture.screenId .. "." .. fixture.variant)

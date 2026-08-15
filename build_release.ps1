@@ -9,6 +9,19 @@ $sourceRoot = Join-Path $projectRoot "mods\gen2_clean_ui"
 $manifestPath = Join-Path $sourceRoot "manifest.json"
 $lockPath = Join-Path $projectRoot "clean-ui-core.lock.json"
 
+function Get-Sha256Hex([string]$Path) {
+  $sha = [Security.Cryptography.SHA256]::Create()
+  $stream = $null
+  try {
+    $stream = [IO.File]::OpenRead($Path)
+    return ([BitConverter]::ToString($sha.ComputeHash($stream))).Replace("-", "")
+  }
+  finally {
+    if ($null -ne $stream) { $stream.Dispose() }
+    $sha.Dispose()
+  }
+}
+
 & (Join-Path $projectRoot "scripts\verify_core_lock.ps1")
 & (Join-Path $projectRoot "scripts\verify_sandbox.ps1") -RepositoryRoot $projectRoot
 if (-not [IO.File]::Exists($manifestPath)) { throw "Missing manifest: $manifestPath" }
@@ -130,6 +143,6 @@ try {
 }
 finally { $check.Dispose() }
 
-$hash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash
+$hash = Get-Sha256Hex $archivePath
 Write-Host "Created deterministic archive: $archivePath"
 Write-Host "SHA-256: $hash"

@@ -256,8 +256,10 @@ check(prepared.valid and prepared.suppress
   and prepared.presentation.complete == true,
   "production presenter prepares a complete suppressible model")
 check(prepared.presentation.model.kind == "menu"
-  and prepared.presentation.model.preset == "M",
-  "Main production model uses the stable M menu envelope")
+  and prepared.presentation.model.preset == "M"
+  and prepared.presentation.model.apiVersion == 3
+  and prepared.presentation.model.schema == "clean_ui.v3.presentation.v1",
+  "Main production model uses the stable V3 M menu envelope")
 check(Data.isFunctionFree(prepared.presentation.model),
   "production presentation model remains function-free")
 
@@ -287,6 +289,33 @@ check(SourceInput.pointer(pointerProvider, pointerState, nil, pointerLayout,
   and tapped == "a",
   "pointer release activates the selected native row through mod.input")
 
+local battlePointerState = {
+  screenId = "Gen2BattleState", phase = "ask-next-mon", nextMonIndex = 1,
+}
+local battlePointerLayout = { hitRegions = {{
+  id = "no", role = "battle_action", index = 2, sourceIndex = 2,
+  rect = { x=10, y=20, w=100, h=40 },
+}} }
+check(SourceInput.pointer(pointerProvider, battlePointerState, nil,
+  battlePointerLayout,
+  { phase="pressed", source="touch", id="next", x=20, y=30 }, {}) == true
+  and battlePointerState.nextMonIndex == 2,
+  "battle pointer selection updates the next-Pokemon confirmation cursor")
+check(SourceInput.pointer(pointerProvider, battlePointerState, nil,
+  battlePointerLayout,
+  { phase="released", source="touch", id="next", x=20, y=30 }, {}) == true
+  and tapped == "a",
+  "battle pointer release activates the selected next-Pokemon choice")
+
+local forgetPointerState = {
+  screenId = "Gen2BattleState", phase = "choose-forget", forgetIndex = 1,
+}
+check(SourceInput.pointer(pointerProvider, forgetPointerState, nil,
+  battlePointerLayout,
+  { phase="pressed", source="touch", id="forget", x=20, y=30 }, {}) == true
+  and forgetPointerState.forgetIndex == 2,
+  "battle pointer selection updates the move-learning forget cursor")
+
 local liveGame = { stack = { states = { providerMain } } }
 check(provider:visibleStack(liveGame, {})[1] == providerMain,
   "complete exact foundation stack is eligible")
@@ -303,12 +332,16 @@ local convertedStart = assert(FoundationPresenters.convert(
   "Gen2StartMenu", quitBundle.model))
 check(convertedStart.preset == "NAV" and convertedStart.opaque == false,
   "Start production model keeps the tall NAV overlay")
+check(convertedStart.apiVersion == 3
+  and convertedStart.schema == "clean_ui.v3.presentation.v1",
+  "Start production model uses the canonical V3 schema")
 check(convertedStart.modal and convertedStart.modal.selected == 2,
   "Start confirmation becomes a stable modal overlay")
 local convertedOptions = assert(FoundationPresenters.convert(
   "Gen2OptionsMenu", optionBundle.model))
 check(convertedOptions.rows[2].right == "OFF"
-  and convertedOptions.selected == 2,
+  and convertedOptions.selected == 2
+  and convertedOptions.apiVersion == 3,
   "Options production rows preserve values and source selection")
 
 -- Gallery models come from the same production adapters and contain no calls.
@@ -336,7 +369,8 @@ for _, fixture in ipairs(gallery.fixtures) do
     check(fixture.sourceModel.screenId == screenId,
       "Gallery exact source model screen " .. fixture.id)
     check(fixture.model.kind == "menu"
-      and fixture.model.preset == catalog.byId[screenId].preset,
+      and fixture.model.preset == catalog.byId[screenId].preset
+      and fixture.model.apiVersion == 3,
       "Gallery uses the production presenter " .. fixture.id)
     check(Data.isFunctionFree(fixture.model),
       "Gallery model is function-free " .. fixture.id)

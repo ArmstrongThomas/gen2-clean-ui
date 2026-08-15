@@ -30,9 +30,6 @@ return function(ctx)
   end
 
   local function packMode(state)
-    if state.battle or (type(state.world) == "table" and state.world.battleActive) then
-      return V.fail("battle_owned", "pack")
-    end
     if state.submenu ~= nil then
       local ok, code, detail = V.fields(state.submenu, {
         row = "table", rows = "table", index = "number",
@@ -90,7 +87,6 @@ return function(ctx)
   end
 
   local function partyMode(state)
-    if state.wantsBattleSubmenu then return V.fail("battle_owned", "party") end
     if state.switchFrom ~= nil then
       local ok, code, detail = V.index(state.switchFrom, "switchFrom", #state.party)
       if not ok then return nil, code, detail end
@@ -105,7 +101,6 @@ return function(ctx)
         items = "table", index = "number", mon = "table", slot = "number",
       })
       if not ok then return nil, code, detail end
-      if state.submenu.battle then return V.fail("battle_owned", "party.submenu") end
       ok, code, detail = V.array(state.submenu.items, "submenu.items", 1)
       if not ok then return nil, code, detail end
       ok, code, detail = V.index(state.submenu.index, "submenu.index",
@@ -330,37 +325,39 @@ return function(ctx)
     return true
   end
 
-  local function supported(id, module, family, preset, opaque, base, mode, gallery)
+  local function supported(id, module, family, preset, opaque, base, mode, gallery,
+      presentationApi)
     return Record.new({
       id = id, module = module, support = "supported", milestone = "0.2.0",
       family = family, preset = preset, opaque = opaque,
       toggle = family == "storage" and "storage" or "pokemon",
+      presentationApi = presentationApi,
       validateBase = base, validateMode = mode, gallery = gallery,
     })
   end
 
   return {
     supported("Gen2PackMenu", "src.ui.gen2.PackMenu", "inventory", "L", true,
-      packBase, packMode, { "pockets", "actions", "quantity", "confirm", "message" }),
+      packBase, packMode, { "pockets", "actions", "quantity", "confirm", "message" }, 3),
     supported("Gen2PartyMenu", "src.ui.gen2.PartyMenu", "party", "L", true,
-      partyBase, partyMode, { "party", "cancel", "actions", "switch", "egg" }),
+      partyBase, partyMode, { "party", "cancel", "actions", "switch", "egg" }, 3),
     supported("Gen2SummaryMenu", "src.ui.gen2.SummaryMenu", "summary", "L", true,
-      summaryBase, summaryMode, { "status", "moves", "stats", "move_detail", "egg" }),
+      summaryBase, summaryMode, { "status", "moves", "stats", "move_detail", "egg" }, 3),
     supported("Gen2PokedexMenu", "src.ui.gen2.PokedexMenu", "pokedex", "L", true,
-      pokedexBase, pokedexMode, { "list", "entry", "area", "options", "search", "unown" }),
+      pokedexBase, pokedexMode, { "list", "entry", "area", "options", "search", "unown" }, 3),
     supported("Gen2TrainerCard", "src.ui.gen2.TrainerCard", "trainer", "L", true,
-      trainerBase, nil, { "trainer", "johto_badges", "kanto_badges" }),
+      trainerBase, nil, { "trainer", "johto_badges", "kanto_badges" }, 3),
     supported("Gen2SaveMenu", "src.ui.gen2.SaveMenu", "core", "M", true,
-      saveBase, saveMode, { "confirm", "overwrite", "saving", "done" }),
+      saveBase, saveMode, { "confirm", "overwrite", "saving", "done" }, 3),
     supported("Gen2NamingScreen", "src.ui.gen2.NamingScreen", "naming", "XL", true,
-      namingBase, nil, { "pokemon", "box", "name_rater", "caught" }),
+      namingBase, nil, { "pokemon", "box", "name_rater", "caught" }, 3),
     supported("Gen2CenterPcMenu", "src.ui.gen2.CenterPcMenu", "storage", "M", true,
-      centerPcBase, centerPcMode, { "root", "message", "confirm" }),
+      centerPcBase, centerPcMode, { "root", "message", "confirm" }, 3),
     supported("Gen2PcMenu", "src.ui.gen2.PcMenu", "storage", "M", true,
-      pcBase, pcMode, { "root", "box_picker", "message" }),
+      pcBase, pcMode, { "root", "box_picker", "message" }, 3),
     supported("Gen2BoxMenu", "src.ui.gen2.BoxMenu", "storage", "XL", true,
-      boxBase, boxMode, { "withdraw", "deposit", "move", "submenu", "insert" }),
+      boxBase, boxMode, { "withdraw", "deposit", "move", "submenu", "insert" }, 3),
     supported("Gen2ItemPcMenu", "src.ui.gen2.ItemPcMenu", "storage", "L", true,
-      itemPcBase, itemPcMode, { "root", "withdraw", "deposit", "toss" }),
+      itemPcBase, itemPcMode, { "root", "withdraw", "deposit", "toss" }, 3),
   }
 end

@@ -4,6 +4,13 @@ return function(ctx)
   local PackPresenter = ctx.load("presenters.pack")
   local Presenters = {}
 
+  local function canonical(model)
+    if type(model) ~= "table" then return model end
+    model.schema = "clean_ui.v3.presentation.v1"
+    model.apiVersion = 3
+    return model
+  end
+
   local function copyRows(source)
     local output = {}
     for index, row in ipairs(source or {}) do
@@ -277,7 +284,7 @@ return function(ctx)
     if not Data.isFunctionFree(model) then
       return nil, "conversion_not_data", screenId
     end
-    return model
+    return canonical(model)
   end
 
   local function presenter(screenId)

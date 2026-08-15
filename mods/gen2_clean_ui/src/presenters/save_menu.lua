@@ -2,6 +2,12 @@ return function(ctx)
   local Adapter = ctx.load("adapters.save_menu")
   local Presenter = {}
 
+  local function canonical(model)
+    model.schema = "clean_ui.v3.presentation.v1"
+    model.apiVersion = 3
+    return model
+  end
+
   local TITLES = {
     confirm = "SAVE THE GAME?",
     overwrite = "OVERWRITE SAVE?",
@@ -42,7 +48,7 @@ return function(ctx)
     end
     if TITLES[model.phase] == nil then return nil, "unknown_phase", model.phase end
     local interactive = model.phase == "confirm" or model.phase == "overwrite"
-    return {
+    return canonical({
       kind = "menu",
       preset = "M",
       opaque = true,
@@ -55,7 +61,7 @@ return function(ctx)
       sourcePhase = model.phase,
       timer = model.timer,
       saved = model.savedPresent and model.saved or nil,
-    }
+    })
   end
 
   function Presenter.prepare(_, state, context)

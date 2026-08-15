@@ -46,16 +46,21 @@ return function()
         if getmetatable(state) ~= officialClass then
           return failure("class_override", record.id)
         end
-      else
+      elseif officialClass == true then
+        -- The v0.1.86 host exposes the exact screen id and source screen
+        -- registry, but does not expose the newer mod.ui.isBuiltinScreen
+        -- predicate. Keep using that predicate when a newer host provides
+        -- it, while allowing the older host's exact-id fallback to work.
         local mod = context and context.mod
         local predicate = mod and mod.ui and mod.ui.isBuiltinScreen
-        if type(predicate) ~= "function" then
-          return failure("builtin_predicate_unavailable", record.id)
+        if type(predicate) == "function" then
+          local ok, exact = pcall(predicate, state, record.id)
+          if not ok or exact ~= true then
+            return failure("class_override", record.id)
+          end
         end
-        local ok, exact = pcall(predicate, state, record.id)
-        if not ok or exact ~= true then
-          return failure("class_override", record.id)
-        end
+      else
+        return failure("builtin_predicate_unavailable", record.id)
       end
     end
     if rawget(state, "draw") ~= nil then

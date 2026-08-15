@@ -23,20 +23,57 @@ function BattleLayout.measure(base, model, font, density)
   local inner = inset(base.outer, frame + pad)
   local portrait = base.orientation == "portrait"
   local actions = model.actions or {}
-  local columns = portrait and 1 or math.min(2, #actions)
+  local moveList = model.phase == "moves" or model.phase == "choose-forget"
+    or model.moveList == true
+  -- The command menu keeps the native Gen II 2x2 navigation in every
+  -- orientation. Move selection is the one intentional exception: four
+  -- moves remain a vertical list so the detail panel can stay readable.
+  local columns = moveList and 1 or math.min(2, #actions)
   local rows = #actions > 0 and math.ceil(#actions / math.max(1, columns)) or 0
   local titleH = math.max(fontHeight + pad, math.floor(30 * scale + 0.5))
-  local rowH = math.max(fontHeight + pad, math.floor(36 * scale + 0.5))
+  local menuRowH = math.max(fontHeight + pad,
+    math.floor((moveList and 32 or 36) * scale + 0.5))
   local menuH = rows > 0
-    and rows * rowH + math.max(0, rows - 1) * gap or 0
-  local panelH = titleH + pad + menuH + pad
-  if rows == 0 then
-    panelH = math.max(panelH, fontHeight * 2 + pad * 3)
+    and rows * menuRowH + math.max(0, rows - 1) * gap or 0
+  local desiredMoveInfoH = moveList and math.max(fontHeight * 3 + pad,
+    math.floor(78 * scale + 0.5)) or 0
+  local moveContentH
+  if moveList and portrait then
+    -- Portrait phones do not have enough horizontal room for a readable
+    -- detail pane beside a four-row move list. Stack the detail pane above
+    -- the list and reserve both regions before splitting the field/panel.
+    moveContentH = desiredMoveInfoH + gap + menuH
+  else
+    moveContentH = math.max(menuH, moveList and desiredMoveInfoH or 0)
   end
-  -- The command panel must not consume the entire arena on short screens.
-  -- If the requested font cannot fit inside this cap, the runtime probe will
-  -- choose the next whole font step instead of producing a text-free battle.
-  local panelCap = math.floor(inner.h * (portrait and 0.48 or 0.46))
+  -- Reserve the largest battle panel up front.  The field/HUD must not move
+  -- when the player opens the command menu or enters move selection: changing
+  -- phases is a state transition, not a reason to resize the battlefield.
+  -- Four rows is the Gen II maximum even when a particular Pokémon knows fewer
+  -- moves, and the detail pane is reserved in both orientations so the move
+  -- screen cannot steal height from the sprites and status cards.
+  local commandRowH = math.max(fontHeight + pad,
+    math.floor(36 * scale + 0.5))
+  local commandMenuH = 2 * commandRowH + gap
+  local worstMoveRowH = math.max(fontHeight + pad,
+    math.floor(32 * scale + 0.5))
+  local worstMoveMenuH = 4 * worstMoveRowH + 3 * gap
+  local worstMoveContentH = portrait
+    and (desiredMoveInfoH + gap + worstMoveMenuH)
+    or math.max(desiredMoveInfoH, worstMoveMenuH)
+  local messagePanelH = math.max(titleH + pad * 2,
+    fontHeight * 2 + pad * 3)
+  local commandPanelH = titleH + pad + commandMenuH + pad
+  local movePanelH = titleH + pad + worstMoveContentH + pad
+  local panelH = math.max(messagePanelH, commandPanelH, movePanelH)
+  -- A very small viewport may be unable to hold the full four-move reserve.
+  -- Keep the cap phase-independent there too; the solver can step down the
+  -- font as needed, while comfortable viewports retain the invariant height.
+  local minimumCard = fontHeight + gap * 2
+  local minimumField = minimumCard * 2 + gap
+  local panelCap = math.floor(inner.h * (portrait and 0.68 or 0.58))
+  panelCap = math.min(panelCap,
+    math.max(1, inner.h - gap - minimumField))
   panelH = math.min(panelH, math.max(1,
     math.min(inner.h - gap - 1, panelCap)))
   local field = Rect.new(inner.x, inner.y, inner.w,
@@ -49,45 +86,28 @@ function BattleLayout.measure(base, model, font, density)
   -- lower-right. Keeping each row as a separate pair gives the sprites
   -- room to breathe without making the cards collide at large text sizes.
   local rowGap = math.max(gap, math.floor(field.h * 0.04))
-  local rowH = math.max(1, (field.h - rowGap) / 2)
-  local topRow = Rect.new(field.x, field.y, field.w, rowH)
-  local bottomRow = Rect.new(field.x, field.y + rowH + rowGap,
-    field.w, rowH)
+  -- Keep the row boundary on whole pixels. Fractional row heights can make
+  -- the lower card/sprite exceed the field by a floating-point epsilon at
+  -- the smallest landscape viewport.
+  local fieldRowH = math.max(1, math.floor((field.h - rowGap) / 2))
+  local topRow = Rect.new(field.x, field.y, field.w, fieldRowH)
+  local bottomRow = Rect.new(field.x, field.y + fieldRowH + rowGap,
+    field.w, fieldRowH)
   local columnGap = math.max(gap, math.floor(field.w * 0.05))
   local cardW = math.max(1, math.floor((field.w - columnGap) * 0.46))
   local spriteW = math.max(1, field.w - columnGap - cardW)
+  local cardTargetH = model.player and model.player.exp ~= nil and 124 or 100
   local cardH = math.max(fontHeight + gap * 2,
-    math.floor(54 * scale + 0.5))
-  cardH = math.min(cardH, math.max(1, rowH))
+    math.floor(cardTargetH * scale + 0.5))
+  cardH = math.min(cardH, math.max(1, fieldRowH))
   local spriteInset = math.max(1, math.floor(gap * 0.35))
   local hud = Rect.copy(field)
   local arena = Rect.copy(field)
   local enemyCard, playerCard, enemySprite, playerSprite
-  if portrait then
-    enemyCard = Rect.new(hud.x, hud.y, hud.w, cardH)
-    playerCard = Rect.new(hud.x, hud.y + cardH + gap, hud.w, cardH)
-    enemySprite = Rect.new(arena.x + arena.w * 0.54,
-      arena.y + arena.h * 0.04, arena.w * 0.38, arena.h * 0.44)
-    playerSprite = Rect.new(arena.x + arena.w * 0.08,
-      arena.y + arena.h * 0.46, arena.w * 0.38, arena.h * 0.50)
-  else
-    local cardW = math.max(1, (hud.w - gap) / 2)
-    -- Keep the Gen II battle convention: the opponent owns the upper-left
     -- side of the wide arena and the player's active Pokémon owns the
     -- lower-right side. The card and sprite for each side share that anchor.
-    enemyCard = Rect.new(hud.x, hud.y, cardW, cardH)
-    playerCard = Rect.new(hud.x + cardW + gap, hud.y, cardW, cardH)
-    enemySprite = Rect.new(arena.x + arena.w * 0.08,
-      arena.y + arena.h * 0.04, arena.w * 0.38, arena.h * 0.72)
-    playerSprite = Rect.new(arena.x + arena.w * 0.54,
-      arena.y + arena.h * 0.24, arena.w * 0.38, arena.h * 0.72)
-  end
-
-  -- The status/sprite order is intentionally diagonal, matching the native
-  -- Gen II battle field: enemy card then enemy sprite on the top row, player
-  -- sprite then player card on the bottom row. Keep the old orientation
-  -- branches above as a conservative fallback for malformed envelopes, then
-  -- apply the bounded row geometry used by the responsive composition.
+  -- Both orientations keep the native diagonal: enemy status upper-left and
+  -- sprite upper-right, player sprite lower-left and status lower-right.
   enemyCard = Rect.new(topRow.x, topRow.y
     + math.max(0, (topRow.h - cardH) / 2), cardW, cardH)
   enemySprite = Rect.new(topRow.x + cardW + columnGap,
@@ -101,15 +121,41 @@ function BattleLayout.measure(base, model, font, density)
 
   local menu, hitRegions = {}, {}
   local menuTop = panel.y + titleH
-  local menuBottom = panel.y + panel.h - pad
+  local contentBottom = panel.y + panel.h - pad
+  local moveInfoRegion
+  local menuLeft = panel.x + pad
+  local menuWidth = math.max(1, panel.w - pad * 2)
+  local menuBottom = contentBottom
+  if moveList and portrait then
+    local available = math.max(1, panel.w - pad * 2)
+    local infoH = math.min(desiredMoveInfoH,
+      math.max(1, contentBottom - menuTop - gap - math.max(1, menuH)))
+    moveInfoRegion = Rect.new(panel.x + pad, menuTop, available,
+      math.max(1, infoH))
+    menuTop = moveInfoRegion.y + moveInfoRegion.h + gap
+    menuLeft = panel.x + pad
+    menuWidth = available
+  elseif moveList then
+    -- Detail on the left, four-row move list on the right in landscape.
+    -- Portrait uses the stacked arrangement above so the detail text does
+    -- not become a narrow, overlapping column.
+    local available = math.max(1, panel.w - pad * 2)
+    local splitGap = math.min(gap, math.max(2, math.floor(available * 0.06)))
+    local infoW = math.floor((available - splitGap) * 0.42)
+    infoW = math.max(1, math.min(infoW, available - splitGap - 1))
+    moveInfoRegion = Rect.new(panel.x + pad, menuTop, infoW,
+      math.max(1, contentBottom - menuTop))
+    menuLeft = moveInfoRegion.x + moveInfoRegion.w + splitGap
+    menuWidth = math.max(1, panel.x + panel.w - pad - menuLeft)
+  end
   if #actions > 0 then
-    local cellW = (panel.w - gap * (columns - 1)) / columns
+    local cellW = (menuWidth - gap * (columns - 1)) / columns
     local cellH = math.max(1,
       (menuBottom - menuTop - gap * (rows - 1)) / rows)
     for index, action in ipairs(actions) do
       local column = (index - 1) % columns
       local row = math.floor((index - 1) / columns)
-      local rect = Rect.new(panel.x + column * (cellW + gap),
+      local rect = Rect.new(menuLeft + column * (cellW + gap),
         menuTop + row * (cellH + gap), cellW, cellH)
       menu[#menu + 1] = { index=index, action=action, rect=rect }
       hitRegions[#hitRegions + 1] = {
@@ -118,7 +164,8 @@ function BattleLayout.measure(base, model, font, density)
         rect=Rect.copy(rect), role="battle_action",
       }
     end
-  elseif type(model.message) == "string" and model.message ~= "" then
+  elseif not model.animation and type(model.message) == "string"
+      and model.message ~= "" then
     hitRegions[#hitRegions + 1] = {
       id="advance", index=1, sourceIndex=1,
       rect=Rect.copy(panel), role="battle_advance",
@@ -133,10 +180,17 @@ function BattleLayout.measure(base, model, font, density)
   base.enemyCard, base.playerCard = enemyCard, playerCard
   base.enemySprite, base.playerSprite = enemySprite, playerSprite
   base.messageRegion = messageRegion
+  base.moveInfoRegion = moveInfoRegion
+  base.menuRegion = Rect.new(menuLeft, menuTop, menuWidth,
+    math.max(1, menuBottom - menuTop))
+  base.moveList = moveList
+  base.menuColumns = columns
   base.menu, base.hitRegions, base.orientation = menu, hitRegions,
     portrait and "portrait" or "landscape"
   base.scale, base.fontHeight = scale, fontHeight
   base.titleHeight, base.gap = titleH, gap
+  base.hudStable = true
+  base.stablePanelHeight = panelH
   base.compactCards = cardH < fontHeight * 2 + gap * 2
   base.overlaps = {
     cardSprite = overlaps(enemyCard, enemySprite)

@@ -19,6 +19,10 @@ function State.new(view, payload)
   }
 
   function self:preset(nextView)
+    if nextView == "v3_screen" then
+      local model = self.payload and self.payload.model
+      return type(model) == "table" and model.preset or "M"
+    end
     return PRESETS[nextView or self.view] or "NAV"
   end
 
@@ -47,6 +51,20 @@ function State.new(view, payload)
   function self:move(delta, count)
     if count <= 0 then self.index = 1 return end
     self.index = ((self.index - 1 + delta) % count) + 1
+  end
+
+  function self:moveSelectable(delta, rows)
+    local count = #(rows or {})
+    if count <= 0 then self.index = 1 return end
+    local direction = delta < 0 and -1 or 1
+    local candidate = self.index
+    for _ = 1, count do
+      candidate = ((candidate - 1 + direction) % count) + 1
+      if not (rows[candidate] and rows[candidate].disabled) then
+        self.index = candidate
+        return
+      end
+    end
   end
 
   function self:ensureVisible(visible, count)

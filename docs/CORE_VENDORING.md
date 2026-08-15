@@ -23,14 +23,15 @@ the narrowly scoped vendor target. `scripts/verify_core_lock.ps1` rejects any
 missing, changed, or extra file. `build_release.ps1` refuses to run unless that
 verification succeeds.
 
-The initial lock remains:
+The current development lock is ready and records the exact vendored snapshot:
 
 ```json
-{ "schema_version": 1, "status": "pending", "core": { "tag": null,
-  "commit": null }, "files": [] }
+{ "schema_version": 1, "status": "ready",
+  "core": { "tag": "0.1.0-alpha.10",
+    "commit": "cfed683ff907a1cad57331058ebc6f23bf4f5110" } }
 ```
 
-This is intentional: product contracts can be developed and tested before the
-shared core exists, while an incomplete product cannot accidentally become a
-release archive.
-
+The host source checkout is not part of this lock and must never be copied into
+or modified by the product repository. If the host API changes, update the
+drop-in mod/core contract and its tests, then refresh the pinned vendor snapshot
+only through the scoped sync script.

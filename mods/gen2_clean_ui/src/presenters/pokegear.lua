@@ -3,6 +3,12 @@ return function(ctx)
   local Adapter = ctx.load("adapters.pokegear")
   local Presenter = {}
 
+  local function canonical(model)
+    model.schema = "clean_ui.v3.presentation.v1"
+    model.apiVersion = 3
+    return model
+  end
+
   local VIEW_TITLES = {
     strip="POKEGEAR",
     clock="POKEGEAR / CLOCK",
@@ -21,14 +27,37 @@ return function(ctx)
       sourceIndex=source.sourceIndex,
       label=source.label or source.name or source.id,
       right=right or source.right,
+      icon=source.icon,
+      accent=source.accent,
+      subtitle=source.subtitle,
       disabled=source.disabled == true,
     }
+  end
+
+  local function applyShell(model, content)
+    local shell = model.shell
+    if type(shell) ~= "table" then return content end
+    content.appShell=true
+    local function copy(value)
+      return Data.copy(value, { maxDepth=8, maxEntries=4096 })
+    end
+    content.shell=copy(shell)
+    content.device=copy(shell.device)
+    content.launcher=copy(shell.launcher)
+    content.apps=copy(shell.apps)
+    content.activeApp=copy(shell.activeApp)
+    content.statusBar=copy(shell.statusBar)
+    content.navigation=copy(shell.navigation)
+    content.nativeGraphic=copy(shell.graphic)
+    return canonical(content)
   end
 
   local function strip(model)
     local rows = {}
     for index, card in ipairs(model.cards or {}) do
-      rows[index] = row(card, card.selected and "OPEN" or "")
+      rows[index] = row(model.shell and model.shell.apps
+        and model.shell.apps[index] or card,
+        card.selected and "OPEN" or "")
     end
     local active = model.activeCard or {}
     return {
@@ -40,6 +69,7 @@ return function(ctx)
           style="accent" },
         { label="AVAILABLE", value=#rows },
       },
+      launcher=true,
       description="LEFT/RIGHT CARD   A OPEN   B BACK",
     }
   end
@@ -73,6 +103,9 @@ return function(ctx)
       rows=rows,
       selected=selected,
       scroll=selected and math.max(0, selected - 4) or 0,
+      mapView=true,
+      mapCanvas=Data.copy(value, { maxDepth=8, maxEntries=4096 }),
+      mapGraphic=Data.copy(value.graphic, { maxDepth=8, maxEntries=4096 }),
       details={
         { label="REGION", value=(value.region or "johto"):upper(),
           style="accent" },
@@ -80,7 +113,8 @@ return function(ctx)
         { label="YOU ARE HERE", value=player.name or "UNKNOWN" },
       },
       description="UP/DOWN LANDMARK   LEFT/RIGHT CARD   B BACK",
-      map=Data.copy(value),
+      map=Data.copy(value, { maxDepth=8, maxEntries=4096 }),
+      mapGraphic=Data.copy(value.graphic, { maxDepth=8, maxEntries=4096 }),
     }
   end
 
@@ -100,12 +134,16 @@ return function(ctx)
       rows=rows,
       selected=value.flyIndex,
       scroll=math.max(0, (value.flyIndex or 1) - 5),
+      mapView=true,
+      flyView=true,
+      mapCanvas=Data.copy(value, { maxDepth=8, maxEntries=4096 }),
       details={
         { label="REGION", value=(value.region or "johto"):upper() },
         { label="DESTINATION", value=current.name or "?", style="accent" },
       },
       description="UP/DOWN DESTINATION   A FLY   B CANCEL",
-      map=Data.copy(value),
+      map=Data.copy(value, { maxDepth=8, maxEntries=4096 }),
+      mapGraphic=Data.copy(value.graphic, { maxDepth=8, maxEntries=4096 }),
     }
   end
 
@@ -219,12 +257,15 @@ return function(ctx)
     if not convert then return nil, "unknown_view", model.view end
     local content, code = convert(model)
     if not content then return nil, code or "conversion_failed" end
-    content.kind = "menu"
+    content.kind = (model.view == "map" or model.view == "fly")
+      and "map" or "device"
     content.preset = "L"
     content.opaque = true
     content.title = VIEW_TITLES[model.view]
+    content.view = model.view
     content.sourceView = model.view
     content.sourceMode = model.sourceMode
+    applyShell(model, content)
     return content
   end
 

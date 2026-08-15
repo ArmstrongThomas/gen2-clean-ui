@@ -3,6 +3,12 @@ return function(ctx)
   local PartyModels = ctx.load("presenters.party_models")
   local PartyPresenters = {}
 
+  local function canonical(model)
+    model.schema = "clean_ui.v3.presentation.v1"
+    model.apiVersion = 3
+    return model
+  end
+
   local function typeLabel(types)
     local labels = {}
     for _, entry in ipairs(types or {}) do
@@ -39,6 +45,12 @@ return function(ctx)
       output[index] = {
         id=row.id, sourceIndex=row.sourceIndex, kind=row.kind,
         label=row.label, right=right, disabled=row.disabled == true,
+        bar=row.kind ~= "back" and row.kind ~= "egg" and {
+          fraction=row.hpFraction or 0,
+        } or nil,
+        barLabel=row.kind ~= "back" and row.kind ~= "egg"
+          and ("HP " .. tostring(row.hp) .. "/" .. tostring(row.maxHp))
+          or nil,
         selected=row.selected == true, switchOrigin=row.switchOrigin == true,
         actionId=row.actionId,
       }
@@ -67,16 +79,13 @@ return function(ctx)
       fields={
         { label="SPECIES", value=mon.species },
         { label="HELD", value=mon.item and mon.item.name or "NONE" },
+        { label="STATUS", value=mon.status,
+          style=mon.status ~= "OK" and "accent" or nil },
       },
-      custom_fields={
-        columns=2,
-        data={
-          { label="LEVEL", value=mon.level },
-          { label="HP", value=("%d/%d"):format(mon.hp, mon.maxHp) },
-          { label="TYPE", value=typeLabel(mon.types) },
-          { label="STATUS", value=mon.status, style=mon.status ~= "OK"
-            and "accent" or nil },
-        },
+      typeBadges=Data.copy(mon.types),
+      bars={
+        { label="HP", value=("%d/%d"):format(mon.hp, mon.maxHp),
+          fraction=mon.hpFraction or 0 },
       },
     }
   end
@@ -115,7 +124,7 @@ return function(ctx)
     end
     local model = {
       kind="menu", screenId="Gen2PartyMenu", preset="L", opaque=true,
-      title="PARTY", rows=partyRows(source),
+      title="PARTY", rows=partyRows(source), rowBars=true,
       selected=source.navigation and source.navigation.selectedIndex,
       scroll=0, details=partyDetails(source), description=description,
       purpose="party", mode=source.mode, prompt=source.prompt,
@@ -125,7 +134,7 @@ return function(ctx)
       heldItemState=Data.copy(source.heldItemState),
     }
     if not Data.isFunctionFree(model) then return nil, "model_not_data" end
-    return model
+    return canonical(model)
   end
 
   local function summaryDetails(source)
@@ -313,7 +322,7 @@ return function(ctx)
       moveDetail=Data.copy(source.moveDetail),
     }
     if not Data.isFunctionFree(model) then return nil, "model_not_data" end
-    return model
+    return canonical(model)
   end
 
   local CONVERT = {

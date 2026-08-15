@@ -124,6 +124,7 @@ return function(ctx)
         opaque = false,
         marker = "isTextBox",
         gallery = { "dialogue", "overflow" },
+        presentationApi = 3,
         validateBase = textBoxBase,
       },
       {
@@ -139,6 +140,7 @@ return function(ctx)
         preset = "XS",
         opaque = false,
         gallery = { "yes_no" },
+        presentationApi = 3,
         validateBase = choiceBoxBase,
       },
       {

@@ -247,10 +247,12 @@ local actionView = assert(PartyPresenters.convert(
 check(actionView.modal and actionView.modal.selected == 3
   and actionView.modal.options[3].kind == "held_item",
   "Party presenter preserves the native action submenu")
-check(actionView.details.sprite.path:find("totodile", 1, true) ~= nil
-  and #actionView.details.sprite.palette == 4
-  and actionView.details.custom_fields.columns == 2,
-  "Party presenter emits rich source-image details without userdata")
+  check(actionView.details.sprite.path:find("totodile", 1, true) ~= nil
+    and #actionView.details.sprite.palette == 4
+    and #actionView.details.typeBadges == 1
+    and actionView.details.typeBadges[1].label == "WATER"
+    and actionView.details.bars[1].fraction == (20 / 24),
+  "Party presenter emits colored type badges and an HP bar without userdata")
 
 local switchState = basePartyState(2)
 switchState.switchFrom = 1
@@ -395,8 +397,10 @@ check(statusModel.pokemon.name == "TOTO"
 -- Incomplete or ambiguous states fail instead of producing a suppressible UI.
 local battleState = basePartyState(1)
 battleState.wantsBattleSubmenu = true
-local _, battleCode = Party.extract(battleState)
-check(battleCode == "battle_owned", "Battle-owned Party remains native")
+local battleModel, battleCode = Party.extract(battleState)
+check(battleModel ~= nil and battleModel.model.mode == "party",
+  "Battle-owned Party now produces a clean child model: "
+    .. tostring(battleCode))
 
 local missingSprite = baseSummaryState(1)
 missingSprite.pokemon.TOTODILE.spriteFront = nil
@@ -459,7 +463,15 @@ check(PartyPresenters.register(provider) == true
 local prepared = assert(registeredPresenters.Gen2SummaryMenu:prepare(
   baseSummaryState(1)))
 check(prepared.complete and prepared.model.preset == "L"
+  and prepared.model.schema == "clean_ui.v3.presentation.v1"
+  and prepared.model.apiVersion == 3
   and Data.isFunctionFree(prepared.model),
-  "Registered Summary presenter produces a complete data-only L model")
+  "Registered Summary presenter produces a complete canonical V3 model")
+
+local partyPrepared = assert(registeredPresenters.Gen2PartyMenu:prepare(
+  basePartyState(1)))
+check(partyPrepared.model.schema == "clean_ui.v3.presentation.v1"
+  and partyPrepared.model.apiVersion == 3,
+  "Registered Party presenter emits the canonical V3 model")
 
 print(("Gen2 Party/Summary tests: %d checks passed"):format(checks))

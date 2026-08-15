@@ -100,7 +100,8 @@ return function(ctx)
     local player = type(rawget(save, "player")) == "table"
       and rawget(save, "player") or {}
     local model = {
-      schema = "clean_ui.presenter_model.v1",
+      schema = "clean_ui.v3.presentation.v1",
+      apiVersion = 3,
       screenId = "Gen2StartMenu",
       family = "navigation",
       preset = "NAV",

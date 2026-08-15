@@ -76,6 +76,9 @@ check(packBundle.model.selectedItem.description == "Powerful punch.",
 check(descriptor(packBundle.model, "item.2.choose").dispatch == "source_input",
   "Pack activation remains owned by screen.update")
 local packPresentation = assert(PackPresenter.convert(packBundle.model))
+check(packPresentation.schema == "clean_ui.v3.presentation.v1"
+  and packPresentation.apiVersion == 3,
+  "Pack presenter emits the canonical V3 model")
 check(packPresentation.kind == "menu" and packPresentation.preset == "L"
   and packPresentation.selected == 2 and packPresentation.scroll == 1,
   "Pack presenter preserves stable envelope and navigation")
@@ -208,6 +211,9 @@ check(dexList.model.rows[3].disabled and dexList.model.totals.seen == 2
   and dexList.model.totals.caught == 1,
   "Pokedex snapshots seen/caught visibility and totals")
 local dexListView = assert(PokedexPresenter.convert(dexList.model))
+check(dexListView.schema == "clean_ui.v3.presentation.v1"
+  and dexListView.apiVersion == 3,
+  "Pokedex presenter emits the canonical V3 model")
 check(dexListView.kind == "menu" and dexListView.preset == "L"
   and dexListView.selected == 1,
   "Pokedex list uses stable L presentation")
@@ -293,6 +299,9 @@ check(trainer.model.pokedexCaught == 2
   and trainer.model.playTime.hours == 27,
   "Trainer Card snapshots trainer summary")
 local trainerView = assert(TrainerPresenter.convert(trainer.model))
+check(trainerView.schema == "clean_ui.v3.presentation.v1"
+  and trainerView.apiVersion == 3,
+  "Trainer Card presenter emits the canonical V3 model")
 check(trainerView.preset == "L" and trainerView.sourcePage == 1
   and trainerView.rows[2].right == "00123",
   "Trainer page uses stable L layout and padded source ID")
@@ -332,6 +341,9 @@ check(saveConfirm.model.summary.badges == 2
   and saveConfirm.model.summary.map == "VIOLET_CITY",
   "Save snapshots continue-card data")
 local saveConfirmView = assert(SavePresenter.convert(saveConfirm.model))
+check(saveConfirmView.schema == "clean_ui.v3.presentation.v1"
+  and saveConfirmView.apiVersion == 3,
+  "Save presenter emits the canonical V3 model")
 check(saveConfirmView.preset == "M" and saveConfirmView.selected == 2
   and saveConfirmView.sourcePhase == "confirm",
   "Save confirm uses stable M presentation")

@@ -33,14 +33,18 @@ return function()
       local phase = rawget(state, "phase")
       if phase == "menu" then
         state.menuIndex = index
-      elseif phase == "moves" or phase == "choose-forget" then
+      elseif phase == "moves" then
         state.moveIndex = index
+      elseif phase == "choose-forget" then
+        state.forgetIndex = index
       elseif phase == "ask-nickname" then
         state.nicknameIndex = index
       elseif phase == "ask-shift" then
         state.shiftIndex = index
       elseif phase == "ask-forget" or phase == "stop-learning" then
         state.forgetChoice = index
+      elseif phase == "ask-next-mon" then
+        state.nextMonIndex = index
       end
       return true
     end
@@ -56,6 +60,10 @@ return function()
     end
     if region.role == "modal_option" and screenId == "Gen2StartMenu" then
       state.confirmChoice = region.index
+      return true
+    end
+    if screenId == "Gen2Pokegear" and region.role == "map_marker" then
+      state.mapCursor = tonumber(region.sourceIndex) or region.index
       return true
     end
     if region.role ~= "menu_row" then return false end

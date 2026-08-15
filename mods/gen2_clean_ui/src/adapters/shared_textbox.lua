@@ -1,6 +1,7 @@
 return function(ctx)
   local Data = ctx.load("adapters.data")
   local SharedTextBox = {}
+  local collapsedPages = setmetatable({}, { __mode = "k" })
 
   local function glyphPrefix(text, count)
     if count <= 0 then return "" end
@@ -69,31 +70,42 @@ return function(ctx)
     local lineIndex = math.max(1, math.min(
       Data.integer(rawget(state, "lineIndex"), 1), #page))
     local shown = rawget(state, "shown")
-    local output = {}
     local current = type(shown) == "table" and rawget(shown, #shown) or nil
     -- A native CONT line is a pagination affordance, not authored prose.
-    -- When the source is waiting before such a continuation, expose the
-    -- complete native page to Clean UI so its wider reflow can present the
-    -- sentence as one message. The source still owns the continuation input;
-    -- this only prevents the old narrow page break from becoming a second
-    -- visually identical Clean UI message.
+    -- Once Clean UI sees that boundary, retain the complete source page while
+    -- the host consumes the synthetic continuation advance and types its
+    -- hidden final line. This prevents the already-reflowed sentence from
+    -- appearing again as a second message during that handoff.
     local collapseContinuation = rawget(state, "waiting") == true
+      and rawget(state, "contAdvance") == true
       and lineIndex < #page
+    local collapsed = collapsedPages[state]
+    if collapsed and collapsed.pageIndex ~= pageIndex then
+      collapsed = nil
+      collapsedPages[state] = nil
+    end
+    if collapseContinuation then
+      collapsed = { pageIndex = pageIndex }
+      collapsedPages[state] = collapsed
+    end
+    if collapsed then
+      local output = {}
+      for index = 1, #page do
+        output[#output + 1] = displayText(tostring(page[index] or ""))
+      end
+      return output
+    end
+
+    local output = {}
     for index = 1, lineIndex do
       local text = tostring(rawget(page, index) or "")
-      if index == lineIndex and not collapseContinuation then
+      if index == lineIndex then
         -- Earlier lines on this source page are already fully revealed, even
         -- though the host keeps only its last two raster lines in `shown`.
         -- The active line still respects the live typewriter prefix.
         text = glyphPrefix(text, type(current) == "table" and #current or 0)
       end
-      text = displayText(text)
-      output[#output + 1] = text
-    end
-    if collapseContinuation then
-      for index = lineIndex + 1, #page do
-        output[#output + 1] = displayText(tostring(page[index] or ""))
-      end
+      output[#output + 1] = displayText(text)
     end
     return output
   end
@@ -110,7 +122,8 @@ return function(ctx)
       or (done and not passive))
     return {
       model = {
-        schema = "clean_ui.presenter_model.v1",
+        schema = "clean_ui.v3.presentation.v1",
+        apiVersion = 3,
         screenId = "shared.TextBox",
         family = "dialogue",
         preset = "XS",

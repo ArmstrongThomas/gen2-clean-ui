@@ -140,7 +140,8 @@ return function(ctx)
 
     local selected = rows[selectedIndex]
     local model = {
-      schema = "clean_ui.presenter_model.v1",
+      schema = "clean_ui.v3.presentation.v1",
+      apiVersion = 3,
       screenId = "Gen2MainMenu",
       family = "core",
       preset = "M",

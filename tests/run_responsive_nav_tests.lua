@@ -196,6 +196,7 @@ local optionValues = {
 local runtime = PresentationRuntime.new({
   config = {}, provider = {},
   mod = { options = { get = function(_, key) return optionValues[key] end } },
+  setting = function(_, key) return optionValues[key] end,
 })
 local stateToken = {}
 local baseResult = Solver.solve({ preset="NAV",

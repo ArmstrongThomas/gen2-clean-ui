@@ -93,12 +93,15 @@ return function(ctx)
     for id in pairs(unordered) do
       error("unregistered Gen2 contract: " .. id, 0)
     end
-    assert(#records == 51, "v0.1.79 Gen2 contract count drifted")
+    assert(#records == 51, "v0.1.87 Gen2 contract count drifted")
 
     return {
-      version = "gen2-v0.1.79",
-      hostTag = "v0.1.79",
-      hostCommit = "04490c9b9ad03b814f297793dd7a950dad7c3adf",
+      version = "gen2-v0.1.87",
+      hostTag = "v0.1.87",
+      -- This drop follows the released host floor rather than pinning a
+      -- mutable source checkout commit. The launcher release is the public
+      -- compatibility authority for this drop-in mod.
+      hostCommit = nil,
       records = records,
       byId = byId,
       officialIds = copy(OFFICIAL_ORDER),
@@ -108,4 +111,3 @@ return function(ctx)
 
   return Catalog
 end
-

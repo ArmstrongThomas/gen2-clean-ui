@@ -1,11 +1,16 @@
 # Gen2 Clean UI
 
-Development line for a clean, modular Pokémon Gold UI. Main, Start, Options,
+Early experimental public release of a clean, modular Pokémon Gold UI. Main,
+Start, Options,
 shared dialogue/choices, the 0.2 gameplay/storage family, and the complete
 audited 0.3 family set now have exact-contract production presenters behind a
-fail-open offscreen frame gate. Stable Gen2 battle menus, move selection, and
-message frames are included; transitions, animations, and battle-owned child
-stacks remain native by design.
+fail-open offscreen frame gate. Gen2 battle command/move/message pages,
+supported child menus, send-out/faint/move/item/Poké Ball animation frames,
+forced-switch and progression prompts, evolution, and nickname flows are
+covered. The V3 vocabulary also includes callback-free animation models and a
+real `gen2_battle_animations` catalog contract; source-owned timing and
+transitions remain authoritative and fail open when their detached frame data
+is unavailable.
 
 The shipped mod is compatible with the upcoming host sandbox: it uses
 `mod:read`, sandboxed source loading, `mod.options`, `mod.save`, and
@@ -18,16 +23,26 @@ Run `scripts\verify_sandbox.cmd` before packaging. See the full
 [sandbox compatibility contract](docs/SANDBOX_COMPATIBILITY.md) for the audited
 API, path, bytecode/native-code, private-global, and persistence boundaries.
 
+The host repository and released launcher are external dependencies. Do not
+patch, rebuild, or commit changes to `gen1recomp` from this repository. Use a
+read-only host checkout only for API and contract inspection, and keep every
+fix inside the drop-in mod, its vendored core snapshot, tests, or
+documentation. The supported package must remain installable against the
+latest released host that satisfies the manifest floor; host-specific seams
+are feature-detected and must fail open when unavailable.
+
 Gen2 Clean UI is the installable Pokemon Gold product from the Clean UI
 rebuild. This repository deliberately keeps game-specific contracts and
 presenters separate from the shared `clean-ui-core` design/layout runtime.
 
-This checkout is a **native-safe product development line**. It inventories
-and validates all 51 official Gold screen IDs from host `v0.1.79` and vendors
-an exact, hashed shared-core development snapshot. The shell, dropdown,
-Gallery, Mod Menus, and pinning foundations are active. All 37 supported
-records have production presenters; 13 records are native by design and the
-battle transition remains deferred.
+This checkout is a **native-safe product line**. It requires host release
+`0.1.87` or newer, inventories and validates all 51 official Gold screen IDs
+from the `v0.1.79` contract audit, and vendors an exact, hashed shared-core
+snapshot. The shell, dropdown,
+Gallery, Mod Menus, and pinning foundations are active. All 41 supported
+records have production presenters; 10 records remain native by design,
+ including source-owned boot/title scenes. The battle transition uses the V3
+ transparent overlay path.
 
 ## Repository shape
 
@@ -58,10 +73,13 @@ family module; reusable behavior belongs in `clean-ui-core`, never in
 ## Current contract status
 
 - 51/51 official `Screens.GEN2_IDS` records are present in official order.
-- 37 records have production presenters (36 full + Hall viewer-only scope).
-- 13 records are native by design.
-- `Gen2BattleState` has a responsive production presenter for stable menu,
-  move-selection, and message frames; `Gen2BattleTransition` remains deferred.
+- 41 records have production presenters (40 full + Hall viewer-only scope).
+- 10 records are native by design.
+- `Gen2BattleState` has a responsive production presenter for command,
+  move-selection, message, forced-switch, next-Pokémon, progression,
+  evolution, and nickname frames; supported battle child menus use their V3
+  presenters while unknown/native child stacks fail open. Battle animation
+  frames remain detached V3 data while source-owned timing stays authoritative.
 - Battle layout coverage includes short landscape, portrait phone, desktop,
   ultrawide, 4K, and 5K viewport matrices with native fail-open timing frames.
 - NAV shell views choose and lock a 320–440 logical-pixel width from their
@@ -90,8 +108,10 @@ The product schema contains the intentionally small Clean UI settings set:
 - Pointer & Touch
 - generation-relevant Use Native UI switches
 
-Reset Defaults writes every schema default through public
-`mod.options:set`; there is no private manager writer or legacy import path.
+Reset Defaults writes every schema default through the public options surface,
+using the shared V3 session-local fallback on hosts such as v0.1.86 that do not
+yet expose `mod.options:set`. There is no private manager writer or legacy
+import path.
 
 ## Core vendoring and builds
 
@@ -123,7 +143,33 @@ See [Architecture](docs/ARCHITECTURE.md),
 ```powershell
 .\tests\verify_scaffold.ps1
 .\scripts\verify_core_lock.ps1
+.\tests\smoke_release_tools.ps1
 ```
+
+For local testing with the main launcher, double-click
+`sync_gen2_clean_ui.cmd`. It copies the unpacked mod to
+`%APPDATA%\pokemon-love2d\mods\gen2_clean_ui`, builds the launcher-ready
+archive, and leaves the game ready to reload after restart. When the sibling
+`gen1recomp-grandmas-kitchen` checkout exists, it may also mirror the exact
+tree to that checkout's `mods/gen2_clean_ui` for an optional local source-tree
+smoke test. That checkout is a read-only test target, not a product
+dependency; the supported drop-in path is the released launcher and its
+AppData mod installation.
+
+For the v0.1.87 release-floor smoke, always use an unmodified released
+launcher. After running `sync_gen2_clean_ui.cmd`, fully restart the launcher
+and verify:
+
+- Party opens in Clean UI with the Pokémon sprite, HP bar, status, and details
+  visible, then closes without leaving a stale frame.
+- A wild battle remains in Clean UI through the intro, command menu, move list,
+  animations, faint/experience flow, and return transition.
+- Pointer & Touch operates on both replacement surfaces when enabled.
+
+If Settings and Gallery render but Party or Battle remains native, treat that
+as a generated-image compatibility regression. Do not patch or rebuild
+`gen1recomp`; keep the fix inside the drop-in mod, vendored Core, tests, or
+documentation.
 
 The Lua contract tests are in `tests/run_contract_tests.lua` and can be run
 with the project's LÖVE/Lua test harness.
@@ -146,4 +192,16 @@ The current development tree passes this check. Full `modkit validate` still
 requires a standalone `luajit` executable; LÖVE's embedded LuaJIT runtime is
 not a command-line substitute for that validator dependency.
 
-No commit, tag, push, or release is produced by these scripts.
+### Versioned release blurbs
+
+Keep the curated body for each manifest version in
+`docs/releases/vX.Y.Z.md`. The release workflow runs
+`scripts/write_release_notes.ps1`, which combines the matching blurb with the
+generated commit list and archive SHA-256. A releaseable version fails its
+release job when its blurb is missing, so the release description stays
+intentional as versions advance.
+
+Local build and verification scripts do not commit or push changes. The
+release workflow also runs `tests/smoke_release_tools.ps1` before publication
+to verify deterministic archive output. GitHub Actions owns the tagged
+release archive and release notes after an authorized push to `main`.

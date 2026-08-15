@@ -18,6 +18,12 @@ Assert-True ($manifest.api -eq 2) "manifest api"
 Assert-True ($manifest.profile -eq "overhaul") "manifest profile"
 Assert-True ($manifest.priority -eq 100) "manifest priority"
 Assert-True ($manifest.affects_link -eq $false) "manifest affects_link"
+Assert-True ($manifest.game_version -eq ">=0.1.87 <2.0.0") `
+  "minimum host version"
+Assert-True ($null -eq $manifest.PSObject.Properties["experimental"]) `
+  "obsolete experimental manifest flag is absent"
+Assert-True (Test-Path -LiteralPath (Join-Path $root "sync_gen2_clean_ui.cmd")) `
+  "main-launcher sync script exists"
 Assert-True (@($manifest.games).Count -eq 1 -and $manifest.games[0] -eq "gen2") `
   "manifest must be Gen2-only"
 Assert-True (@($manifest.conflicts) -contains "gen1_modern_ui") `
@@ -25,6 +31,15 @@ Assert-True (@($manifest.conflicts) -contains "gen1_modern_ui") `
 Assert-True ($manifest.options_schema -eq "options.lua") "options schema path"
 Assert-True ($manifest.github -eq "ArmstrongThomas/gen2-clean-ui") `
   "updater repository"
+$version = [string]$manifest.version
+Assert-True ($version -match '^(0|[1-9]\d*)\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') `
+  "manifest version must be semver"
+$releaseBlurbPath = Join-Path $root ("docs\releases\v{0}.md" -f $version)
+Assert-True ([IO.File]::Exists($releaseBlurbPath)) `
+  "manifest-matched curated release blurb is missing: $releaseBlurbPath"
+$releaseBlurb = Get-Content -LiteralPath $releaseBlurbPath -Raw -Encoding utf8
+Assert-True (-not [string]::IsNullOrWhiteSpace($releaseBlurb)) `
+  "manifest-matched curated release blurb is empty: $releaseBlurbPath"
 
 $mainLines = @(Get-Content -LiteralPath (Join-Path $modRoot "main.lua"))
 Assert-True ($mainLines.Count -le 80) "main.lua exceeds 80 lines"
@@ -72,7 +87,7 @@ Assert-True (@($ids | Select-Object -Unique).Count -eq 51) "catalog IDs must be 
 $optionsText = Get-Content -LiteralPath (Join-Path $modRoot "options.lua") -Raw
 $optionKeys = [regex]::Matches($optionsText,
   '(?m)^    key = "([^"]+)",\r?$')
-Assert-True ($optionKeys.Count -eq 12) "clean settings schema must have 12 rows"
+Assert-True ($optionKeys.Count -eq 11) "clean settings schema must have 11 rows"
 
 $lock = Get-Content -LiteralPath (Join-Path $root "clean-ui-core.lock.json") -Raw |
   ConvertFrom-Json

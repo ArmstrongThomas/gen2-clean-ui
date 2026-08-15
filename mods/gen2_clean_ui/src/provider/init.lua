@@ -4,6 +4,7 @@ return function(ctx)
   local StackPolicy = ctx.load("provider.stack_policy")
   local LiveStack = ctx.load("provider.live_stack")
   local SourceInput = ctx.load("provider.source_input")
+  local V3Contracts = ctx.load("contracts.v3")
 
   local Provider = {}
   Provider.__index = Provider
@@ -38,6 +39,13 @@ return function(ctx)
       compatibility = options.compatibility,
       diagnostics = Diagnostics.new(128),
     }, Provider)
+  end
+
+  -- Core invokes provider contract hooks as plain callbacks with the core
+  -- instance as their only argument. Keep this unbound rather than using
+  -- method syntax so the V3 registration receives the host correctly.
+  function Provider.registerContracts(core)
+    return V3Contracts.register(core)
   end
 
   function Provider:officialClass(record, context)
@@ -155,6 +163,25 @@ return function(ctx)
     return true
   end
 
+  -- Read-only coverage is intentionally metadata-only. It lets the product
+  -- smoke test and the in-game diagnostics page distinguish a missing
+  -- registration from a live state-shape failure without exposing presenter
+  -- callbacks or source-owned objects to mod consumers.
+  function Provider:coverage()
+    local rows = {}
+    for _, record in ipairs(self.catalog.records or {}) do
+      rows[#rows + 1] = {
+        id = record.id,
+        support = record.support,
+        presentationApi = record.presentationApi,
+        implementation = record.implementation,
+        modelAdapter = self.modelAdapters[record.id] ~= nil,
+        presenter = self.presenters[record.id] ~= nil,
+      }
+    end
+    return rows
+  end
+
   -- Produces detached presentation data and deferred source action bindings.
   -- This method never marks a screen suppressible; drawing/suppression is a
   -- separate integration layer and remains native until that layer is ready.
@@ -206,6 +233,16 @@ return function(ctx)
     if type(presentation) ~= "table" or presentation.complete ~= true
         or type(presentation.model) ~= "table" then
       return self:recordFailure(inspected.record, "presenter_incomplete")
+    end
+    if inspected.record.presentationApi == 3 then
+      local model = presentation.model
+      if model.schema ~= "clean_ui.v3.presentation.v1"
+          or model.apiVersion ~= 3 or type(model.kind) ~= "string"
+          or model.kind == "" then
+        return self:recordFailure(inspected.record,
+          "presentation_model_not_v3",
+          "V3 presentation requires schema, apiVersion=3, and kind")
+      end
     end
     return result(inspected.record, true, true, "ready", nil, presentation)
   end

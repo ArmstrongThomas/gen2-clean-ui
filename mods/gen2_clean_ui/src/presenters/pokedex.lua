@@ -3,6 +3,12 @@ return function(ctx)
   local Adapter = ctx.load("adapters.pokedex")
   local Presenter = {}
 
+  local function canonical(model)
+    model.schema = "clean_ui.v3.presentation.v1"
+    model.apiVersion = 3
+    return model
+  end
+
   local function row(source, right)
     return {
       id = source.id,
@@ -209,7 +215,7 @@ return function(ctx)
     content.title = content.title or ("POKEDEX  /  " .. tostring(model.sortMode))
     content.sourceView = model.view
     content.sourceMode = model.sortMode
-    return content
+    return canonical(content)
   end
 
   function Presenter.prepare(_, state, context)

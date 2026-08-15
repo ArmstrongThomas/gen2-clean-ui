@@ -350,8 +350,9 @@ check(preparedContest == nil and preparedContestCode == "battle_owned",
 local assessed, assessedCode = StackPolicy.assess({
   { screenId="Gen2BattleState" }, contestState(),
 }, {}, function() return { suppress=true } end)
-check(assessed == nil and assessedCode == "battle_owned",
-  "complete-stack policy vetoes battle plus child before suppression")
+check(type(assessed) == "table" and #assessed == 2
+    and assessedCode == nil,
+  "complete-stack policy accepts a fully supported battle child stack")
 
 -- Model and presenter registration remain separate and exact for integration.
 local registeredModels, registeredPresenters = {}, {}
