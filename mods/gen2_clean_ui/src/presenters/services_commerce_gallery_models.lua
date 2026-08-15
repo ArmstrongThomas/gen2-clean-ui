@@ -8,7 +8,8 @@ return function(ctx)
     "Gen2ElevatorMenu", "Gen2MoveDeleter",
   }
   local VARIANTS = {
-    Gen2MartMenu={ "standard", "herb", "bargain", "pharmacy", "sell" },
+    Gen2MartMenu={ "standard", "buy", "herb", "bargain", "pharmacy",
+      "sell", "sell_quantity" },
     Gen2ScriptMenu={ "vertical", "grid", "money", "coins", "prizes" },
     Gen2BankOfMom={ "deposit", "withdraw" },
     Gen2ContestMenu={ "compare" },
@@ -60,8 +61,9 @@ return function(ctx)
     }
   end
 
-  local function item(id, name, price, soldOut)
+  local function item(id, name, price, soldOut, ownedCount)
     return { id=id, name=name, price=price, soldOut=soldOut == true,
+      ownedCount=ownedCount or 0,
       description="A dependable item sold by this shop." }
   end
 
@@ -96,16 +98,17 @@ return function(ctx)
       or martType == "BARGAIN" and "BARGAIN SHOP"
       or martType == "PHARMACY" and "PHARMACY" or "POKE MART"
     local entries = {
-      item("POTION", "POTION", 300),
-      item("ANTIDOTE", "ANTIDOTE", 100, variant == "bargain"),
+      item("POTION", "POTION", 300, false, 5),
+      item("ANTIDOTE", "ANTIDOTE", 100, variant == "bargain", 2),
     }
     local model = {
       schema="clean_ui.presenter_model.v1", screenId="Gen2MartMenu",
       family="commerce", preset="L", title=title,
       martType=martType, martId=1, phase="buy", mode="buy",
       money=12500, entries=entries, selectedItem=clone(entries[1]),
-      rows={ row("POTION", "POTION", 1, "Y300"),
-        row("ANTIDOTE", "ANTIDOTE", 2, "Y100"),
+      rows={ row("POTION", "POTION", 1, "OWN 5  Y300"),
+        row("ANTIDOTE", "ANTIDOTE", 2,
+          variant == "bargain" and "OWN 2  SOLD OUT" or "OWN 2  Y100"),
         row("cancel", "CANCEL", 3, "") },
       navigation={ selectedIndex=1, scroll=0, itemCount=3 },
       actionDescriptors={},
@@ -117,6 +120,8 @@ return function(ctx)
       model.navigation={ selectedIndex=1, scroll=0, itemCount=3 }
       model.topLines={ "Welcome! How may I", "help you?" }
       model.selectedItem=nil
+    elseif variant == "buy" then
+      model.phase, model.mode = "buy", "buy"
     elseif variant == "pharmacy" then
       model.phase, model.mode = "buyQuantity", "quantity"
       model.quantity={ item=clone(entries[1]), value=3, maximum=99, total=900 }
@@ -126,6 +131,15 @@ return function(ctx)
       model.selectedItem=nil
       model.navigation={ selectedIndex=1, scroll=0, itemCount=0 }
       model.nestedPack=nestedPack()
+    elseif variant == "sell_quantity" then
+      model.phase, model.mode = "sellQuantity", "quantity"
+      model.rows={}
+      model.selectedItem=nil
+      model.navigation={ selectedIndex=1, scroll=0, itemCount=0 }
+      model.nestedPack=nestedPack()
+      model.quantity={ item={ id="POTION", name="POTION", price=300,
+        ownedCount=5, count=5, description="Restores 20 HP." },
+        value=2, maximum=5, total=300 }
     end
     return model
   end

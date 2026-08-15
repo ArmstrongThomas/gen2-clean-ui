@@ -14,6 +14,18 @@ return function(ctx)
     })
   end
 
+  local function nativeWithGallery(id, module, family, opaque, reason, gallery)
+    return Record.native({
+      id = id,
+      module = module,
+      milestone = "native_by_design",
+      family = family,
+      opaque = opaque,
+      nativeReason = reason,
+      gallery = gallery,
+    })
+  end
+
   local function deferred(id, module, opaque, reason)
     return Record.deferred({
       id = id,
@@ -24,35 +36,6 @@ return function(ctx)
       nativeReason = reason,
       gallery = { "deferred_status" },
     })
-  end
-
-  local function battleBase(state)
-    if type(state) ~= "table" then return V.fail("state_type", "table") end
-    if type(rawget(state, "battle")) ~= "table" then
-      return V.fail("shape_type", "battle:table")
-    end
-    if type(rawget(state, "phase")) ~= "string" then
-      return V.fail("shape_type", "phase:string")
-    end
-    return true
-  end
-
-  local function battleTransitionBase(state)
-    if type(state) ~= "table" then return V.fail("state_type", "table") end
-    local ok, code, detail = V.fields(state, {
-      phase = "string", style = "string", frame = "number",
-      step = "number", trainer = "boolean",
-    })
-    if not ok then return nil, code, detail end
-    ok, code, detail = V.enum(state.phase, "phase",
-      { "pokeball", "flash", "outro", "black" })
-    if not ok then return nil, code, detail end
-    ok, code, detail = V.enum(state.style, "style",
-      { "spin", "speckle", "zoom", "sine" })
-    if not ok then return nil, code, detail end
-    ok, code, detail = V.nonNegative(state.frame, "frame")
-    if not ok then return nil, code, detail end
-    return V.nonNegative(state.step, "step")
   end
 
   local function copyrightBase(state)
@@ -358,21 +341,10 @@ return function(ctx)
   end
 
   return {
-    Record.new({
-      id = "Gen2BattleState", module = "src.ui.gen2.BattleState",
-      support = "supported", milestone = "1.0.0", family = "battle",
-      preset = "BATTLE", opaque = true, toggle = "battle",
-      presentationApi = 3,
-      validateBase = battleBase,
-      gallery = { "wild_menu", "moves", "message", "portrait" },
-    }),
-    Record.new({
-      id = "Gen2BattleTransition", module = "src.ui.gen2.BattleTransition",
-      support = "supported", milestone = "1.0.0", family = "battle",
-      preset = "ANIMATION", opaque = false, toggle = "battle",
-      presentationApi = 3, validateBase = battleTransitionBase,
-      gallery = { "transition", "flash", "wipe" },
-    }),
+    deferred("Gen2BattleState", "src.ui.gen2.BattleState", true,
+      "battle UI rewrite deferred; keep the official battle renderer native"),
+    deferred("Gen2BattleTransition", "src.ui.gen2.BattleTransition", false,
+      "battle UI rewrite deferred; keep the official battle transition native"),
     native("Gen2CardFlip", "src.ui.gen2.CardFlip", "minigames", true,
       "spatial animated minigame"),
     native("Gen2CopyrightSplash", "src.ui.gen2.CopyrightSplash", "cinematics",
@@ -407,6 +379,13 @@ return function(ctx)
       "timed travel and world animation"),
     native("Gen2OakSpeech", "src.ui.gen2.OakSpeech", "cinematics", true,
       "Oak artwork and parent sequence remain source-owned"),
+    nativeWithGallery("Gen2Pokegear", "src.ui.gen2.Pokegear", "services", true,
+      "Pokegear replacement disabled pending a clean redesign; keep the official device renderer source-owned",
+      { "strip", "clock", "map", "fly", "radio", "phone",
+        "phone_submenu", "call", "no_signal" }),
+    nativeWithGallery("Gen2MapRadio", "src.ui.gen2.MapRadio", "services", false,
+      "Pokegear-family replacement disabled pending a clean redesign; keep the official radio renderer source-owned",
+      { "station" }),
     native("Gen2SlotMachine", "src.ui.gen2.SlotMachine", "minigames", true,
       "coordinate-driven animated minigame"),
     native("Gen2TitleState", "src.ui.gen2.TitleState", "cinematics", true,

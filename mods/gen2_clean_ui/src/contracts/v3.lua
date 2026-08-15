@@ -72,35 +72,6 @@ return function(ctx)
     }
   end
 
-  local function animationScreen()
-    return {
-      id = "battle_animation_preview", kind = "animation",
-      schema = "clean_ui.v3.presentation.v1", apiVersion = 3,
-      preset = "ANIMATION", title = "BATTLE ANIMATION PREVIEW",
-      animation = {
-        id = "battle.move", frame = 12, duration = 32,
-        progress = 0.375, label = "MOVE EFFECT",
-        message = "The source owns timing; V3 owns the visual frame.",
-      },
-    }
-  end
-
-  local function transitionAnimationScreen()
-    return {
-      id = "battle_transition_preview", kind = "animation",
-      schema = "clean_ui.v3.presentation.v1", apiVersion = 3,
-      preset = "ANIMATION", title = "BATTLE TRANSITION", opaque = false,
-      animation = {
-        id = "battle.transition", overlay = true, style = "spin",
-        phase = "outro", frame = 8, duration = 40, progress = 0.2,
-        overlays = {
-          { x=0, y=0, w=0.1, h=0.1, color={0,0,0,1} },
-          { x=0.9, y=0.9, w=0.1, h=0.1, color={0,0,0,1} },
-        },
-      },
-    }
-  end
-
   local function bootCopyrightScreen()
     return {
       id = "copyright_splash_preview", kind = "animation",
@@ -328,51 +299,6 @@ return function(ctx)
     }
   end
 
-  local function pokegearScreen()
-    return {
-      id = "pokegear_menu_preview", kind = "menu",
-      schema = "clean_ui.v3.presentation.v1", apiVersion = 3,
-      preset = "L", opaque = true, title = "POKEGEAR", selected = 1,
-      scroll = 0,
-      rows = {
-        { id = "clock", label = "CLOCK", right = "OPEN" },
-        { id = "map", label = "MAP", right = "OPEN" },
-        { id = "phone", label = "PHONE", right = "3 CONTACTS" },
-        { id = "radio", label = "RADIO", right = "ON AIR" },
-      },
-      details = {
-        title = "CLOCK",
-        fields = {
-          { label = "DAY", value = "MONDAY" },
-          { label = "TIME", value = "10:37 AM", style = "accent" },
-          { label = "REGION", value = "JOHTO" },
-        },
-      },
-      description = "LEFT/RIGHT CARD   A OPEN   B BACK",
-    }
-  end
-
-  local function mapRadioScreen()
-    return {
-      id = "map_radio_preview", kind = "menu",
-      schema = "clean_ui.v3.presentation.v1", apiVersion = 3,
-      preset = "L", opaque = false, title = "RADIO / LUCKY CHANNEL",
-      selected = 1, scroll = 0,
-      rows = {
-        { id = "lucky_channel", label = "LUCKY CHANNEL", right = "ON AIR",
-          disabled = true },
-      },
-      details = {
-        title = "LUCKY CHANNEL",
-        fields = {
-          { label = "STATION", value = "LUCKY CHANNEL", style = "accent" },
-          { label = "STATUS", value = "PLAYING" },
-        },
-      },
-      description = "A/B CLOSE",
-    }
-  end
-
   local function pokedexScreen()
     return {
       id = "pokedex_menu_preview", kind = "menu",
@@ -380,19 +306,20 @@ return function(ctx)
       preset = "L", opaque = true, title = "POKEDEX", selected = 1,
       scroll = 0,
       rows = {
-        { id = "dex.152", label = "CHIKORITA", right = "No.152" },
-        { id = "dex.155", label = "CYNDAQUIL", right = "No.155  OWNED" },
-        { id = "dex.158", label = "TOTODILE", right = "No.158  OWNED" },
+        { id = "dex.152", label = "No.152 CHIKORITA", right = "SEEN" },
+        { id = "dex.155", label = "No.155 CYNDAQUIL", right = "OWNED" },
+        { id = "dex.158", label = "No.158 TOTODILE", right = "OWNED" },
       },
       details = {
-        title = "TOTODILE",
+        title = "CYNDAQUIL",
         fields = {
-          { label = "MODE", value = "NATIONAL" },
-          { label = "SEEN", value = 3 },
-          { label = "OWNED", value = 2, style = "accent" },
+          { label = "NUMBER", value = "No.155" },
+          { label = "STATUS", value = "OWNED", style = "accent" },
         },
+        typeBadges = { "FIRE" },
+        preview = true,
       },
-      description = "A DATA   SELECT OPTIONS   START SEARCH   B BACK",
+      description = "SEEN 3  OWNED 2   L/R PAGE   A OPTIONS   B BACK",
     }
   end
 
@@ -438,34 +365,6 @@ return function(ctx)
         },
       },
       description = "A CHOOSE   B BACK",
-    }
-  end
-
-  local function battleScreen()
-    return {
-      id = "battle_preview", kind = "battle",
-      schema = "clean_ui.v3.presentation.v1", apiVersion = 3,
-      preset = "BATTLE", opaque = true, phase = "menu",
-      enemy = {
-        name = "PIDGEY", level = 4, gender = "female",
-        caught = true, hp = 18, maxHp = 18,
-        types = { { id = "NORMAL", label = "NORMAL" },
-          { id = "FLYING", label = "FLYING" } },
-      },
-      player = {
-        name = "TOTODILE", level = 12, gender = "male",
-        hp = 34, maxHp = 36, exp = 0.63, expCurrent = 1728,
-        expRequired = 2736,
-        types = { { id = "WATER", label = "WATER" } },
-      },
-      actions = {
-        { id = "fight", label = "FIGHT" },
-        { id = "pokemon", label = "POKEMON" },
-        { id = "pack", label = "PACK" },
-        { id = "run", label = "RUN" },
-      },
-      selectedAction = 1,
-      message = "WHAT WILL TOTODILE DO?",
     }
   end
 
@@ -660,22 +559,14 @@ return function(ctx)
       id = "gen2_inventory_device",
       version = "0.1.0",
       games = { "gen2" },
-      screens = { packScreen(), pokegearScreen(), mapRadioScreen() },
+      screens = { packScreen() },
       gallery = {
         { id = "gen2.pack.menu.v3", family = "inventory",
           title = "V3 Pack", support = "supported", variant = "items",
           screen = "pack_menu_preview", preset = "L" },
-        { id = "gen2.pokegear.menu.v3", family = "device",
-          title = "V3 Pokegear", support = "supported", variant = "clock",
-          screen = "pokegear_menu_preview", preset = "L" },
-        { id = "gen2.map_radio.v3", family = "device",
-          title = "V3 Map Radio", support = "supported", variant = "station",
-          screen = "map_radio_preview", preset = "L" },
       },
       actions = {
         open_pack = packScreen,
-        open_pokegear = pokegearScreen,
-        open_map_radio = mapRadioScreen,
       },
     }
   end
@@ -702,51 +593,6 @@ return function(ctx)
         open_trainer_card = trainerCardScreen,
         open_save = saveScreen,
       },
-    }
-  end
-
-  function V3.battleContract()
-    return {
-      id = "gen2_battle_preview",
-      version = "0.1.0",
-      games = { "gen2" },
-      screens = { battleScreen() },
-      gallery = {
-        { id = "gen2.battle.menu.v3", family = "battle",
-          title = "V3 Battle", support = "supported", variant = "wild_menu",
-          screen = "battle_preview", preset = "BATTLE" },
-      },
-      actions = { open_battle = battleScreen },
-    }
-  end
-
-  function V3.animationContract()
-    return {
-      id = "gen2_battle_animations",
-      version = "0.1.0",
-      games = { "gen2" },
-      screens = { animationScreen(), transitionAnimationScreen() },
-      gallery = {
-        { id = "gen2.battle.animation.intro", family = "battle",
-          title = "V3 Battle Intro", support = "supported", variant = "intro",
-          screen = "battle_animation_preview", preset = "ANIMATION" },
-        { id = "gen2.battle.animation.move", family = "battle",
-          title = "V3 Move Animation", support = "supported", variant = "move",
-          screen = "battle_animation_preview", preset = "ANIMATION" },
-        { id = "gen2.battle.animation.item", family = "battle",
-          title = "V3 Item Animation", support = "supported", variant = "item",
-          screen = "battle_animation_preview", preset = "ANIMATION" },
-        { id = "gen2.battle.animation.experience", family = "battle",
-          title = "V3 Experience Animation", support = "supported", variant = "experience",
-          screen = "battle_animation_preview", preset = "ANIMATION" },
-        { id = "gen2.battle.animation.level_up", family = "battle",
-          title = "V3 Level Up Animation", support = "supported", variant = "level_up",
-          screen = "battle_animation_preview", preset = "ANIMATION" },
-        { id = "gen2.battle.transition.v3", family = "battle",
-          title = "V3 Battle Transition", support = "supported", variant = "transition",
-          screen = "battle_transition_preview", preset = "ANIMATION" },
-      },
-      actions = { open_animation = animationScreen },
     }
   end
 
@@ -951,11 +797,6 @@ return function(ctx)
       V3.inventoryDeviceContract())
     if not ok then return nil, code, message end
     ok, code, message = host:register("gen2_clean_ui", V3.progressContract())
-    if not ok then return nil, code, message end
-    ok, code, message = host:register("gen2_clean_ui", V3.battleContract())
-    if not ok then return nil, code, message end
-    ok, code, message = host:register("gen2_clean_ui",
-      V3.animationContract())
     if not ok then return nil, code, message end
     ok, code, message = host:register("gen2_clean_ui",
       V3.bootContract())

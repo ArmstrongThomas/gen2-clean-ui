@@ -19,6 +19,12 @@ function BattleLayout.measure(base, model, font, density)
   local frame = math.max(2, math.floor(2 * scale + 0.5))
   local pad = math.max(8, math.floor((compact and 10 or 14) * scale))
   local gap = math.max(6, math.floor(8 * scale + 0.5))
+  -- The mockups use a deliberately shallow lower dock: its usable menu
+  -- region is about one third of the upper battle stage. Keep the dock's
+  -- internal chrome separate from the outer battle spacing so this ratio is
+  -- readable at 1x without changing the fixed field when phases change.
+  local dockPad = math.max(8, math.floor(10 * scale + 0.5))
+  local dockGap = math.max(4, math.floor(6 * scale + 0.5))
   local fontHeight = math.max(1, font:getHeight())
   local inner = inset(base.outer, frame + pad)
   local portrait = base.orientation == "portrait"
@@ -31,20 +37,30 @@ function BattleLayout.measure(base, model, font, density)
   local columns = moveList and 1 or math.min(2, #actions)
   local rows = #actions > 0 and math.ceil(#actions / math.max(1, columns)) or 0
   local titleH = math.max(fontHeight + pad, math.floor(30 * scale + 0.5))
-  local menuRowH = math.max(fontHeight + pad,
-    math.floor((moveList and 32 or 36) * scale + 0.5))
+  -- Move selection is a compact vertical list rather than the command
+  -- menu's roomy 2x2 grid.  Four moves must fit without taking over the
+  -- battlefield, especially during the intro before a menu is visible.
+  local moveGap = math.max(2, math.floor(2 * scale + 0.5))
+  local moveRowH = math.max(fontHeight + math.max(2, math.floor(2 * scale)),
+    math.floor(17 * scale + 0.5))
+  local menuRowH = moveList and moveRowH or math.max(fontHeight + dockPad,
+    math.floor(34 * scale + 0.5))
+  local menuGap = moveList and moveGap or dockGap
   local menuH = rows > 0
-    and rows * menuRowH + math.max(0, rows - 1) * gap or 0
-  local desiredMoveInfoH = moveList and math.max(fontHeight * 3 + pad,
-    math.floor(78 * scale + 0.5)) or 0
+    and rows * menuRowH + math.max(0, rows - 1) * menuGap or 0
+  -- The lower dock is a fixed battle region.  Reserve the move detail pane
+  -- even while the intro or command phase is on screen so opening FIGHT or
+  -- entering the move list never changes the height of the upper field.
+  local desiredMoveInfoH = math.max(fontHeight * 3 + dockPad,
+    math.floor(70 * scale + 0.5))
   local moveContentH
   if moveList and portrait then
     -- Portrait phones do not have enough horizontal room for a readable
     -- detail pane beside a four-row move list. Stack the detail pane above
     -- the list and reserve both regions before splitting the field/panel.
-    moveContentH = desiredMoveInfoH + gap + menuH
+    moveContentH = desiredMoveInfoH + dockGap + menuH
   else
-    moveContentH = math.max(menuH, moveList and desiredMoveInfoH or 0)
+    moveContentH = math.max(menuH, desiredMoveInfoH)
   end
   -- Reserve the largest battle panel up front.  The field/HUD must not move
   -- when the player opens the command menu or enters move selection: changing
@@ -52,19 +68,18 @@ function BattleLayout.measure(base, model, font, density)
   -- Four rows is the Gen II maximum even when a particular Pokémon knows fewer
   -- moves, and the detail pane is reserved in both orientations so the move
   -- screen cannot steal height from the sprites and status cards.
-  local commandRowH = math.max(fontHeight + pad,
-    math.floor(36 * scale + 0.5))
-  local commandMenuH = 2 * commandRowH + gap
-  local worstMoveRowH = math.max(fontHeight + pad,
-    math.floor(32 * scale + 0.5))
-  local worstMoveMenuH = 4 * worstMoveRowH + 3 * gap
+  local commandRowH = math.max(fontHeight + math.max(2, math.floor(2 * scale)),
+    math.floor(34 * scale + 0.5))
+  local commandMenuH = 2 * commandRowH + dockGap
+  local worstMoveRowH = moveRowH
+  local worstMoveMenuH = 4 * worstMoveRowH + 3 * moveGap
   local worstMoveContentH = portrait
-    and (desiredMoveInfoH + gap + worstMoveMenuH)
+    and (desiredMoveInfoH + dockGap + worstMoveMenuH)
     or math.max(desiredMoveInfoH, worstMoveMenuH)
-  local messagePanelH = math.max(titleH + pad * 2,
-    fontHeight * 2 + pad * 3)
-  local commandPanelH = titleH + pad + commandMenuH + pad
-  local movePanelH = titleH + pad + worstMoveContentH + pad
+  local messagePanelH = math.max(titleH + dockPad * 2,
+    fontHeight * 2 + dockPad * 2)
+  local commandPanelH = titleH + dockPad + commandMenuH + dockPad
+  local movePanelH = titleH + dockPad + worstMoveContentH + dockPad
   local panelH = math.max(messagePanelH, commandPanelH, movePanelH)
   -- A very small viewport may be unable to hold the full four-move reserve.
   -- Keep the cap phase-independent there too; the solver can step down the
@@ -121,42 +136,44 @@ function BattleLayout.measure(base, model, font, density)
 
   local menu, hitRegions = {}, {}
   local menuTop = panel.y + titleH
-  local contentBottom = panel.y + panel.h - pad
+  local contentBottom = panel.y + panel.h - dockPad
   local moveInfoRegion
-  local menuLeft = panel.x + pad
-  local menuWidth = math.max(1, panel.w - pad * 2)
+  local menuLeft = panel.x + dockPad
+  local menuWidth = math.max(1, panel.w - dockPad * 2)
   local menuBottom = contentBottom
   if moveList and portrait then
-    local available = math.max(1, panel.w - pad * 2)
+    local available = math.max(1, panel.w - dockPad * 2)
     local infoH = math.min(desiredMoveInfoH,
-      math.max(1, contentBottom - menuTop - gap - math.max(1, menuH)))
-    moveInfoRegion = Rect.new(panel.x + pad, menuTop, available,
+      math.max(1, contentBottom - menuTop - dockGap - math.max(1, menuH)))
+    moveInfoRegion = Rect.new(panel.x + dockPad, menuTop, available,
       math.max(1, infoH))
-    menuTop = moveInfoRegion.y + moveInfoRegion.h + gap
-    menuLeft = panel.x + pad
+    menuTop = moveInfoRegion.y + moveInfoRegion.h + dockGap
+    menuLeft = panel.x + dockPad
     menuWidth = available
   elseif moveList then
     -- Detail on the left, four-row move list on the right in landscape.
     -- Portrait uses the stacked arrangement above so the detail text does
     -- not become a narrow, overlapping column.
-    local available = math.max(1, panel.w - pad * 2)
-    local splitGap = math.min(gap, math.max(2, math.floor(available * 0.06)))
+    local available = math.max(1, panel.w - dockPad * 2)
+    local splitGap = math.min(dockGap,
+      math.max(2, math.floor(available * 0.06)))
     local infoW = math.floor((available - splitGap) * 0.42)
     infoW = math.max(1, math.min(infoW, available - splitGap - 1))
-    moveInfoRegion = Rect.new(panel.x + pad, menuTop, infoW,
+    moveInfoRegion = Rect.new(panel.x + dockPad, menuTop, infoW,
       math.max(1, contentBottom - menuTop))
     menuLeft = moveInfoRegion.x + moveInfoRegion.w + splitGap
-    menuWidth = math.max(1, panel.x + panel.w - pad - menuLeft)
+    menuWidth = math.max(1, panel.x + panel.w - dockPad - menuLeft)
   end
   if #actions > 0 then
-    local cellW = (menuWidth - gap * (columns - 1)) / columns
+    local rowGap = moveList and moveGap or dockGap
+    local cellW = (menuWidth - dockGap * (columns - 1)) / columns
     local cellH = math.max(1,
-      (menuBottom - menuTop - gap * (rows - 1)) / rows)
+      (menuBottom - menuTop - rowGap * (rows - 1)) / rows)
     for index, action in ipairs(actions) do
       local column = (index - 1) % columns
       local row = math.floor((index - 1) / columns)
-      local rect = Rect.new(menuLeft + column * (cellW + gap),
-        menuTop + row * (cellH + gap), cellW, cellH)
+      local rect = Rect.new(menuLeft + column * (cellW + dockGap),
+        menuTop + row * (cellH + rowGap), cellW, cellH)
       menu[#menu + 1] = { index=index, action=action, rect=rect }
       hitRegions[#hitRegions + 1] = {
         id=tostring(action.id or index), index=index,
@@ -172,9 +189,9 @@ function BattleLayout.measure(base, model, font, density)
     }
   end
 
-  local messageRegion = Rect.new(panel.x + pad, panel.y + titleH,
-    math.max(1, panel.w - pad * 2),
-    math.max(1, panel.h - titleH - pad))
+  local messageRegion = Rect.new(panel.x + dockPad, panel.y + titleH,
+    math.max(1, panel.w - dockPad * 2),
+    math.max(1, panel.h - titleH - dockPad))
   base.inner, base.field, base.hud, base.arena, base.panel =
     inner, field, hud, arena, panel
   base.enemyCard, base.playerCard = enemyCard, playerCard
@@ -189,6 +206,9 @@ function BattleLayout.measure(base, model, font, density)
     portrait and "portrait" or "landscape"
   base.scale, base.fontHeight = scale, fontHeight
   base.titleHeight, base.gap = titleH, gap
+  base.dockPad, base.dockGap = dockPad, dockGap
+  base.upperToDockTarget = 3
+  base.upperToDockRatio = field.h / math.max(1, panel.h)
   base.hudStable = true
   base.stablePanelHeight = panelH
   base.compactCards = cardH < fontHeight * 2 + gap * 2

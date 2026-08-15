@@ -5,7 +5,6 @@ Model.KINDS = {
   menu = true,
   dialogue = true,
   choice = true,
-  battle = true,
   animation = true,
   device = true,
   map = true,
@@ -15,7 +14,7 @@ Model.KINDS = {
 -- dense-array check catches the most common integration mistakes (a keyed
 -- map, a missing middle entry, or a scalar row) before layout code receives
 -- the model. Empty collections remain valid for source-owned transitional
--- states such as a battle message or a saving screen.
+-- states such as a saving screen.
 local function collection(value, name, itemType)
   if type(value) ~= "table" then
     return nil, name .. " must be a table"
@@ -558,20 +557,6 @@ function Model.validate(value)
     end
     local ok, errorMessage = indexField(value.selected, "choice.selected")
     if not ok then return nil, "invalid_model", errorMessage end
-  elseif value.kind == "battle" then
-    if type(value.player) ~= "table" or type(value.enemy) ~= "table" then
-      return nil, "invalid_model",
-        "battle presentation requires player and enemy tables"
-    end
-    count, collectionError = collection(value.actions, "battle.actions", "table")
-    if not count then
-      return nil, "invalid_model", "battle presentation requires "
-        .. collectionError
-    end
-    for _, field in ipairs({ "selectedAction", "selectedMove" }) do
-      local ok, errorMessage = indexField(value[field], "battle." .. field)
-      if not ok then return nil, "invalid_model", errorMessage end
-    end
   elseif value.kind == "device" then
     local valid, deviceError = deviceShape(value.device, "device")
     if not valid then return nil, "invalid_model", deviceError end

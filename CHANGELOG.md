@@ -3,9 +3,46 @@
 Release history for Gen2 Clean UI. Version 0.1.0 is an intentionally early,
 experimental public release.
 
-## 0.2.0 — Unreleased
+## 0.2.0 — 2026-08-15
+
+### Deferred — 2026-08-15
+
+- Removed the failed Gen2 Clean UI battle adapters, presenters, detached
+  renderer/layout, battle input routing, battle V3 preview contracts, and
+  battle regression runner from the active package.
+- Archived the removed attempt and shared integration snapshots under
+  `docs/archive/battle-ui-deferred-2026-08-15/`.
+- Marked `Gen2BattleState` and `Gen2BattleTransition` explicitly
+  deferred/native. The official host remains authoritative for battle
+  rendering, timing, input, sound, randomization, semantics, and transitions.
+- Retained future battle design goals in `docs/BATTLE_SYSTEM_HANDOFF.md`.
+  No replacement battle architecture is selected in this release.
+- Disabled the complete Pokegear-family replacement, including
+  `Gen2Pokegear` phone/clock/map/Fly/radio surfaces and `Gen2MapRadio`.
+  Their official native renderer now owns the flow; the existing adapters,
+  presenters, and fixtures remain inactive reference material only.
+- Refreshed the Pokédex list and entry composition with a Gen1 Modern-inspired
+  stable list/preview split, number-first rows, seen/owned status markers,
+  type badges, detached palette-aware art, totals, and cleaner navigation
+  hints. This remains a V3 menu composition, not a copied native canvas.
+
+The battle-specific entries in the historical Added list below describe the
+removed attempt and are not current live-launcher support or acceptance proof.
+The historical Pokegear entries below likewise describe an inactive reference
+implementation; Pokegear and Map Radio are native in the current product.
 
 ### Added
+
+- Completed the active Poké Mart V3 menu composition for top-level BUY/SELL,
+  item buying, quantity selection, selling through the Pack child, and sell
+  quantity. Buy rows and selected-item/sell details now show detached owned
+  inventory counts, money, item price, and half-price sell value. Deterministic
+  coverage includes 23 commerce variants.
+- Fixed the live Poké Mart native fallback: the official transparent
+  `MartMenu` contract is now represented as non-opaque, so provider identity
+  validation no longer rejects every live Mart state with `opacity_mismatch`.
+  A user walkthrough confirmed Clean UI ownership after sync; minor Mart bugs
+  remain for follow-up.
 
 - Raised the supported release floor to `0.1.87` after the official launcher
   drop. The live stack now preserves the source-owned overworld backdrop while
@@ -30,14 +67,14 @@ experimental public release.
   ownership, and the native draw guard now provide the released-host fallback.
 - Generalized that released-host fallback across all 51 official screen
   records. The legacy visibility hook now resolves the live `game` from the
-  state object, so Party, Battle, Pokegear, dialogue, and pointer/touch paths
-  no longer depend on a newer host facade field or a main-menu-only fixture.
+  state object, so Party, Pokegear, dialogue, and pointer/touch paths no
+  longer depend on a newer host facade field or a main-menu-only fixture.
 - Added a v0.1.86 generated-image compatibility fallback. The public host
   exposes sandboxed `love.graphics.newImage` but not the newer
   `mod.ui.sourceImage`; the runtime now loads only validated
   `assets/generated/*.png` paths through that release-floor fallback, while
   newer hosts retain `mod.ui.sourceImage` and host cache ownership. This
-  restores the Party and Battle Clean UI override path instead of failing
+  restores the Party Clean UI override path instead of failing
   open to native when their generated Pokémon sprites are requested.
 - Added explicit V3 canvas invalidation on `screen.pushed` and `screen.popped`.
   This prevents a completed Clean UI frame from surviving a stack transition

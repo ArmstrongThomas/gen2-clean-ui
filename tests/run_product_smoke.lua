@@ -120,13 +120,6 @@ local sparseModel = {
 local sparseOk, sparseCode = coreModel.validate(sparseModel)
 assert(not sparseOk and sparseCode == "invalid_model",
   "vendored V3 model validator rejects sparse collections")
-local invalidSelection = {
-  schema="clean_ui.v3.presentation.v1", apiVersion=3, kind="battle",
-  preset="BATTLE", player={}, enemy={}, actions={}, selectedAction="1",
-}
-local selectionOk, selectionCode = coreModel.validate(invalidSelection)
-assert(not selectionOk and selectionCode == "invalid_model",
-  "vendored V3 model validator rejects non-integer selections")
 assert(mod.exports.cleanUiHost:supports("contract_catalog", "0.1.0")
   and type(mod.exports.cleanUiHost.listContracts) == "function",
   "V3 editor contract catalog surface")
@@ -134,7 +127,7 @@ assert(mod.exports.cleanUiHost:supports("presentation_models", "0.1.0"),
   "V3 canonical presentation-model capability")
 local sharedV3 = assert(mod.exports.cleanUiHost:listContracts({
   ownerId = "gen2_clean_ui" }))
-assert(#sharedV3 == 11, "production V3 contract count")
+assert(#sharedV3 == 9, "production V3 contract count")
 local v3ById = {}
 local directV3Screens = 0
 for _, descriptor in ipairs(sharedV3) do v3ById[descriptor.id] = descriptor end
@@ -148,14 +141,13 @@ for _, descriptor in ipairs(sharedV3) do
     end
   end
 end
-assert(directV3Screens >= 30, "production catalog has broad direct V3 examples")
+assert(directV3Screens >= 26,
+  "production catalog has broad direct V3 examples after native boundaries")
 local dialogueV3 = v3ById.gen2_shared_dialogue
 local foundationV3 = v3ById.gen2_foundation_menus
 local partyV3 = v3ById.gen2_party_menus
 local inventoryDeviceV3 = v3ById.gen2_inventory_device
 local progressV3 = v3ById.gen2_progress_menus
-local battleV3 = v3ById.gen2_battle_preview
-local animationV3 = v3ById.gen2_battle_animations
 local extendedV3 = v3ById.gen2_extended_menus
 local bootV3 = v3ById.gen2_boot_animations
 local cinematicV3 = v3ById.gen2_cinematic_animations
@@ -180,31 +172,17 @@ assert(partyV3 and #partyV3.screens == 2
   and partyV3.screens[2].details.bars[2].label == "EXP"
   and partyV3.actions == nil,
   "party and summary menus are registered as callback-free V3 catalog data")
-assert(inventoryDeviceV3 and #inventoryDeviceV3.screens == 3
+assert(inventoryDeviceV3 and #inventoryDeviceV3.screens == 1
   and inventoryDeviceV3.screens[1].rows[1].right == "x12"
-  and inventoryDeviceV3.screens[2].title == "POKEGEAR"
-  and inventoryDeviceV3.screens[3].opaque == false
   and inventoryDeviceV3.actions == nil,
-  "pack, Pokegear, and Map Radio are registered as callback-free V3 data")
+  "only the active Pack surface remains in the inventory V3 contract; Pokegear-family screens are native")
 assert(progressV3 and #progressV3.screens == 3
-  and progressV3.screens[1].rows[2].right == "No.155  OWNED"
+  and progressV3.screens[1].rows[2].label == "No.155 CYNDAQUIL"
+  and progressV3.screens[1].rows[2].right == "OWNED"
   and progressV3.screens[2].title == "TRAINER CARD / 1 OF 2"
   and progressV3.screens[3].preset == "M"
   and progressV3.actions == nil,
   "Pokedex, Trainer Card, and Save are registered as callback-free V3 data")
-assert(battleV3 and #battleV3.screens == 1
-  and battleV3.screens[1].kind == "battle"
-  and battleV3.screens[1].player.expCurrent == 1728
-  and battleV3.actions == nil,
-  "battle is registered as callback-free V3 catalog data")
-assert(animationV3 and #animationV3.screens == 2
-  and animationV3.screens[1].kind == "animation"
-  and animationV3.screens[1].animation.id == "battle.move"
-  and animationV3.screens[2].animation.id == "battle.transition"
-  and animationV3.screens[2].animation.overlay == true
-  and #animationV3.gallery == 6
-  and animationV3.actions == nil,
-  "battle animation states are registered as callback-free V3 catalog data")
 assert(bootV3 and #bootV3.screens == 4
   and bootV3.screens[1].animation.id == "boot.copyright"
   and bootV3.screens[2].animation.id == "boot.gamefreak"
@@ -231,7 +209,7 @@ assert(officialV3 and #officialV3.screens == 0
   and #officialV3.gallery == 51 and officialV3.actions == nil,
   "all official Gen2 screen statuses are exposed as callback-free V3 catalog data")
 local officialSeen = {}
-local officialSupported, officialNative = 0, 0
+local officialSupported, officialNative, officialDeferred = 0, 0, 0
 for index, entry in ipairs(officialV3.gallery) do
   assert(entry.screen_id == mod.exports.gen2CleanUi.contracts[index].id
     and not officialSeen[entry.screen_id]
@@ -245,14 +223,19 @@ for index, entry in ipairs(officialV3.gallery) do
   elseif entry.support == "native" then
     officialNative = officialNative + 1
     assert(type(entry.reason) == "string" and entry.reason ~= "")
+  elseif entry.support == "deferred" then
+    officialDeferred = officialDeferred + 1
+    assert(entry.implementation == "native"
+      and type(entry.reason) == "string" and entry.reason ~= "")
   end
 end
-assert(officialSupported == 41 and officialNative == 10,
-  "official V3 catalog preserves the 41/10 production/native split")
+assert(officialSupported == 37 and officialNative == 12 and officialDeferred == 2,
+  "official V3 catalog preserves the 37/12/2 production/native/deferred split")
 local expectedNative = {
   "Gen2CardFlip", "Gen2CopyrightSplash", "Gen2GoldSilverIntro",
   "Gen2GameFreakPresents", "Gen2MagnetTrainRide", "Gen2OakSpeech",
-  "Gen2SlotMachine", "Gen2TitleState", "Gen2TradeAnim", "Gen2UnownPuzzle",
+  "Gen2MapRadio", "Gen2Pokegear", "Gen2SlotMachine", "Gen2TitleState",
+  "Gen2TradeAnim", "Gen2UnownPuzzle",
 }
 for _, screenId in ipairs(expectedNative) do
   local entry
@@ -312,10 +295,10 @@ assert(type(mod.exports.gen2CleanUi.extractModel) == "function",
   "foundation model extractor export")
 assert(type(mod.exports.gen2CleanUi.coverage) == "function",
   "read-only presenter coverage export")
-assert(#mod.exports.gen2CleanUi.modelScreens == 41,
-  "foundation, 0.2, 0.3, and battle model contracts")
-assert(#mod.exports.gen2CleanUi.presentationScreens == 41,
-  "foundation, 0.2, 0.3, and battle production presenters")
+assert(#mod.exports.gen2CleanUi.modelScreens == 37,
+  "foundation and active 0.2/0.3 model contracts")
+assert(#mod.exports.gen2CleanUi.presentationScreens == 37,
+  "foundation and active 0.2/0.3 production presenters")
 local coverage = mod.exports.gen2CleanUi.coverage()
 assert(#coverage == 51, "coverage reports the complete official catalog")
 local coverageById = {}
@@ -330,20 +313,28 @@ for _, record in ipairs(mod.exports.gen2CleanUi.contracts) do
         .. record.id)
   end
 end
+assert(coverageById.Gen2Pokegear and coverageById.Gen2MapRadio
+  and coverageById.Gen2Pokegear.modelAdapter == false
+  and coverageById.Gen2Pokegear.presenter == false
+  and coverageById.Gen2MapRadio.modelAdapter == false
+  and coverageById.Gen2MapRadio.presenter == false,
+  "Pokegear-family native boundary has no active adapter or presenter")
 local implemented = {}
 local v3OfficialCount = 0
 for _, record in ipairs(mod.exports.gen2CleanUi.contracts) do
   implemented[record.id] = record.implementation
   if record.presentationApi == 3 then v3OfficialCount = v3OfficialCount + 1 end
 end
-assert(v3OfficialCount == 41,
+assert(v3OfficialCount == 37,
   "all integrated official production presenters require V3 models")
 assert(implemented.Gen2PartyMenu == "production_presenter"
   and implemented.Gen2BoxMenu == "production_presenter"
-  and implemented.Gen2Pokegear == "production_presenter"
+  and implemented.Gen2Pokegear == "native"
+  and implemented.Gen2MapRadio == "native"
   and implemented.Gen2MartMenu == "production_presenter"
   and implemented.Gen2MailCompose == "production_presenter"
-  and implemented.Gen2BattleTransition == "production_presenter"
+  and implemented.Gen2BattleState == "native"
+  and implemented.Gen2BattleTransition == "native"
   and implemented.Gen2Credits == "production_presenter"
   and implemented.Gen2EggHatchAnim == "production_presenter"
   and implemented.Gen2EvolutionAnim == "production_presenter"
@@ -367,8 +358,8 @@ for _, fixture in ipairs(mod.exports.gen2CleanUi.gallery.fixtures) do
       "model-backed Gallery fixture validates as V3: " .. tostring(fixture.id))
   end
 end
-assert(modelFixtureCount == 117,
-  "foundation, shared, and all integrated 0.2/0.3 Gallery fixtures")
+assert(modelFixtureCount == 109,
+  "foundation, shared, and active integrated 0.2/0.3 Gallery fixtures")
 assert(#mod.exports.gen2CleanUi.sharedPresentationScreens == 2,
   "TextBox and ChoiceBox shared presenters are exported")
 
@@ -380,8 +371,7 @@ for _, record in ipairs(mod.exports.gen2CleanUi.contracts) do
   contracts[record.id] = record
 end
 local classes = {}
-for _, id in ipairs({ "Gen2MainMenu", "Gen2OptionsMenu",
-    "Gen2BattleTransition" }) do
+for _, id in ipairs({ "Gen2MainMenu", "Gen2OptionsMenu" }) do
   classes[id] = { __index = nil, isOpaque = contracts[id].opaque,
     __cleanUiBuiltinId = id }
   classes[id].__index = classes[id]
@@ -391,9 +381,6 @@ package.preload[contracts.Gen2MainMenu.module] = function()
 end
 package.preload[contracts.Gen2OptionsMenu.module] = function()
   return classes.Gen2OptionsMenu
-end
-package.preload[contracts.Gen2BattleTransition.module] = function()
-  return classes.Gen2BattleTransition
 end
 local mainItems = {
   { label = "NEW GAME", value = "new" },
@@ -421,6 +408,7 @@ if not headless then
     "v0.1.86 fallback resolves game from the live state for every UI")
   mod.game = savedModGame
 
+  fakeStack.states = { liveMain }
   hookWrappers["render.ui.prepare"](function() end, fakeGame,
     { width=640, height=360 })
   assert(hookWrappers["screen.render_visible"](function() return true end,
@@ -438,25 +426,20 @@ if not headless then
   hookWrappers["render.ui.prepare"](function() end, fakeGame,
     { width=640, height=360 })
   assert(hookWrappers["screen.render_visible"](function() return true end,
-    liveMain) == true, "battle-owned stack veto restores native UI")
+    liveMain) == true, "deferred battle stack keeps native UI")
 
-  fakeStack.states = { liveMain, setmetatable({
+  fakeStack.states = { liveMain, {
     screenId="Gen2BattleTransition", phase="outro", style="spin",
     frame=4, step=2, trainer=true, black={},
-  }, classes.Gen2BattleTransition) }
+  } }
   hookWrappers["render.ui.prepare"](function() end, fakeGame,
     { width=640, height=360 })
   local transitionMainVisible = hookWrappers["screen.render_visible"](
     function() return true end, liveMain)
   local transitionSourceVisible = hookWrappers["screen.render_visible"](
     function() return true end, fakeStack.states[2])
-  local transitionInspection = mod.exports.gen2CleanUi.inspect(
-    fakeStack.states[2], {})
-  assert(transitionMainVisible == true and transitionSourceVisible == false,
-    "transparent battle transition suppresses only its native source: main="
-      .. tostring(transitionMainVisible) .. " source="
-      .. tostring(transitionSourceVisible) .. " inspect="
-      .. tostring(transitionInspection and transitionInspection.reason))
+  assert(transitionMainVisible == true and transitionSourceVisible == true,
+    "deferred battle transition keeps the native stack visible")
 end
 
 if not headless then

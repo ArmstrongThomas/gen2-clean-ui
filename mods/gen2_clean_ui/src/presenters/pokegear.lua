@@ -114,7 +114,6 @@ return function(ctx)
       },
       description="UP/DOWN LANDMARK   LEFT/RIGHT CARD   B BACK",
       map=Data.copy(value, { maxDepth=8, maxEntries=4096 }),
-      mapGraphic=Data.copy(value.graphic, { maxDepth=8, maxEntries=4096 }),
     }
   end
 

@@ -2,15 +2,12 @@
 
 Early experimental public release of a clean, modular Pokémon Gold UI. Main,
 Start, Options,
-shared dialogue/choices, the 0.2 gameplay/storage family, and the complete
-audited 0.3 family set now have exact-contract production presenters behind a
-fail-open offscreen frame gate. Gen2 battle command/move/message pages,
-supported child menus, send-out/faint/move/item/Poké Ball animation frames,
-forced-switch and progression prompts, evolution, and nickname flows are
-covered. The V3 vocabulary also includes callback-free animation models and a
-real `gen2_battle_animations` catalog contract; source-owned timing and
-transitions remain authoritative and fail open when their detached frame data
-is unavailable.
+shared dialogue/choices, the active 0.2 gameplay/storage family, and the
+audited 0.3 family set have exact-contract production presenters behind a
+fail-open offscreen frame gate. Gen2 battle and the complete Pokegear family
+are deliberately native/deferred; the official host owns their timing,
+input, rendering, and transitions. The active Pokédex uses detached V3 data
+with a stable list/preview composition inspired by Gen1 Modern UI.
 
 The shipped mod is compatible with the upcoming host sandbox: it uses
 `mod:read`, sandboxed source loading, `mod.options`, `mod.save`, and
@@ -38,11 +35,10 @@ presenters separate from the shared `clean-ui-core` design/layout runtime.
 This checkout is a **native-safe product line**. It requires host release
 `0.1.87` or newer, inventories and validates all 51 official Gold screen IDs
 from the `v0.1.79` contract audit, and vendors an exact, hashed shared-core
-snapshot. The shell, dropdown,
-Gallery, Mod Menus, and pinning foundations are active. All 41 supported
-records have production presenters; 10 records remain native by design,
- including source-owned boot/title scenes. The battle transition uses the V3
- transparent overlay path.
+snapshot. The shell, dropdown, Gallery, Mod Menus, and pinning foundations
+are active. 37 records have production presenters; 12 records remain native
+by design, including the complete Pokegear family and source-owned boot/title
+scenes. Two battle records remain explicitly deferred.
 
 ## Repository shape
 
@@ -73,15 +69,13 @@ family module; reusable behavior belongs in `clean-ui-core`, never in
 ## Current contract status
 
 - 51/51 official `Screens.GEN2_IDS` records are present in official order.
-- 41 records have production presenters (40 full + Hall viewer-only scope).
-- 10 records are native by design.
-- `Gen2BattleState` has a responsive production presenter for command,
-  move-selection, message, forced-switch, next-Pokémon, progression,
-  evolution, and nickname frames; supported battle child menus use their V3
-  presenters while unknown/native child stacks fail open. Battle animation
-  frames remain detached V3 data while source-owned timing stays authoritative.
-- Battle layout coverage includes short landscape, portrait phone, desktop,
-  ultrawide, 4K, and 5K viewport matrices with native fail-open timing frames.
+- 37 records have production presenters.
+- 12 records are native by design; this includes `Gen2Pokegear` and
+  `Gen2MapRadio`, so phone, clock, map/Fly, radio, and related child surfaces
+  remain entirely source-owned.
+- `Gen2BattleState` and `Gen2BattleTransition` are explicitly deferred/native;
+  battle rewrite design notes are retained separately and are not active
+  product support.
 - NAV shell views choose and lock a 320–440 logical-pixel width from their
   required content, so short Start/Mod/settings menus no longer use unused
   horizontal space.
@@ -162,14 +156,14 @@ and verify:
 
 - Party opens in Clean UI with the Pokémon sprite, HP bar, status, and details
   visible, then closes without leaving a stale frame.
-- A wild battle remains in Clean UI through the intro, command menu, move list,
-  animations, faint/experience flow, and return transition.
+- Pokegear, Map, and Radio remain native while their replacement is deferred.
 - Pointer & Touch operates on both replacement surfaces when enabled.
 
-If Settings and Gallery render but Party or Battle remains native, treat that
-as a generated-image compatibility regression. Do not patch or rebuild
-`gen1recomp`; keep the fix inside the drop-in mod, vendored Core, tests, or
-documentation.
+If Settings and Gallery render but Party or another active supported screen
+remains native, treat that as a generated-image compatibility regression.
+Pokegear-family and battle-native behavior is intentional. Do not patch or
+rebuild `gen1recomp`; keep fixes inside the drop-in mod, vendored Core, tests,
+or documentation.
 
 The Lua contract tests are in `tests/run_contract_tests.lua` and can be run
 with the project's LÖVE/Lua test harness.

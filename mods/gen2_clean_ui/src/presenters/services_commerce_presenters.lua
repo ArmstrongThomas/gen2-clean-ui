@@ -57,6 +57,19 @@ return function(ctx)
     }
   end
 
+  local function ownedCount(item)
+    if type(item) ~= "table" then return 0 end
+    return tonumber(item.ownedCount or item.count) or 0
+  end
+
+  local function entryFor(source, item)
+    if type(source) ~= "table" or type(item) ~= "table" then return nil end
+    for _, entry in ipairs(source.entries or {}) do
+      if entry.id == item.id then return entry end
+    end
+    return nil
+  end
+
   local function mart(source)
     local rows = copyRows(source.rows)
     local selected = source.navigation and source.navigation.selectedIndex or nil
@@ -66,8 +79,13 @@ return function(ctx)
         style="accent" },
     }
     local item = source.selectedItem
+    if type(item) ~= "table" and type(source.quantity) == "table" then
+      item = source.quantity.item
+    end
     if type(item) == "table" then
       details[#details + 1] = { label="ITEM", value=item.name or item.id }
+      details[#details + 1] = { label="OWNED", value="x" .. tostring(
+        ownedCount(item)) }
       details[#details + 1] = { label="PRICE", value="Y" .. tostring(item.price) }
       if item.soldOut then
         details[#details + 1] = { label="STATUS", value="SOLD OUT" }
@@ -81,7 +99,20 @@ return function(ctx)
       end
       rows, selected, scroll = copyRows(nested.rows), nested.selected,
         nested.scroll or 0
-      details = nested.details or details
+      local sellEntry = entryFor(source, item)
+      local sellOwned = ownedCount(item)
+      if sellOwned == 0 and sellEntry then
+        sellOwned = ownedCount(sellEntry)
+      end
+      details = {
+        { label="MONEY", value="Y" .. tostring(source.money or 0),
+          style="accent" },
+        { label="ITEM", value=item and (item.name or item.id) or "ITEM" },
+        { label="OWNED", value="x" .. tostring(sellOwned) },
+        { label="SELL VALUE", value="Y" .. tostring(
+          math.floor((sellEntry and sellEntry.price or item and item.price or 0)
+            / 2)) },
+      }
       title = source.title .. "  /  SELL"
     elseif source.phase == "buy" or source.phase == "buyQuantity" then
       title = source.title .. "  /  BUY"

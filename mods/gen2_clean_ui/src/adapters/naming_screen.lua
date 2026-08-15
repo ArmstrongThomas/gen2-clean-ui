@@ -1,6 +1,7 @@
 return function(ctx)
   local Data = ctx.load("adapters.data")
   local Common = ctx.load("adapters.storage_common")
+  local Keyboard = ctx.load("adapters.naming_keyboard")
   local Naming = {}
 
   local NAME_UPPER = {
@@ -150,7 +151,10 @@ return function(ctx)
     end
     local isBox = rawget(state, "isBox") == true
     local lower = rawget(state, "lower") == true
-    local board = layout(isBox, lower)
+    local context = contextName(state)
+    local board = Keyboard.isNicknameContext(context)
+      and Keyboard.nicknameEnabled()
+      and Keyboard.nickname(lower) or layout(isBox, lower)
     if row == nil or row < 0 or row > #board then
       return nil, "cursor_invalid", "row"
     end
@@ -192,7 +196,7 @@ return function(ctx)
       screenId = "Gen2NamingScreen",
       family = "naming",
       preset = "XL",
-      context = contextName(state),
+      context = context,
       isBox = isBox,
       prompt = Data.text(rawget(state, "prompt"), "NICKNAME?"),
       monName = Data.text(rawget(state, "monName"), ""),

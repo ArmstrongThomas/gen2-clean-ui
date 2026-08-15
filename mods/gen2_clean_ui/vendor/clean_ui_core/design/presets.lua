@@ -12,11 +12,5 @@ return {
   M = { w = 600, minW = 320, h = 420, widthMode = "content" },
   L = { w = 760, h = 540 },
   XL = { w = 960, h = 640 },
-  BATTLE_WIDE = { w = 640, h = 360 },
-  -- Battle keeps the desktop composition's information density, but has a
-  -- deliberately stacked portrait envelope for phones and narrow safe areas.
-  BATTLE = { w = 640, h = 360, portrait = { w = 360, h = 640 } },
-  -- Timed source-owned visual states use the same responsive staging rules
-  -- without pretending that they are interactive battle menus.
   ANIMATION = { w = 640, h = 360, portrait = { w = 360, h = 640 } },
 }

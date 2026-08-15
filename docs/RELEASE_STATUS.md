@@ -1,24 +1,78 @@
 # Gen2 Clean UI release status
 
-Current line: `0.2.0` (unreleased early experimental follow-up).
+Current line: `0.2.0` (release candidate pending merge to `main`).
+
+## Battle UI deferment — 2026-08-15
+
+The failed Gen2 Clean UI battle implementation has been removed from the
+active package and archived at
+`docs/archive/battle-ui-deferred-2026-08-15/`. `Gen2BattleState` and
+`Gen2BattleTransition` are explicitly deferred/native, so the official host
+retains the complete battle path. No battle rewrite architecture is selected;
+the design goals remain documented in `docs/BATTLE_SYSTEM_HANDOFF.md` for a
+later effort.
+
+## Pokegear-family deferment — 2026-08-15
+
+The active replacements for `Gen2Pokegear` and `Gen2MapRadio` are disabled.
+The official renderer owns the complete Pokegear flow, including phone, clock,
+map/Fly, and radio surfaces. Existing adapters, presenters, and fixtures are
+retained only as inactive reference material for a later redesign.
+
+The Pokédex remains active and now uses a stable V3 list/preview composition
+inspired by Gen1 Modern UI, with number-first rows, seen/owned markers, type
+badges, palette-aware detached sprites, totals, and navigation hints.
+
+## Poké Mart commerce UI — 2026-08-15
+
+The active Mart presenter covers the top-level menu, BUY list, SELL Pack child,
+buy/sell quantity states, money, prices, owned inventory counts, and half-price
+sell values from detached V3 data. The official transparent `MartMenu` contract
+is now non-opaque, fixing the live `opacity_mismatch` fallback. A user
+walkthrough confirms Clean UI ownership after sync; minor Mart bugs remain.
 
 ## Current state
 
+- Current milestone: continue non-battle Clean UI polish and verification.
+  Battle is deferred and is not a release milestone for this worktree.
+- Runtime status: battle remains official-host/native by design. The previous
+  live failure is no longer masked by an active Clean UI battle replacement.
+- Follow-up order: Party; Trainer Card and Summary; Pack; Pokédex, Save,
+  dialogue, and settings/pointer-touch behavior. Pokegear/Map/Radio remain
+  native until a separate redesign.
+- The preferred future map treatment is the extracted native graphic/composed
+  map used by Gen1 Modern UI; the current Gen2 map renderer remains a
+  follow-up target. Battle animation parity also needs the host's background
+  scanline/palette and displacement/picture data before it can claim full
+  visual equivalence.
+- Caught-Pokémon nickname entry now selects the Gen1 Modern-style compact
+  keyboard only after the released `ui.naming.grid` hook is confirmed; player,
+  rival, and box naming remain native-board compatible.
+- The release PR includes the accumulated source, documentation, and archived
+  battle reference changes; it includes no screenshots or host-repository
+  changes. The GitHub release archive remains workflow-generated after merge.
+
 - Manifest version: `0.2.0`.
 - Host floor: `>=0.1.87 <2.0.0`.
-- Core lock: pinned to the `0.1.0-alpha.10` development
-  snapshot at `cfed683ff907a1cad57331058ebc6f23bf4f5110`.
+- Core lock: pinned to the `0.1.0-alpha.12-dev` development snapshot recorded
+  in `clean-ui-core.lock.json`.
 - GitHub Actions validate the product and build logic. The `v0.1.0` release is
   published and its updater-ready archive is attached.
 - The release workflow's `GH_TOKEN` binding is covered by commit `115e1bb`;
   the release job now completes archive creation, tag handling, notes, and
   publication.
-- The product has 51 exact official contract records, 41 production
-  presenters, all 41 integrated official presenters requiring V3 models, and
-  10 native-by-design records. The pre-battle transition is a transparent V3
-  animation overlay over the source-owned world; no official records are
-  currently deferred. The v0.1.86 exact-ID/source-registry fallback and live
-  state-game lookup are shared across all 51 records.
+- The product has 51 exact official contract records, 37 active production
+  presenters, 12 native-by-design records, and 2 explicitly deferred battle
+  records. The v0.1.86 exact-ID/source-registry fallback and live state-game
+  lookup remain shared across all 51 records.
+
+## Historical release notes
+
+The remaining detailed battle and Pokegear bullets in this status document
+record earlier experiments and host probes. They are retained for provenance
+only and are not current Clean UI support, live proof, or active release
+claims. The current boundaries are the deferments above and the battle archive
+at `docs/archive/battle-ui-deferred-2026-08-15/`.
 - The v0.1.86 generated-image compatibility fix lives entirely inside the
   drop-in mod and vendored Core. When `mod.ui.sourceImage` is unavailable, the
   runtime loads only validated `assets/generated/*.png` paths through
@@ -56,6 +110,16 @@ Current line: `0.2.0` (unreleased early experimental follow-up).
   diagonal: enemy status upper-left/enemy sprite upper-right, player sprite
   lower-left, and player status lower-right. The portrait command menu remains
   a 2x2 grid.
+- Battle now uses a spacious 960×540 logical 16:9 surface (540×960 on phones)
+  so the fixed upper stage remains roughly three times the lower dock instead
+  of collapsing toward a 1:1 split. The classic 10:9 surface remains opt-in.
+- Intro/trainer-slide rendering now uses detached trainer descriptors when the
+  source phase says a trainer is on screen; Pokémon sprites are not drawn into
+  the trainer slot before send-out. Incomplete animation OAM cannot blank the
+  clean base sprites or clear a status rail.
+- V3 also exposes `BATTLE_CLASSIC`, a centered 10:9 surface for original-ratio
+  portrait previews, alongside the default 16:9 wide and 9:16 phone surfaces;
+  resolved layout metadata reports the selected aspect to Studio tooling.
 - Live intro/send-out, faint, move/item/Poké Ball OAM frames stay inside the
   Clean UI presenter. The OAM crop-index multi-return regression that exposed
   native battle frames is fixed, unavailable optional effect sheets skip only
@@ -118,9 +182,10 @@ Current line: `0.2.0` (unreleased early experimental follow-up).
   from the manifest rather than hard-coding `0.2.0`.
 - The normal scaffold gate also requires that matching curated blurb to exist
   and be non-empty.
-- Product smoke also asserts the exact ten native-by-design IDs, including the
-  Copyright, Game Freak Presents, Gold/Silver Intro, and Title boundaries, so
-  the rejected raster presenters cannot return silently.
+- Product smoke also asserts the exact twelve native-by-design IDs, including
+  the complete Pokegear family and the Copyright, Game Freak Presents,
+  Gold/Silver Intro, and Title boundaries, so rejected presenters cannot
+  return silently.
 - The shared core now repeats canonical V3 presentation validation immediately
   before measurement and rendering, so malformed direct provider results fail
   open before they can suppress native UI.
@@ -176,7 +241,7 @@ Current line: `0.2.0` (unreleased early experimental follow-up).
   arrival warps are re-armed before edge-target selection, live source-region
   exits can replace stale pre-warp hints, and a failed border walk is rescanned
   after dynamic trainer recovery.
-- The battle responsive matrix passes 21,909 checks across short landscape,
+- The battle responsive matrix passes 21,921 checks across short landscape,
   portrait, desktop, ultrawide, 4K, and 5K combinations, including explicit
   diagonal card/sprite mapping, HUD/sprite containment, and overlap checks.
 - Real-route evidence is scoped: the contract, presenter, Gallery, and visual

@@ -489,6 +489,77 @@ local function drawRows(G, model, layout, font, theme)
   end
 end
 
+local function namingLabel(value)
+  local label = tostring(value or "")
+  if label == "<PK>" then return "PK" end
+  if label == "<MN>" then return "MN" end
+  return label
+end
+
+local function drawNaming(G, model, layout, font, theme)
+  local naming = layout.naming
+  if not naming then return end
+  local scale = layout.scale
+  local gap = math.max(6, math.floor(8 * scale))
+  local text = naming.text
+  local maxLength = math.max(1, naming.maxLength or 10)
+  local slotGap = math.max(2, math.floor(3 * scale))
+  local slotWidth = math.max(1,
+    (naming.entry.w - (maxLength - 1) * slotGap) / maxLength)
+  local slotHeight = math.max(font:getHeight() + gap,
+    math.floor(28 * scale))
+  local entryY = naming.entry.y
+  local counter = (naming.sourceLength or #text) .. "/" .. maxLength
+
+  printAt(G, font, theme.colors.muted, "ENTRY", naming.entry.x, entryY)
+  local slotsY = entryY + font:getHeight() + math.max(2, math.floor(3 * scale))
+  for index = 1, maxLength do
+    local x = naming.entry.x + (index - 1) * (slotWidth + slotGap)
+    Color.set(G, index <= #text and theme.colors.selection
+      or theme.colors.raised)
+    G.rectangle("fill", x, slotsY, slotWidth, slotHeight,
+      theme.radii and theme.radii.sm or 0)
+    local glyph = text:sub(index, index)
+    printAt(G, font, index <= #text and theme.colors.ink
+      or theme.colors.muted, glyph ~= "" and glyph or "-",
+      x + math.max(2, (slotWidth - font:getWidth(glyph ~= "" and glyph or "-")) / 2),
+      slotsY + math.floor((slotHeight - font:getHeight()) / 2))
+  end
+  printAt(G, font, theme.colors.muted, counter,
+    naming.entry.x + naming.entry.w - font:getWidth(counter),
+    entryY)
+  lineAt(G, theme.colors.muted, naming.entry.x, naming.entry.y + naming.entry.h,
+    naming.entry.x + naming.entry.w, naming.entry.y + naming.entry.h)
+
+  local cursor = naming.cursor or {}
+  for _, cell in ipairs(naming.cells or {}) do
+    local selected
+    if cell.kind == "bottom" then
+      selected = cursor.bottomRow == true
+        and (cursor.targetIndex or 0) == cell.index
+    else
+      selected = cursor.bottomRow ~= true
+        and (cursor.row or -1) == cell.row
+        and (cursor.col or -1) == cell.col
+    end
+    local rect = cell.rect
+    Color.set(G, selected and theme.colors.selection or theme.colors.raised)
+    G.rectangle("fill", rect.x, rect.y, rect.w, rect.h,
+      theme.radii and theme.radii.sm or 0)
+    if selected then
+      Color.set(G, theme.colors.focus)
+      G.rectangle("fill", rect.x, rect.y, math.max(2, math.floor(3 * scale)),
+        rect.h)
+    end
+    local value = namingLabel(cell.value)
+    local width = font:getWidth(value)
+    printAt(G, font, selected and theme.colors.ink or theme.colors.muted,
+      textFit(font, value, math.max(1, rect.w - gap * 2)),
+      rect.x + math.max(gap, (rect.w - math.min(width, rect.w - gap * 2)) / 2),
+      rect.y + math.floor((rect.h - font:getHeight()) / 2))
+  end
+end
+
 local function drawDetails(G, model, layout, font, theme)
   local region = layout.detailRegion
   if not region then return true end
@@ -741,8 +812,8 @@ drawModal = function(G, model, layout, font, theme)
   end
 end
 
--- Shared by production menu and battle presenters. The descriptor remains
--- data-only; the runtime owns the image loader and palette shader.
+-- Shared by production menu presenters. The descriptor remains data-only;
+-- the runtime owns the image loader and palette shader.
 MenuRender.drawSprite = drawSprite
 MenuRender.drawTypeBadges = drawTypeBadges
 
@@ -764,7 +835,8 @@ function MenuRender.draw(graphics, model, layout, font, theme)
     layout.header.x + layout.header.w,
     layout.header.y + layout.header.h - 1)
   drawMap(graphics, model, layout, font, theme)
-  drawRows(graphics, model, layout, font, theme)
+  if layout.naming then drawNaming(graphics, model, layout, font, theme)
+  else drawRows(graphics, model, layout, font, theme) end
   local detailsOk, detailsCode, detailsMessage = drawDetails(graphics, model,
     layout, font, theme)
   if detailsOk ~= true then

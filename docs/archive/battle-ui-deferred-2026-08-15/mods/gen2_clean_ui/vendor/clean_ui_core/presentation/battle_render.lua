@@ -8,6 +8,15 @@ local STATUS_LABELS = {
   poison="PSN", toxic="PSN", burn="BRN", freeze="FRZ",
   paralyze="PAR", sleep="SLP", confusion="CNF", confused="CNF",
 }
+local PHASE_LABELS = {
+  intro="BATTLE START", ["trainer-slide"]="OPPONENT APPROACHES",
+  ["locked-in"]="READY", resolving="EXECUTING",
+  ["shift-intro"]="SWITCHING POKEMON", ["ask-shift"]="SWITCH POKEMON?",
+  ["ask-next-mon"]="SEND OUT NEXT POKEMON?",
+  ["learn-intro"]="LEARNING A MOVE", ["ask-forget"]="REPLACE A MOVE?",
+  ["stop-learning"]="KEEP CURRENT MOVES?", ["choose-forget"]="CHOOSE A MOVE",
+  ["stats-box"]="LEVEL UP", evolving="EVOLUTION", submenu="BATTLE",
+}
 
 local function printAt(G, font, color, value, x, y)
   G.setFont(font)
@@ -22,6 +31,31 @@ local function textFit(font, value, width)
     text = text:sub(1, #text - 1)
   end
   return text .. "..."
+end
+
+local function wrapText(font, value, width, maxLines)
+  local text = tostring(value or ""):gsub("%s+", " "):gsub("^%s+", "")
+    :gsub("%s+$", "")
+  width = math.max(1, tonumber(width) or 1)
+  maxLines = math.max(1, tonumber(maxLines) or 1)
+  if text == "" then return {} end
+  local lines, current = {}, ""
+  for word in text:gmatch("%S+") do
+    local candidate = current == "" and word or current .. " " .. word
+    if current ~= "" and font:getWidth(candidate) > width then
+      lines[#lines + 1] = textFit(font, current, width)
+      current = word
+    else
+      current = candidate
+    end
+  end
+  if current ~= "" then lines[#lines + 1] = textFit(font, current, width) end
+  if #lines > maxLines then
+    local remainder = table.concat(lines, " ", maxLines, #lines)
+    lines[maxLines] = textFit(font, lines[maxLines] .. " " .. remainder, width)
+    for index = #lines, maxLines + 1, -1 do lines[index] = nil end
+  end
+  return lines
 end
 
 local function bar(G, rect, fraction, theme, fillColor)
@@ -60,24 +94,142 @@ end
 
 local function animationPalette(frameData, obj, model)
   local name = obj.palette
+  local palette
   if name == "PAL_BATTLE_OB_PLAYER" then
-    return model.player and model.player.sprite
+    palette = model.player and model.player.sprite
       and model.player.sprite.palette or nil
   elseif name == "PAL_BATTLE_OB_ENEMY" then
-    return model.enemy and model.enemy.sprite
+    palette = model.enemy and model.enemy.sprite
       and model.enemy.sprite.palette or nil
+  else
+    palette = frameData.palettes and frameData.palettes[name]
   end
-  return frameData.palettes and frameData.palettes[name]
+  return palette
+end
+
+local function battleFrame(model)
+  return model.sceneFrame
+    or (model.animation and (model.animation.sceneFrame
+      or model.animation.frameData))
+end
+
+local function remapPalette(palette, byte)
+  if type(palette) ~= "table" or not byte or byte == 228 then
+    return palette
+  end
+  local shades, output = {}, {}
+  for index = 0, 3 do
+    shades[index + 1] = math.floor(byte / (4 ^ index)) % 4
+  end
+  for index = 1, 4 do
+    output[index] = palette[shades[index] + 1] or palette[4]
+  end
+  return output
+end
+
+local function spriteForFrame(sprite, frameData, side)
+  if type(sprite) ~= "table" then
+    return sprite
+  end
+  local palette = sprite.trueColor and nil or sprite.palette
+  if sprite.trueColor == true then
+    return sprite
+  end
+  if type(frameData) == "table" and type(frameData.background) == "table"
+      and frameData.background.lcdc == "BGP" then
+    palette = remapPalette(palette, tonumber(frameData.background.bgp))
+  end
+  local pic = type(frameData) == "table" and type(frameData.pics) == "table"
+    and frameData.pics[side] or nil
+  if type(pic) == "table" and pic.shade ~= nil then
+    palette = remapPalette(palette, tonumber(pic.shade))
+  end
+  if palette == sprite.palette then return sprite end
+  local output = {}
+  for key, value in pairs(sprite) do output[key] = value end
+  output.palette = palette
+  return output
+end
+
+local function signedByte(value)
+  value = tonumber(value) or 0
+  return value >= 128 and value - 256 or value
+end
+
+local function scanlineOffset(background, row)
+  if type(background) ~= "table" then return 0, 0 end
+  local dx = -signedByte(background.scx)
+  local dy = -signedByte(background.scy)
+  local startRow = math.max(0, math.floor(tonumber(background.lyStart) or 0))
+  local endRow = math.min(144, math.floor(tonumber(background.lyEnd) or 0))
+  local rows = background.lyBackup
+  if row >= startRow and row < endRow and type(rows) == "table" then
+    local override = signedByte(rows[row + 1])
+    if background.lcdc == "SCX" then dx = -override
+    elseif background.lcdc == "SCY" then dy = -override end
+  end
+  return dx, dy
+end
+
+local function averageScanlineOffset(background, top, height)
+  local dx, dy, count = 0, 0, 0
+  for row = math.max(0, math.floor(top)),
+      math.min(144, math.ceil(top + height)) - 1 do
+    local rowX, rowY = scanlineOffset(background, row)
+    dx, dy, count = dx + rowX, dy + rowY, count + 1
+  end
+  if count == 0 then return 0, 0 end
+  return dx / count, dy / count
+end
+
+local function paletteVeil(byte)
+  byte = tonumber(byte)
+  if not byte then return 0 end
+  local total = 0
+  for index = 0, 3 do
+    total = total + math.floor(byte / (4 ^ index)) % 4
+  end
+  return (total - 6) / 6
+end
+
+local function drawBackgroundEffect(G, layout, frameData)
+  local background = type(frameData) == "table" and frameData.background
+  if type(background) ~= "table" or background.lcdc ~= "BGP" then
+    return
+  end
+  local startRow = math.max(0, math.floor(tonumber(background.lyStart) or 0))
+  local endRow = math.min(144, math.floor(tonumber(background.lyEnd) or 0))
+  local rows = background.lyBackup
+  if endRow <= startRow or type(rows) ~= "table" then return end
+  local rowHeight = layout.arena.h / 144
+  for row = startRow, endRow - 1 do
+    local veil = paletteVeil(rows[row + 1])
+    if veil ~= 0 then
+      local shade = veil > 0 and 0 or 1
+      G.setColor(shade, shade, shade, math.min(1, math.abs(veil)))
+      G.rectangle("fill", layout.field.x,
+        layout.field.y + row * layout.field.h / 144,
+        layout.field.w, math.max(1, rowHeight + 0.5))
+    end
+  end
+  G.setColor(1, 1, 1, 1)
+end
+
+local function overlaps(first, second)
+  return first and second
+    and first.x < second.x + second.w and second.x < first.x + first.w
+    and first.y < second.y + second.h and second.y < first.y + first.h
 end
 
 local function drawAnimationObjects(G, layout, model)
-  local animation = model.animation
-  local frameData = animation and animation.frameData
+  local frameData = battleFrame(model)
   if type(frameData) ~= "table" or type(frameData.objects) ~= "table" then
     return true
   end
   local field = layout.field
-  local sx, sy = field.w / 160, field.h / 144
+  local logicalWidth = math.max(1, tonumber(frameData.logicalWidth) or 160)
+  local logicalHeight = math.max(1, tonumber(frameData.logicalHeight) or 144)
+  local sx, sy = field.w / logicalWidth, field.h / logicalHeight
   for _, obj in ipairs(frameData.objects) do
     local tile = tonumber(obj.tile)
     -- Keep both returns from animationSheet.  Using `tile and
@@ -98,16 +250,27 @@ local function drawAnimationObjects(G, layout, model)
       }
       local x = field.x + ((tonumber(obj.x) or 0) - 8) * sx
       local y = field.y + ((tonumber(obj.y) or 0) - 16) * sy
+      local shiftX, shiftY = scanlineOffset(frameData and frameData.background,
+        math.floor(tonumber(obj.y) or 0) - 16)
+      x, y = x + shiftX * sx, y + shiftY * sy
       local size = math.max(1, math.min(sx, sy) * 8)
-      local ok, code, message = MenuRender.drawSprite(G, descriptor, {
-        x=x, y=y, w=size, h=size,
-      })
-      if ok ~= true then
-        -- Animation objects are auxiliary to the battle presentation.  A
-        -- missing optional effect sheet must not tear down the whole Clean UI
-        -- candidate and expose the native battle renderer for one frame;
-        -- keep the HUD and battlers owned by this renderer and omit only the
-        -- unavailable effect tile.
+      local objectRect = { x=x, y=y, w=size, h=size }
+      -- OAM is source-authored in the native 160x144 stage. Keep effects in
+      -- the protected battlefield and never let an optional tile overwrite a
+      -- status rail. Missing/partially offscreen tiles are presentation-only
+      -- data; omitting them is safer than tearing down the whole battle frame.
+      local inField = objectRect.x + objectRect.w > field.x
+        and objectRect.x < field.x + field.w
+        and objectRect.y + objectRect.h > field.y
+        and objectRect.y < field.y + field.h
+      if inField and not overlaps(objectRect, layout.enemyCard)
+          and not overlaps(objectRect, layout.playerCard) then
+        local ok = MenuRender.drawSprite(G, descriptor, objectRect)
+        if ok ~= true then
+          -- Animation objects are auxiliary to the battle presentation.  A
+          -- missing optional effect sheet must not expose the native battle
+          -- renderer for one frame; omit only the unavailable effect tile.
+        end
       end
     end
   end
@@ -245,6 +408,9 @@ end
 function BattleRender.draw(graphics, model, layout, font, theme)
   local G = graphics
   local scale = layout.scale or 1
+  -- Battle presentation is always detached.  The host's canvas is not a
+  -- presentation input; source-owned timing arrives through the V3 scene
+  -- frame and the clean renderer reconstructs the field below.
   if model.opaque then
     Color.set(G, theme.colors.raised)
     G.rectangle("fill", 0, 0, layout.viewport.w, layout.viewport.h)
@@ -263,10 +429,7 @@ function BattleRender.draw(graphics, model, layout, font, theme)
 
   local function drawCard(rect, mon, side)
     if mon and mon.hudVisible == false then return true end
-    local frameData = model.animation and model.animation.frameData
-    if frameData and frameData.clearsHud and frameData.hudSide == side then
-      return true
-    end
+    local frameData = battleFrame(model)
     local ok, code, message = card(G, rect, mon or {}, font, theme, scale, side)
     if ok ~= true then return nil, code, message end
     return true
@@ -275,81 +438,134 @@ function BattleRender.draw(graphics, model, layout, font, theme)
   if ok ~= true then return nil, code, message end
   ok, code, message = drawCard(layout.playerCard, model.player, "player")
   if ok ~= true then return nil, code, message end
-  local frameData = model.animation and model.animation.frameData
-  local function animatedSpriteRect(rect, side)
+  local frameData = battleFrame(model)
+  local function animatedSpriteRect(rect, side, sprite)
     local pic = frameData and frameData.pics and frameData.pics[side]
-    if not pic then return rect end
-    if pic.hidden then return nil end
+    -- A transition snapshot can legitimately contain only the native phase
+    -- metadata while its optional OAM has not arrived yet.  Never let that
+    -- incomplete snapshot hide the clean base sprite and leave an empty
+    -- battlefield on screen.
     local output = {
-      x=rect.x + (tonumber(pic.slide) or 0) * layout.field.w / 160,
+      x=rect.x + (pic and (tonumber(pic.slide) or 0) or 0)
+        * layout.field.w / 160,
       y=rect.y, w=rect.w, h=rect.h,
     }
     local sizes = side == "player"
       and { [0]=1, [1]=4/6, [2]=2/6 }
       or { [3]=1, [4]=5/7, [5]=3/7 }
-    local factor = sizes[tonumber(pic.size)]
-    if factor then
-      output.w, output.h = rect.w * factor, rect.h * factor
+    local factor = pic and sizes[tonumber(pic.size)] or nil
+    local baseScale = (pic and tonumber(pic.scale))
+      or (type(sprite) == "table" and tonumber(sprite.scale)) or 1
+    if pic then
+      -- A complete source runner owns hidden/resize/slide state even when its
+      -- current OAM list is empty (faint, return-mon, and BG-only effects all
+      -- use that path).  The presenter rejects structurally incomplete runners
+      -- before suppression, so honoring this flag cannot create a blank frame
+      -- from a partial snapshot.
+      if pic.hidden and frameData.sourceAvailable == true then return nil end
+
+      if factor then
+        output.w, output.h = rect.w * factor * baseScale,
+          rect.h * factor * baseScale
+        output.x = output.x + (rect.w - output.w) * 0.5
+        output.y = rect.y + rect.h - output.h
+      elseif baseScale ~= 1 then
+        output.w, output.h = rect.w * baseScale, rect.h * baseScale
+        output.x = output.x + (rect.w - output.w) * 0.5
+        output.y = output.y + rect.h - output.h
+      end
+    end
+    if not pic and baseScale ~= 1 then
+      output.w, output.h = rect.w * baseScale, rect.h * baseScale
       output.x = output.x + (rect.w - output.w) * 0.5
       output.y = rect.y + rect.h - output.h
     end
+    local animation = model.animation
+    if animation and animation.kind == "trainer-slide" and side == "enemy" then
+      -- BattleState slides the trainer one native tile every two frames.
+      -- Keep the source's integer stepping instead of interpolating the
+      -- presentation, which otherwise puts the trainer between cart frames.
+      output.x = output.x + math.floor((tonumber(animation.frame) or 0) / 2)
+        * 8 * layout.field.w / 160
+    elseif animation and animation.kind == "faint"
+        and side == animation.side then
+      local boxPixels = math.max(1, tonumber(animation.boxPixels)
+        or (side == "player" and 48 or 56))
+      local sink = tonumber(animation.sink)
+      local remaining = sink and math.max(0, math.min(1,
+        1 - sink / boxPixels)) or math.max(0, math.min(1,
+        1 - (tonumber(animation.progress) or 0)))
+      output.y = output.y + output.h * (1 - remaining)
+      output.h = output.h * remaining
+      if output.h <= 0.5 then return nil end
+    end
+    local background = frameData and frameData.background
+    local nativeTop = side == "enemy" and 0 or 48
+    local nativeHeight = side == "enemy" and 56 or 48
+    local shiftX, shiftY = averageScanlineOffset(background,
+      nativeTop, nativeHeight)
+    output.x = output.x + shiftX * layout.field.w / 160
+    output.y = output.y + shiftY * layout.field.h / 144
+    local intro = animation and animation.intro
+    if animation and animation.kind == "intro" and type(intro) == "table" then
+      if side == "enemy" then
+        local scroll = tonumber(intro.topScroll) or 0
+        local delta = scroll > 128 and 256 - scroll or -scroll
+        output.x = output.x + delta * layout.field.w / 160
+      elseif side == "player" then
+        output.x = output.x + (tonumber(intro.backpicOffset) or 0)
+          * layout.field.w / 160
+      end
+    end
     return output
   end
-
-  local function trainerRect(rect, side)
-    local animation = model.animation
-    if not animation then return rect end
-    if animation.kind == "intro" then
-      local progress = animation.progress or 0
-      return {
-        x=rect.x + (side == "enemy" and 1 or -1)
-          * (1 - progress) * layout.field.w * 0.35,
-        y=rect.y, w=rect.w, h=rect.h,
-      }
-    elseif animation.kind == "trainer-slide" and side == "enemy" then
-      local progress = animation.progress or 0
-      return {
-        x=rect.x + progress * layout.field.w * 0.35,
-        y=rect.y, w=rect.w, h=rect.h,
-      }
-    end
-    return rect
+  local introKind = model.animation and model.animation.kind
+  local enemySprite = model.enemy and model.enemy.sprite
+  if (introKind == "intro" or introKind == "trainer-slide")
+      and model.enemyTrainer then
+    enemySprite = model.enemyTrainer
   end
-
-  local function drawBattler(side, mon, trainer, rect)
-    local descriptor = trainer or (mon and mon.sprite)
-    if not descriptor then return true end
-    local spriteRect = trainerRect(rect, side)
-    spriteRect = animatedSpriteRect(spriteRect, side)
-    if not spriteRect then return true end
-    local ok, code, message = MenuRender.drawSprite(G, descriptor, spriteRect)
-    if ok ~= true then return nil, code, message end
-    return true
-  end
-
-  if model.enemy and (model.enemyTrainer or model.enemy.sprite) then
+  if enemySprite
+      and not (model.enemy and model.enemy.hidden) then
     local spriteRect = layout.enemySprite
-    local ok, code, message = drawBattler("enemy", model.enemy,
-      model.enemyTrainer, spriteRect)
-    if ok ~= true then return nil, code, message end
+    spriteRect = animatedSpriteRect(spriteRect, "enemy", enemySprite)
+    if spriteRect then
+      local ok, code, message = MenuRender.drawSprite(G,
+        spriteForFrame(enemySprite, frameData, "enemy"),
+        spriteRect)
+      if ok ~= true then return nil, code, message end
+    end
   end
-  if model.player and (model.playerTrainer or model.player.sprite) then
+  local playerSprite = model.player and model.player.sprite
+  if introKind == "intro" and model.playerTrainer then
+    playerSprite = model.playerTrainer
+  end
+  if playerSprite
+      and not (model.player and model.player.hidden) then
     local spriteRect = layout.playerSprite
-    local ok, code, message = drawBattler("player", model.player,
-      model.playerTrainer, spriteRect)
-    if ok ~= true then return nil, code, message end
+    spriteRect = animatedSpriteRect(spriteRect, "player", playerSprite)
+    if spriteRect then
+      local ok, code, message = MenuRender.drawSprite(G,
+        spriteForFrame(playerSprite, frameData, "player"),
+        spriteRect)
+      if ok ~= true then return nil, code, message end
+    end
   end
   local ok, code, message = drawAnimationObjects(G, layout, model)
   if ok ~= true then return nil, code, message end
+  drawBackgroundEffect(G, layout, frameData)
 
   Color.set(G, theme.colors.raised)
   G.rectangle("fill", layout.panel.x, layout.panel.y,
     layout.panel.w, layout.panel.h)
+  local dockPad = layout.dockPad or layout.gap
   local title = model.phase == "moves" and "CHOOSE A MOVE"
     or model.phase == "choose-forget" and "CHOOSE A MOVE TO FORGET"
-    or model.message and "BATTLE" or "CHOOSE AN ACTION"
+    or model.message and "BATTLE"
+    or model.animation and "BATTLE"
+    or "CHOOSE AN ACTION"
   printAt(G, font, theme.colors.muted, textFit(font, title,
-    layout.panel.w - layout.gap * 2), layout.panel.x + layout.gap,
+    layout.panel.w - dockPad * 2), layout.panel.x + dockPad,
     layout.panel.y + math.floor((layout.titleHeight - font:getHeight()) / 2))
   for _, item in ipairs(layout.menu or {}) do
     local selected = item.index == (model.selectedAction or model.selectedMove)
@@ -368,7 +584,7 @@ function BattleRender.draw(graphics, model, layout, font, theme)
       local pp = ("%d/%d"):format(item.action.pp or 0,
         item.action.maxPp or 0)
       printAt(G, font, theme.colors.muted, pp,
-        item.rect.x + item.rect.w - layout.gap - font:getWidth(pp),
+        item.rect.x + item.rect.w - dockPad - font:getWidth(pp),
         item.rect.y + math.floor((item.rect.h - font:getHeight()) / 2))
     end
   end
@@ -378,20 +594,22 @@ function BattleRender.draw(graphics, model, layout, font, theme)
     G.rectangle("fill", region.x, region.y, region.w, region.h)
     local selected = model.actions and model.actions[model.selectedMove or 1]
     if selected then
-      local x, y = region.x + layout.gap, region.y + layout.gap
+      local x, y = region.x + dockPad, region.y + dockPad
       local value = actionLabel(selected)
       local pp = ("%d/%d PP"):format(selected.pp or 0, selected.maxPp or 0)
       printAt(G, font, theme.colors.ink,
-        textFit(font, value, math.max(1, region.w - layout.gap * 2
-          - font:getWidth(pp) - layout.gap)),
+        textFit(font, value, math.max(1, region.w - dockPad * 2
+          - font:getWidth(pp) - dockPad)),
         x, y)
       printAt(G, font, theme.colors.muted, pp,
-        region.x + region.w - layout.gap - font:getWidth(pp), y)
+        region.x + region.w - dockPad - font:getWidth(pp), y)
       y = y + font:getHeight() + math.max(2, math.floor(3 * scale))
       if selected.type then
+        local badgeHeight = math.max(font:getHeight() + math.floor(4 * scale),
+          math.floor(22 * scale))
         local badgeBottom = MenuRender.drawTypeBadges(G, { selected.type }, {
           x=x, y=y, w=math.max(1, region.w * 0.45),
-          h=math.max(1, region.h - (y - region.y)),
+          h=badgeHeight,
         }, font, theme, scale)
         y = badgeBottom + math.max(2, math.floor(3 * scale))
       end
@@ -403,15 +621,22 @@ function BattleRender.draw(graphics, model, layout, font, theme)
       end
       if #meta > 0 and y + font:getHeight() <= region.y + region.h then
         printAt(G, font, theme.colors.muted,
-          textFit(font, table.concat(meta, "  "), region.w - layout.gap * 2),
+          textFit(font, table.concat(meta, "  "), region.w - dockPad * 2),
           x, y)
         y = y + font:getHeight() + math.max(2, math.floor(3 * scale))
       end
       if selected.description and selected.description ~= ""
           and y + font:getHeight() <= region.y + region.h then
-        printAt(G, font, theme.colors.muted,
-          textFit(font, selected.description, region.w - layout.gap * 2),
-          x, y)
+        local lineGap = math.max(2, math.floor(3 * scale))
+        local remaining = math.max(1, region.y + region.h - y)
+        local lineHeight = font:getHeight() + lineGap
+        local maxLines = math.max(1, math.floor((remaining + lineGap)
+          / lineHeight))
+        for lineIndex, line in ipairs(wrapText(font, selected.description,
+            region.w - dockPad * 2, maxLines)) do
+          printAt(G, font, theme.colors.muted, line, x,
+            y + (lineIndex - 1) * lineHeight)
+        end
       end
     end
   end
@@ -426,23 +651,29 @@ function BattleRender.draw(graphics, model, layout, font, theme)
       stats.attack and ("ATK " .. tostring(stats.attack)) or nil,
       stats.defense and ("DEF " .. tostring(stats.defense)) or nil,
       stats.speed and ("SPD " .. tostring(stats.speed)) or nil,
-      stats.specialAttack and ("SPCL ATK " .. tostring(stats.specialAttack))
-        or nil,
-      stats.specialDefense and ("SPCL DEF " .. tostring(stats.specialDefense))
-        or nil,
+      stats.specialAttack and ("SPC " .. tostring(stats.specialAttack)) or nil,
     }
-    local y = region.y + layout.gap
+    local y = region.y + dockPad
     for _, row in ipairs(rows) do
       if row and y + font:getHeight() <= region.y + region.h then
         printAt(G, font, theme.colors.ink,
-          textFit(font, row, region.w - layout.gap * 2),
-          region.x + layout.gap, y)
+          textFit(font, row, region.w - dockPad * 2),
+          region.x + dockPad, y)
         y = y + font:getHeight() + math.max(2, math.floor(3 * scale))
       end
     end
   end
-  if model.message and #layout.menu == 0 and not model.statsBox then
-    printAt(G, font, theme.colors.ink, textFit(font, model.message,
+  local stageText = model.message
+  -- An animation descriptor is not a substitute for its source frame.  If a
+  -- released host cannot provide that frame, preparation fails open or keeps
+  -- the prior battle candidate; never paint labels such as ENEMY DAMAGE or
+  -- PLAYER DAMAGE over an otherwise empty arena.
+  if (not stageText or stageText == "") and not model.animation
+      and model.phase then
+    stageText = PHASE_LABELS[model.phase]
+  end
+  if stageText and #layout.menu == 0 and not model.statsBox then
+    printAt(G, font, theme.colors.ink, textFit(font, stageText,
       layout.messageRegion.w), layout.messageRegion.x,
       layout.messageRegion.y + math.floor((layout.messageRegion.h
         - font:getHeight()) / 2))

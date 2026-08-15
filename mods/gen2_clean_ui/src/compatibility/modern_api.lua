@@ -16,7 +16,6 @@ return function(ctx)
     M={ width=480, height=320 },
     L={ width=640, height=400 },
     XL={ width=960, height=640 },
-    BATTLE_WIDE={ width=640, height=360 },
   }
 
   local function copy(value)

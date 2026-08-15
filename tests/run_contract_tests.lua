@@ -35,9 +35,9 @@ for index, record in ipairs(catalog.records) do
   check(ok, "empty state validator is protected " .. record.id)
   check(not valid, "empty state fails open " .. record.id)
 end
-check(counts.supported == 41, "41 audited target contracts")
-check(counts.native == 10, "10 native contracts")
-check(counts.deferred == 0, "no deferred official contracts")
+check(counts.supported == 37, "37 audited target contracts")
+check(counts.native == 12, "12 native contracts")
+check(counts.deferred == 2, "battle contracts remain explicitly deferred")
 
 local shared = Shared.build()
 check(#shared.records == 3, "three shared seams")
@@ -91,10 +91,12 @@ for _, fixture in ipairs(gallery.fixtures) do
 end
 
 local classes = {}
+local HOST_OPAQUE = { Gen2MartMenu = false }
 local function classFor(record)
   local class = classes[record.id]
   if not class then
-    class = { isOpaque = record.opaque }
+    local hostOpaque = HOST_OPAQUE[record.id]
+    class = { isOpaque = hostOpaque == nil and record.opaque or hostOpaque }
     class.__index = class
     classes[record.id] = class
   end
@@ -125,6 +127,16 @@ check(inspected.valid, "valid Main contract")
 check(not inspected.suppress, "pending presenter remains native")
 check(inspected.reason == "presenter_unavailable", "pending presenter reason")
 
+local martClass = classFor(catalog.byId.Gen2MartMenu)
+local validMart = setmetatable({
+  screenId = "Gen2MartMenu",
+  save = {}, items = {}, marts = {}, martType = "STANDARD", martId = 0,
+  entries = {}, index = 1, scroll = 0, phase = "buy",
+}, martClass)
+local martInspected = provider:inspect(validMart, {})
+check(martInspected.valid,
+  "official transparent Mart identity is accepted")
+
 -- Bryan's v0.1.86 host has the exact screen ids and native screen registry,
 -- but predates the optional mod.ui.isBuiltinScreen predicate. The default
 -- provider must still validate official records on that host.
@@ -147,7 +159,9 @@ local legacyIdentityContext = {
 }
 local legacyIdentityCount = 0
 for _, record in ipairs(catalog.records) do
-  local state = { screenId = record.id, isOpaque = record.opaque }
+  local hostOpaque = HOST_OPAQUE[record.id]
+  local state = { screenId = record.id,
+    isOpaque = hostOpaque == nil and record.opaque or hostOpaque }
   local ok, code, detail = Identity.validate(state, record,
     legacyIdentityContext, true)
   check(ok == true,
@@ -389,20 +403,20 @@ check(introBundle.model.kind == "animation"
 
 local battleClass = classFor(catalog.byId.Gen2BattleState)
 local battle = setmetatable({ screenId = "Gen2BattleState" }, battleClass)
-check(provider:inspect(battle, {}).reason == "shape_type",
-  "incomplete battle remains native")
+check(provider:inspect(battle, {}).reason == "deferred",
+  "incomplete battle remains explicitly deferred")
 local validBattle = setmetatable({
   screenId = "Gen2BattleState", phase = "menu", battle = {},
 }, battleClass)
-check(provider:inspect(validBattle, {}).reason == "presenter_unavailable",
-  "valid battle awaits its production presenter")
+check(provider:inspect(validBattle, {}).reason == "deferred",
+  "battle remains explicitly deferred")
 local transitionClass = classFor(catalog.byId.Gen2BattleTransition)
 local validTransition = setmetatable({
   screenId = "Gen2BattleTransition", phase = "flash", style = "spin",
   frame = 4, step = 0, trainer = false, black = {},
 }, transitionClass)
-check(provider:inspect(validTransition, {}).reason == "presenter_unavailable",
-  "valid battle transition awaits its production presenter")
+check(provider:inspect(validTransition, {}).reason == "deferred",
+  "battle transition remains explicitly deferred")
 check(provider:inspect({ screenId = "Gen2FutureScreen" }, {}).reason == "unknown_screen",
   "future id remains native")
 
@@ -439,7 +453,7 @@ check(provider:prepare(malformed, {}).suppress == false,
   "valid-to-invalid drift restores native immediately")
 
 local proved, stackReason = provider:assessStack({ validMain, battle }, {})
-check(proved == nil and stackReason == "shape_type",
-  "incomplete battle keeps the complete visible stack native")
+check(proved == nil and stackReason == "deferred",
+  "deferred battle keeps the complete visible stack native")
 
 print(("Gen2 contract tests: %d checks passed"):format(checks))

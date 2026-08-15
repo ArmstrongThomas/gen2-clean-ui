@@ -17,6 +17,13 @@ local function check(condition, message)
   assert(condition, ("check %d failed: %s"):format(checks, message))
 end
 
+local function detailValue(details, label)
+  for _, detail in ipairs(details or {}) do
+    if detail.label == label then return detail.value end
+  end
+  return nil
+end
+
 local function deepEqual(left, right, active)
   if type(left) ~= type(right) then return false end
   if type(left) ~= "table" then return left == right end
@@ -98,6 +105,7 @@ local function martState(phase, martType)
   local data, save = gameData(), saveData()
   local state={
     screenId="Gen2MartMenu", game={ data=data }, save=save,
+    isOpaque=false,
     items=data.items, marts={}, martType=martType or "STANDARD", martId=0,
     entries={{ id="POTION", name="POTION", price=300 },
       { id="ANTIDOTE", name="ANTIDOTE", price=100 }},
@@ -241,6 +249,8 @@ check(callbackCalls == 0,
 
 -- Representative source mutation cannot alter the detached snapshot.
 local detached = assert(Models.extract("Gen2MartMenu", VALID.Gen2MartMenu)).model
+check(detached.entries[1].ownedCount == 5,
+  "Mart snapshots the owned inventory count for buy entries")
 VALID.Gen2MartMenu.entries[1].name = "MUTATED"
 VALID.Gen2MartMenu.save.player.money = 1
 check(detached.entries[1].name == "POTION" and detached.money == 45000,
@@ -261,6 +271,20 @@ for index, state in ipairs(martCases) do
   local presentation = assert(Presenters.convert("Gen2MartMenu", bundle.model))
   check(type(presentation.rows) == "table" and presentation.opaque == true,
     "Mart phase " .. index .. " has complete production geometry")
+  if state.phase == "buy" then
+    check(presentation.rows[1].right == "OWN 5  Y300",
+      "Mart BUY row shows owned count and price")
+    check(detailValue(presentation.details, "OWNED") == "x5",
+      "Mart BUY details show owned count")
+  elseif state.phase == "buyQuantity" then
+    check(detailValue(presentation.details, "OWNED") == "x5",
+      "Mart BUY quantity details show owned count")
+  elseif state.phase == "sell" or state.phase == "sellQuantity" then
+    check(detailValue(presentation.details, "OWNED") == "x5",
+      "Mart SELL details show owned count")
+    check(detailValue(presentation.details, "SELL VALUE") == "Y150",
+      "Mart SELL details show half-price value")
+  end
 end
 local sellBundle = assert(Models.extract("Gen2MartMenu", martState("sell")))
 check(sellBundle.model.nestedPack.screenId == "Gen2PackMenu",
@@ -379,8 +403,8 @@ end
 -- are converted by this same production converter table.
 local catalog = Catalog.build()
 local fixtures = GalleryModels.galleryFixtures()
-check(GalleryModels.count() == 21 and #fixtures == 21,
-  "services/commerce Gallery exports all 21 declared variants")
+check(GalleryModels.count() == 23 and #fixtures == 23,
+  "services/commerce Gallery exports all 23 declared variants")
 check(Data.isFunctionFree(fixtures),
   "complete services/commerce Gallery source collection is function-free")
 local seen = {}

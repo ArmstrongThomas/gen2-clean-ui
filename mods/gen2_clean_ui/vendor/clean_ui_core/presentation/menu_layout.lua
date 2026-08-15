@@ -97,6 +97,66 @@ local function shellGeometry(body, font, scale)
   }
 end
 
+local function namingGeometry(region, model, font, scale, pad)
+  local naming = model.naming or {}
+  local keyboard = naming.keyboard or {}
+  local rows = keyboard.rows or {}
+  local columns = math.max(1, tonumber(keyboard.columns) or 9)
+  local gap = math.max(3, math.floor(4 * scale))
+  local innerPad = math.max(6, math.floor(8 * scale))
+  local slotHeight = math.max(font:getHeight() + innerPad,
+    math.floor(28 * scale))
+  local entryH = math.max(font:getHeight() + slotHeight
+      + math.floor(8 * scale),
+    math.floor(54 * scale))
+  local entry = Rect.new(region.x + innerPad, region.y + innerPad,
+    math.max(1, region.w - innerPad * 2), entryH)
+  local gridY = entry.y + entry.h + pad
+  local grid = Rect.new(region.x + innerPad, gridY,
+    math.max(1, region.w - innerPad * 2),
+    math.max(1, region.y + region.h - gridY - innerPad))
+  local totalRows = #rows + 1 -- the source-owned CASE/DEL/END row
+  local rowGap = math.max(3, math.floor(5 * scale))
+  local rowHeight = math.max(font:getHeight() + math.floor(8 * scale),
+    (grid.h - math.max(0, totalRows - 1) * rowGap) / totalRows)
+  local cellWidth = math.max(1,
+    (grid.w - math.max(0, columns - 1) * gap) / columns)
+  local cells = {}
+  for rowIndex, row in ipairs(rows) do
+    local count = #row
+    local fullRow = count == 1
+    for colIndex, value in ipairs(row) do
+      local width = fullRow and grid.w or cellWidth
+      local x = fullRow and grid.x
+        or grid.x + (colIndex - 1) * (cellWidth + gap)
+      local y = grid.y + (rowIndex - 1) * (rowHeight + rowGap)
+      cells[#cells + 1] = {
+        kind = "key", row = rowIndex - 1, col = colIndex - 1,
+        value = value, rect = Rect.new(x, y, width, rowHeight),
+      }
+    end
+  end
+  local bottomY = grid.y + (#rows) * (rowHeight + rowGap)
+  local bottom = {}
+  for index, target in ipairs(keyboard.bottom or {}) do
+    local width = (grid.w - 2 * gap) / 3
+    bottom[#bottom + 1] = {
+      kind = "bottom", index = index, value = target.label,
+      rect = Rect.new(grid.x + (index - 1) * (width + gap), bottomY,
+        width, rowHeight),
+    }
+  end
+  for _, item in ipairs(bottom) do cells[#cells + 1] = item end
+  return {
+    region = region, entry = entry, grid = grid, cells = cells,
+    rowHeight = rowHeight, gap = gap, columns = columns,
+    maxLength = tonumber(naming.entry and naming.entry.maxLength) or 10,
+    text = tostring(naming.entry and naming.entry.text or ""),
+    sourceLength = tonumber(naming.entry and naming.entry.sourceLength),
+    cursor = naming.cursor or {},
+  }
+end
+
 function MenuLayout.contentWidth(base, model, font, density)
   if type(base) ~= "table" or base.widthMode ~= "content"
       or type(model) ~= "table" then return nil end
@@ -171,13 +231,17 @@ function MenuLayout.measure(base, model, font, density)
     math.max(0, footer.y - header.y - header.h))
   local shell = (model.appShell or model.kind == "device")
     and shellGeometry(body, font, scale) or nil
+  local namingScreen = type(model.naming) == "table"
+    and type(model.naming.keyboard) == "table"
+    and type(model.naming.keyboard.rows) == "table"
   local richDetails = type(model.details) == "table"
     and (model.details.fields or model.details.custom_fields
       or model.details.footer_lists or model.details.sprite
       or model.details.bars or model.details.typeBadges)
   local hasDetails = richDetails or (type(model.details) == "table"
     and #model.details > 0)
-  local detailWidth = (model.appShell or model.kind == "device") and 0 or (hasDetails
+  local detailWidth = (model.appShell or model.kind == "device"
+    or namingScreen) and 0 or (hasDetails
     and math.min(math.floor(body.w * 0.42), math.floor(250 * scale)) or 0
   )
   local gap = detailWidth > 0 and pad or 0
@@ -225,7 +289,7 @@ function MenuLayout.measure(base, model, font, density)
     measured[#measured + 1] = {
       index = row.index, row = source, rect = row.rect,
     }
-    if source and source.disabled ~= true
+    if source and source.disabled ~= true and not namingScreen
         and (not model.mapView or model.flyView == true) then
       hitRegions[#hitRegions + 1] = {
         id = tostring(source.id or row.index), index = row.index,
@@ -282,6 +346,8 @@ function MenuLayout.measure(base, model, font, density)
   base.inner, base.header, base.body, base.footer = inner, header, body, footer
   base.shell = shell
   base.listRegion, base.detailRegion = listRegion, detailRegion
+  base.naming = namingScreen
+    and namingGeometry(listRegion, model, font, scale, pad) or nil
   base.mapView, base.mapRegion, base.mapMarkers = mapView, mapRegion, markers
   if richDetails and detailRegion then
     base.details = Details.measure(detailRegion, model.details, {

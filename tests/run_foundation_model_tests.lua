@@ -289,33 +289,6 @@ check(SourceInput.pointer(pointerProvider, pointerState, nil, pointerLayout,
   and tapped == "a",
   "pointer release activates the selected native row through mod.input")
 
-local battlePointerState = {
-  screenId = "Gen2BattleState", phase = "ask-next-mon", nextMonIndex = 1,
-}
-local battlePointerLayout = { hitRegions = {{
-  id = "no", role = "battle_action", index = 2, sourceIndex = 2,
-  rect = { x=10, y=20, w=100, h=40 },
-}} }
-check(SourceInput.pointer(pointerProvider, battlePointerState, nil,
-  battlePointerLayout,
-  { phase="pressed", source="touch", id="next", x=20, y=30 }, {}) == true
-  and battlePointerState.nextMonIndex == 2,
-  "battle pointer selection updates the next-Pokemon confirmation cursor")
-check(SourceInput.pointer(pointerProvider, battlePointerState, nil,
-  battlePointerLayout,
-  { phase="released", source="touch", id="next", x=20, y=30 }, {}) == true
-  and tapped == "a",
-  "battle pointer release activates the selected next-Pokemon choice")
-
-local forgetPointerState = {
-  screenId = "Gen2BattleState", phase = "choose-forget", forgetIndex = 1,
-}
-check(SourceInput.pointer(pointerProvider, forgetPointerState, nil,
-  battlePointerLayout,
-  { phase="pressed", source="touch", id="forget", x=20, y=30 }, {}) == true
-  and forgetPointerState.forgetIndex == 2,
-  "battle pointer selection updates the move-learning forget cursor")
-
 local liveGame = { stack = { states = { providerMain } } }
 check(provider:visibleStack(liveGame, {})[1] == providerMain,
   "complete exact foundation stack is eligible")

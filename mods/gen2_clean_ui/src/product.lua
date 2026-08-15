@@ -17,8 +17,7 @@ return function(ctx)
   local NamingStorageModels = ctx.load("presenters.naming_storage_models")
   local NamingStoragePresenters = ctx.load(
     "presenters.naming_storage_presenters")
-  local PokegearPresenters = ctx.load("presenters.pokegear")
-  local MapRadioPresenters = ctx.load("presenters.map_radio")
+  local NamingKeyboard = ctx.load("adapters.naming_keyboard")
   local ServicesCommerceModels = ctx.load(
     "presenters.services_commerce_models")
   local ServicesCommercePresenters = ctx.load(
@@ -26,9 +25,6 @@ return function(ctx)
   local MailSpecialtyModels = ctx.load("presenters.mail_specialty_models")
   local MailSpecialtyPresenters = ctx.load(
     "presenters.mail_specialty_presenters")
-  local BattlePresenter = ctx.load("presenters.battle")
-  local BattleTransitionPresenter = ctx.load(
-    "presenters.battle_transition")
   local BootAnimationPresenter = ctx.load("presenters.boot_animations")
   local CreditsPresenter = ctx.load("presenters.credits")
   local EggHatchPresenter = ctx.load("presenters.egg_hatch")
@@ -81,6 +77,24 @@ return function(ctx)
     end, 90000)
   end
 
+  local function installNicknameKeyboardHook()
+    if not (mod.hooks and type(mod.hooks.wrap) == "function") then
+      return false
+    end
+    local ok = pcall(function()
+      mod.hooks:wrap("ui.naming.grid", function(nextFn, grid, context)
+        local original = nextFn(grid, context)
+        if type(context) == "table"
+            and context.box ~= true
+            and context.title == "NICKNAME?" then
+          return NamingKeyboard.nickname(context.lower == true)
+        end
+        return original
+      end, 100)
+    end)
+    return ok
+  end
+
   local function append(target, source)
     for _, value in ipairs(source or {}) do target[#target + 1] = value end
     return target
@@ -120,11 +134,6 @@ return function(ctx)
       function() return PartyModels.register(provider) end)
     mustRegister("Gen2 Naming/Storage models",
       function() return NamingStorageModels.register(provider) end)
-    mustRegister("Gen2 Pokegear/MapRadio", function()
-      local ok, code, detail = PokegearPresenters.register(provider)
-      if not ok then return nil, code, detail end
-      return MapRadioPresenters.register(provider)
-    end)
     mustRegister("Gen2 services/commerce models",
       function() return ServicesCommerceModels.register(provider) end)
     mustRegister("Gen2 mail/specialty models",
@@ -149,10 +158,6 @@ return function(ctx)
       function() return ServicesCommercePresenters.register(provider) end)
     mustRegister("Gen2 mail/specialty presenters",
       function() return MailSpecialtyPresenters.register(provider) end)
-    mustRegister("Gen2 battle presenter",
-      function() return BattlePresenter.register(provider) end)
-    mustRegister("Gen2 battle transition presenter",
-      function() return BattleTransitionPresenter.register(provider) end)
     mustRegister("Gen2 credits presenter",
       function() return CreditsPresenter.register(provider) end)
     mustRegister("Gen2 egg hatch presenter",
@@ -164,13 +169,12 @@ return function(ctx)
     append(productionScreens, FoundationModels.ids())
     append(productionScreens, PartyModels.ids())
     append(productionScreens, {
-      "Gen2BattleState", "Gen2BattleTransition", "Gen2Credits",
+      "Gen2Credits",
       "Gen2EggHatchAnim", "Gen2EvolutionAnim",
       "Gen2PackMenu", "Gen2PokedexMenu",
       "Gen2TrainerCard", "Gen2SaveMenu",
     })
     append(productionScreens, NamingStorageModels.ids())
-    append(productionScreens, { "Gen2Pokegear", "Gen2MapRadio" })
     append(productionScreens, ServicesCommerceModels.ids())
     append(productionScreens, MailSpecialtyModels.ids())
     markImplemented(catalog, productionScreens)
@@ -194,6 +198,11 @@ return function(ctx)
       settings = settings,
       gallery = gallery,
     })
+    -- Gen2's released NamingScreen exposes the same draw-only grid hook used
+    -- by Gen1 Modern. Keep player/rival/box naming native, and only extend
+    -- the caught-Pokemon nickname board with the modern compact keyboard.
+    local nicknameKeyboardHook = installNicknameKeyboardHook()
+    NamingKeyboard.setNicknameHookAvailable(nicknameKeyboardHook == true)
 
     if bridge.status == "ready" then mod.exports.cleanUiHost = bridge.host end
     if bridge.status == "ready" then
@@ -219,6 +228,7 @@ return function(ctx)
       diagnostics = function()
         return provider.diagnostics:snapshot()
       end,
+      nicknameKeyboardHook = nicknameKeyboardHook == true,
       coverage = function()
         return provider:coverage()
       end,

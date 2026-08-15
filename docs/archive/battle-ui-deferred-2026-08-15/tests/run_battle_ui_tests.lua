@@ -5,6 +5,7 @@ root = root:gsub("\\\\", "/")
 local Helper = assert(loadfile(root .. "/tests/test_helper.lua"))()
 local ctx = Helper.new(root)
 local Battle = ctx.load("adapters.battle")
+local Presenter = ctx.load("presenters.battle")
 local Transition = ctx.load("adapters.battle_transition")
 
 local vendorRoot = root .. "/mods/gen2_clean_ui/vendor/clean_ui_core"
@@ -21,6 +22,8 @@ end
 
 local Solver = loadCore("layout.solver")
 local BattleLayout = loadCore("presentation.battle_layout")
+local BattleRender = loadCore("presentation.battle_render")
+local MenuRender = loadCore("presentation.menu_render")
 local LiveStack = ctx.load("provider.live_stack")
 
 local checks = 0
@@ -95,6 +98,8 @@ check(#bundle.model.player.types == 2
   "battle model carries one or two species types for colored badges")
 check(bundle.model.player.expText == "EXP 24/64",
   "battle model exposes the native experience progress fraction")
+check(bundle.model.sceneFrame == nil,
+  "battle model leaves the scene-frame mirror empty when no animation is live")
 
 local trainerState = {}
 for key, value in pairs(stableState) do trainerState[key] = value end
@@ -112,7 +117,10 @@ for key, value in pairs(stableState) do timingState[key] = value end
 timingState.slideFrame = 71
 local timingModel = assert(Battle.extract(timingState))
 check(timingModel.model.animation and timingModel.model.animation.kind == "intro"
-    and timingModel.model.player.hudVisible == false,
+    and timingModel.model.player.hudVisible == false
+    and timingModel.model.animation.intro.topScroll == 2
+    and timingModel.model.animation.intro.middleScroll == 254
+    and timingModel.model.animation.intro.backpicOffset == 2,
   "clean battle owns the intro timing frame")
 
 local trainerIntroState = {}
@@ -140,6 +148,17 @@ check(trainerIntroBundle.model.player.sprite ~= nil
     and trainerIntroBundle.model.enemy.sprite ~= nil,
   "battle intro retains battler data for the send-out hand-off")
 
+local trainerSlideModelState = {}
+for key, value in pairs(trainerIntroState) do
+  trainerSlideModelState[key] = value
+end
+trainerSlideModelState.trainerSlide = 4
+local trainerSlideBundle = assert(Battle.extract(trainerSlideModelState))
+check(trainerSlideBundle.model.animation
+    and trainerSlideBundle.model.animation.kind == "trainer-slide"
+    and trainerSlideBundle.model.animation.frame == 4,
+  "trainer slide preserves the host's two-frame native tile stepping")
+
 local moveState = {}
 for key, value in pairs(stableState) do moveState[key] = value end
 moveState.phase, moveState.moveIndex = "moves", 2
@@ -148,7 +167,10 @@ moveState.battle = {
     hp=34, maxHp=34, moves={{id="TACKLE",name="TACKLE",
       type="NORMAL",pp=35,maxPp=35,
       description="Scratches with<NEXT>sharp claws."},
-      {id="LEER",name="LEER",type="NORMAL",pp=30,maxPp=30}}},
+      {id="LEER",name="LEER",type="NORMAL",pp=30,maxPp=30},
+      {id="RAGE",name="RAGE",type="NORMAL",pp=20,maxPp=20},
+      {id="BITE",name="BITE",type="DARK",pp=25,maxPp=25},
+      {id="EXTRA",name="EXTRA",type="NORMAL",pp=1,maxPp=1}}},
   enemy=stableState.battle.enemy,
 }
 local moveBundle = assert(Battle.extract(moveState))
@@ -162,6 +184,9 @@ check(moveBundle.model.actions[1].pp == 35
   "move selection carries PP, type, and Generation II category metadata")
 check(moveBundle.model.actions[1].description == "Scratches with sharp claws.",
   "move descriptions replace native pagination markers with spaces")
+check(#moveBundle.model.actions == 4
+    and moveBundle.model.actions[4].label == "BITE",
+  "move selection caps the V3 surface at Gen II's four known moves")
 
 local postActionMessageState = {}
 for key, value in pairs(stableState) do postActionMessageState[key] = value end
@@ -185,6 +210,7 @@ check(animationBundle.model.schema == "clean_ui.v3.presentation.v1"
 
 local frameState = {}
 for key, value in pairs(stableState) do frameState[key] = value end
+frameState.picHidden = { enemy=true }
 frameState.anims = {
   gfx = {
     tackle = { image="assets/generated/battle/effects/tackle.png", width=64 },
@@ -197,20 +223,223 @@ frameState.anim = {
   objects={ oam={{ x=24, y=40, tile=0, attr=0,
     palette="PAL_BATTLE_OB_PLAYER" }} },
   bg={ hidden={ player=false, enemy=false },
-    picSize={ player=0, enemy=0 }, slide={ player=0, enemy=0 } },
+    picSize={ player=0, enemy=0 }, slide={ player=0, enemy=0 },
+    scx=2, scy=255, lcdc="SCX", lyStart=0, lyEnd=4,
+    lyBackup={[0]=2,[1]=2,[2]=2,[3]=2},
+    bgp=228, obp0=228, obp1=228 },
 }
 local frameBundle = assert(Battle.extract(frameState))
 local frameAnimation = frameBundle.model.animation
 check(frameAnimation.kind == "move" and frameAnimation.side == "player"
     and frameAnimation.frameData ~= nil
+    and frameAnimation.sceneFrame == frameAnimation.frameData
     and type(frameAnimation.frameData.objects) == "table"
     and #frameAnimation.frameData.objects == 1,
-  "battle move animation exposes a detached data-only OAM frame")
+  "battle move animation exposes one detached V3 scene frame")
 check(frameAnimation.frameData.sheets[1].path
     == "assets/generated/battle/effects/tackle.png"
     and frameAnimation.frameData.sheets[1].wide == 8
+    and frameAnimation.frameData.coordinateSpace == "native_battle"
+    and frameAnimation.frameData.logicalWidth == 160
     and frameAnimation.frameData.objects[1].tile == 0,
   "battle move animation preserves source sheet geometry without callbacks")
+check(frameBundle.model.sceneFrame == frameAnimation.sceneFrame,
+  "battle model mirrors the live V3 scene frame outside the animation subtype")
+check(frameBundle.model.enemy.hidden == true,
+  "battle extraction carries the released picHidden state")
+check(frameAnimation.frameData.sourceAvailable == true
+    and frameAnimation.frameData.background.scx == 2
+    and frameAnimation.frameData.background.scy == 255
+    and frameAnimation.frameData.background.lcdc == "SCX"
+    and frameAnimation.frameData.background.lyBackup[1] == 2
+    and frameAnimation.frameData.background.lyBackup[4] == 2,
+  "battle scene frames detach host scroll and scanline background state")
+check(frameBundle.model.sourceBacked == false,
+  "battle model never delegates presentation to the native source canvas")
+
+local oneBasedFrameState = {}
+for key, value in pairs(frameState) do oneBasedFrameState[key] = value end
+oneBasedFrameState.anim = {}
+for key, value in pairs(frameState.anim) do oneBasedFrameState.anim[key] = value end
+oneBasedFrameState.anim.bg = {}
+for key, value in pairs(frameState.anim.bg) do
+  oneBasedFrameState.anim.bg[key] = value
+end
+oneBasedFrameState.anim.bg.lyBackup = { [1]=11, [2]=22, [3]=33, [4]=44 }
+local oneBasedBundle = assert(Battle.extract(oneBasedFrameState))
+local oneBasedRows = oneBasedBundle.model.animation.frameData.background.lyBackup
+check(oneBasedRows[1] == 11 and oneBasedRows[2] == 22
+    and oneBasedRows[3] == 33 and oneBasedRows[4] == 44,
+  "battle scene frames preserve one-based V3 scanline payloads")
+
+local keptSpriteState = {}
+for key, value in pairs(frameState) do keptSpriteState[key] = value end
+keptSpriteState.anim = {}
+for key, value in pairs(frameState.anim) do keptSpriteState.anim[key] = value end
+keptSpriteState.anim.stopped = true
+keptSpriteState.anim.keepSprites = true
+local keptBundle = assert(Battle.extract(keptSpriteState))
+check(keptBundle.model.animation
+    and keptBundle.model.animation.frameData.sourceAvailable == true,
+  "kept-sprite animation frames remain owned after the runner stops")
+
+local scaleState = {}
+for key, value in pairs(stableState) do scaleState[key] = value end
+scaleState.game = { data = { battle_sprite_scales = {
+  front = { path="assets/generated/battle/front/pidgey.png", scale=0.75 },
+  back = { path="assets/generated/battle/back/cyndaquil.png", scale=0.625 },
+} } }
+local scaleBundle = assert(Battle.extract(scaleState))
+check(scaleBundle.model.player.sprite.scale == 0.625
+    and scaleBundle.model.enemy.sprite.scale == 0.75,
+  "battle sprites use released path-specific scale metadata")
+
+local renderCalls = {}
+local originalDrawSprite = MenuRender.drawSprite
+MenuRender.drawSprite = function(_, descriptor, rect)
+  renderCalls[#renderCalls + 1] = { descriptor=descriptor,
+    rect={ x=rect.x, y=rect.y, w=rect.w, h=rect.h } }
+  return true
+end
+local fakeGraphics = {
+  setColor=function() end, polygon=function() end, rectangle=function() end,
+  line=function() end, setFont=function() end, print=function() end,
+}
+local fakeFont = {
+  getHeight=function() return 8 end,
+  getWidth=function(_, value) return #tostring(value or "") * 4 end,
+}
+local fakeTheme = { colors = {
+  ink="#000000", paper="#ffffff", raised="#eeeeee", selection="#dddddd",
+  muted="#888888", focus="#444444", gen2Accent="#55aa55",
+} }
+local renderLayout = {
+  scale=1, gap=4, dockPad=4, titleHeight=12,
+  viewport={x=0,y=0,w=320,h=240}, outer={x=0,y=0,w=320,h=240},
+  field={x=0,y=0,w=160,h=144}, arena={x=0,y=0,w=160,h=144},
+  panel={x=0,y=144,w=160,h=96}, messageRegion={x=0,y=150,w=160,h=20},
+  enemyCard={x=8,y=8,w=40,h=20}, playerCard={x=112,y=112,w=40,h=20},
+  enemySprite={x=56,y=8,w=40,h=40}, playerSprite={x=8,y=64,w=40,h=40},
+  menu={}, moveInfoRegion=nil,
+}
+local renderMon = function(path, hudVisible)
+  return { name="MON", level=5, hp=10, maxHp=10, status="OK",
+    hudVisible=hudVisible, types={}, sprite={path=path} }
+end
+local renderBase = {
+  schema="clean_ui.v3.presentation.v1", apiVersion=3, kind="battle",
+  opaque=true, phase="resolving", player=renderMon("player.png", false),
+  enemy=renderMon("enemy.png", false), actions={},
+  playerTrainer={path="player-trainer.png"},
+  enemyTrainer={path="enemy-trainer.png"},
+}
+local introRenderModel = {}
+for key, value in pairs(renderBase) do introRenderModel[key] = value end
+introRenderModel.animation = { kind="intro", intro={ topScroll=144,
+  backpicOffset=144 } }
+renderCalls = {}
+check(BattleRender.draw(fakeGraphics, introRenderModel, renderLayout,
+    fakeFont, fakeTheme) == true
+    and #renderCalls == 2
+    and renderCalls[1].descriptor.path == "enemy-trainer.png"
+    and renderCalls[1].rect.x == 168
+    and renderCalls[2].descriptor.path == "player-trainer.png"
+    and renderCalls[2].rect.x == 152,
+  "detached renderer applies exact intro band and back-pic offsets")
+
+local trainerRenderModel = {}
+for key, value in pairs(renderBase) do trainerRenderModel[key] = value end
+trainerRenderModel.animation = { kind="trainer-slide", frame=4 }
+renderCalls = {}
+check(BattleRender.draw(fakeGraphics, trainerRenderModel, renderLayout,
+    fakeFont, fakeTheme) == true
+    and #renderCalls == 2
+    and renderCalls[1].rect.x == 72,
+  "detached renderer applies integer trainer-slide displacement")
+
+local faintRenderModel = {}
+for key, value in pairs(renderBase) do faintRenderModel[key] = value end
+faintRenderModel.animation = { kind="faint", side="enemy", sink=8,
+  boxPixels=56 }
+renderCalls = {}
+check(BattleRender.draw(fakeGraphics, faintRenderModel, renderLayout,
+    fakeFont, fakeTheme) == true
+    and #renderCalls == 2
+    and renderCalls[1].rect.y > renderLayout.enemySprite.y
+    and renderCalls[1].rect.h < renderLayout.enemySprite.h,
+  "detached renderer applies row-quantized faint sinking")
+MenuRender.drawSprite = originalDrawSprite
+
+local incompleteAnimationState = {}
+for key, value in pairs(stableState) do incompleteAnimationState[key] = value end
+incompleteAnimationState.anim = {
+  env={ animId="ANIM_TACKLE", battleTurn=1 }, stopped=false,
+}
+local incompletePresentation = Presenter.prepare(Presenter,
+  incompleteAnimationState, {})
+check(type(incompletePresentation) == "table"
+    and incompletePresentation.complete == false
+    and incompletePresentation.reason == "battle_animation_frame_unavailable",
+  "missing released animation frame data fails open instead of painting a banner")
+
+local liveIncompleteAnimationState = {}
+for key, value in pairs(incompleteAnimationState) do
+  liveIncompleteAnimationState[key] = value
+end
+liveIncompleteAnimationState.game = {}
+local liveIncompletePresentation = Presenter.prepare(Presenter,
+  liveIncompleteAnimationState, {})
+check(type(liveIncompletePresentation) == "table"
+    and liveIncompletePresentation.complete == false
+    and liveIncompletePresentation.reason == "battle_animation_frame_unavailable",
+  "live animation with an incomplete V3 frame fails closed without native fallback")
+
+local overrideState = {}
+for key, value in pairs(frameState) do overrideState[key] = value end
+overrideState.anim = {
+  env={ animId="ANIM_TRANSFORM", battleTurn=0 }, stopped=false,
+  loaded=frameState.anim.loaded, objects=frameState.anim.objects,
+  bg=frameState.anim.bg, picOverride={ player="transform" },
+}
+local overridePresentation = Presenter.prepare(Presenter, overrideState, {})
+check(type(overridePresentation) == "table"
+    and overridePresentation.complete == false
+    and overridePresentation.reason == "battle_picture_override_unavailable",
+  "unsupported transform/substitute picture data fails open explicitly")
+
+local liveOverrideState = {}
+for key, value in pairs(overrideState) do liveOverrideState[key] = value end
+liveOverrideState.game = {}
+local liveOverridePresentation = Presenter.prepare(Presenter, liveOverrideState, {})
+check(type(liveOverridePresentation) == "table"
+    and liveOverridePresentation.complete == false
+    and liveOverridePresentation.reason == "battle_picture_override_unavailable",
+  "live transform animation fails closed without a guessed replacement sprite")
+
+local faintState = {}
+for key, value in pairs(stableState) do faintState[key] = value end
+faintState.faintSlide = { side="enemy", frames=2 }
+local faintBundle = assert(Battle.extract(faintState))
+check(faintBundle.model.animation
+    and faintBundle.model.animation.kind == "faint"
+    and faintBundle.model.animation.side == "enemy"
+    and faintBundle.model.animation.progress > 0
+    and faintBundle.model.animation.sink == 8
+    and faintBundle.model.animation.boxPixels == 56,
+  "battle extraction carries the released faint displacement state")
+
+local transientState = {}
+for key, value in pairs(stableState) do transientState[key] = value end
+transientState.battle = { player=nil, enemy=stableState.battle.enemy }
+local transientBundle = assert(Battle.extract(transientState))
+check(transientBundle.model.kind == "battle"
+    and transientBundle.model.player.hudVisible == false
+    and transientBundle.model.player.sprite == nil
+    and transientBundle.model.enemy.sprite ~= nil,
+  "incomplete battler snapshots stay owned by the clean battle presenter")
+check(transientBundle.model.transient == true
+    and transientBundle.model.transientReason == "battle_snapshot_incomplete:player",
+  "post-send-out partial battler snapshots advertise a clean-frame latch")
 
 local itemAnimationState = {}
 for key, value in pairs(stableState) do itemAnimationState[key] = value end
@@ -276,7 +505,8 @@ local tutorialBundle = assert(Battle.extract(tutorialState))
 check(tutorialBundle.model.enemy ~= nil
     and tutorialBundle.model.player ~= nil
     and tutorialBundle.model.player.hudVisible == false
-    and tutorialBundle.model.player.sprite == nil,
+    and tutorialBundle.model.player.sprite == nil
+    and tutorialBundle.model.transient ~= true,
   "catch tutorial keeps the enemy battle page clean without a player battler")
 
 local messageState = {}

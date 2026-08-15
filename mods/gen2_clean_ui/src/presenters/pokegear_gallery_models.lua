@@ -241,6 +241,16 @@ return function(ctx)
         screenId=fixture.screenId,
         variant=fixture.variant,
         model=bundle.model,
+        expectedNative=fixture.screenId == "Gen2Pokegear"
+          or fixture.screenId == "Gen2MapRadio",
+        nativeCode=(fixture.screenId == "Gen2Pokegear"
+          or fixture.screenId == "Gen2MapRadio")
+          and "native_by_design" or nil,
+        nativeDetail=(fixture.screenId == "Gen2Pokegear"
+          and "Pokegear replacement disabled pending a clean redesign; keep the official device renderer source-owned"
+          or fixture.screenId == "Gen2MapRadio"
+          and "Pokegear-family replacement disabled pending a clean redesign; keep the official radio renderer source-owned")
+          or nil,
       }
     end
     return output

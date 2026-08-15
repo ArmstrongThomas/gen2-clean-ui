@@ -10,8 +10,6 @@ local MenuLayout = requireCore("presentation.menu_layout")
 local MenuRender = requireCore("presentation.menu_render")
 local DialogueLayout = requireCore("presentation.dialogue_layout")
 local DialogueRender = requireCore("presentation.dialogue_render")
-local BattleLayout = requireCore("presentation.battle_layout")
-local BattleRender = requireCore("presentation.battle_render")
 local AnimationLayout = requireCore("presentation.animation_layout")
 local AnimationRender = requireCore("presentation.animation_render")
 
@@ -21,13 +19,9 @@ local Runtime = {}
 -- or activate it until the screen families have reliable pointer behavior.
 local POINTER_TOUCH_ENABLED = false
 
--- The v0.1.86 visibility hook passes the live screen state, not the game,
--- while newer hosts pass the game through the dedicated prepare seam. Gold's
--- built-in states normally store `game` directly, but a screen may expose it
--- through an __index table. Resolve it through the public field first rather
--- than requiring a raw field or relying on the mod facade fallback. This keeps
--- every screen family on the same release-floor path, including battle child
--- states and pointer/touch input.
+-- The v0.1.86 visibility seam passes a live screen state while newer hosts
+-- pass the game through the dedicated prepare seam. Resolve both forms so a
+-- recreated child state cannot lose the prepared clean candidate.
 local function gameFromState(state)
   if type(state) ~= "table" then return nil end
   local ok, game = pcall(function() return state.game end)
@@ -38,67 +32,6 @@ local function gameFromMod(mod)
   if type(mod) ~= "table" then return nil end
   local ok, game = pcall(function() return mod.game end)
   return ok and type(game) == "table" and game or nil
-end
-
-local function inside(outer, rect)
-  return type(rect) == "table"
-    and rect.x >= outer.x and rect.y >= outer.y
-    and rect.x + rect.w <= outer.x + outer.w
-    and rect.y + rect.h <= outer.y + outer.h
-end
-
-local function overlaps(first, second)
-  return type(first) == "table" and type(second) == "table"
-    and first.x < second.x + second.w and second.x < first.x + first.w
-    and first.y < second.y + second.h and second.y < first.y + first.h
-end
-
-local function battleFontMetrics(font)
-  local height = tonumber(font and font.physicalPx) or 15
-  return {
-    getHeight = function() return height end,
-    getWidth = function(_, value)
-      return #tostring(value or "") * height * 0.55
-    end,
-  }
-end
-
-local function battleFits(envelope, model, font, density)
-  local measured = BattleLayout.measure(envelope, model,
-    battleFontMetrics(font), density)
-  if not measured or not inside(measured.inner, measured.field)
-      or not inside(measured.field, measured.hud)
-      or not inside(measured.field, measured.arena)
-      or not inside(measured.inner, measured.panel)
-      or measured.overlaps.cardSprite then
-    return false
-  end
-  if not inside(measured.field, measured.enemyCard)
-      or not inside(measured.field, measured.playerCard)
-      or not inside(measured.arena, measured.enemySprite)
-      or not inside(measured.arena, measured.playerSprite) then
-    return false
-  end
-  local minimumArena = math.max(24 * (envelope.scale or 1),
-    measured.fontHeight + measured.gap)
-  local minimumCard = measured.fontHeight + measured.gap * 2
-  if measured.arena.h < minimumArena
-      or measured.enemyCard.h < minimumCard
-      or measured.playerCard.h < minimumCard then
-    return false
-  end
-  if overlaps(measured.enemyCard, measured.playerCard)
-      or overlaps(measured.enemySprite, measured.playerSprite) then
-    return false
-  end
-  for _, region in ipairs(measured.hitRegions or {}) do
-    if not inside(measured.panel, region.rect) then return false end
-    if region.role == "battle_action"
-        and region.rect.h < measured.fontHeight then
-      return false
-    end
-  end
-  return true
 end
 
 function Runtime.new(core)
@@ -120,14 +53,15 @@ function Runtime.new(core)
       and path:lower():match("%.png$") ~= nil
   end
   if type(sourceImage) == "function" then
-    MenuRender.setSourceImageLoader(function(path) return sourceImage(path) end)
+    MenuRender.setSourceImageLoader(function(path)
+      return sourceImage(path)
+    end)
   elseif love and love.graphics
       and type(love.graphics.newImage) == "function" then
-    -- v0.1.86 exposes the sandboxed read-only graphics facade but predates
-    -- mod.ui.sourceImage. Load the same generated PNG namespace directly so
-    -- sprite-bearing V3 screens remain drop-in on that public release. Newer
-    -- hosts stay on sourceImage above, preserving engine asset overrides and
-    -- cache ownership. Keep this fallback as narrow as the host seam itself.
+    -- v0.1.86 exposes the sandboxed graphics facade but predates
+    -- mod.ui.sourceImage. Keep the fallback restricted to the generated PNG
+    -- namespace so sprite-bearing V3 screens remain drop-in without creating
+    -- a general filesystem loader.
     MenuRender.setSourceImageLoader(function(path)
       if not generatedPng(path) then return nil, "invalid_source_image" end
       return love.graphics.newImage(path)
@@ -249,8 +183,6 @@ function Runtime.new(core)
       return MenuLayout.measure(base, model, font, density)
     elseif model.kind == "dialogue" or model.kind == "choice" then
       return DialogueLayout.measure(base, model, font, density, priorEntries)
-    elseif model.kind == "battle" then
-      return BattleLayout.measure(base, model, font, density)
     elseif model.kind == "animation" then
       return AnimationLayout.measure(base, model, font, density)
     end
@@ -263,8 +195,6 @@ function Runtime.new(core)
       return MenuRender.draw(love.graphics, model, layout, font, theme)
     elseif model.kind == "dialogue" or model.kind == "choice" then
       return DialogueRender.draw(love.graphics, model, layout, font, theme)
-    elseif model.kind == "battle" then
-      return BattleRender.draw(love.graphics, model, layout, font, theme)
     elseif model.kind == "animation" then
       return AnimationRender.draw(love.graphics, model, layout, font, theme)
     end
@@ -297,11 +227,11 @@ function Runtime.new(core)
   function self:prepare(game, viewport)
     self:clear("prepare")
     self.frameId = self.frameId + 1
+    local graphics = love and love.graphics
     local function failed(reason)
       self.lastReason = reason
       return nil, reason
     end
-    local graphics = love and love.graphics
     local window = love and love.window
     local vp = Viewport.rect(viewport, graphics)
     local safe = Viewport.safeArea(vp, graphics, window)
@@ -323,8 +253,10 @@ function Runtime.new(core)
           or (prepared.suppress ~= true and not legacyPresentation)
           or type(presentation) ~= "table"
           or presentation.complete ~= true then
-        return failed(ok and (prepared and prepared.reason or "incomplete")
-          or tostring(prepared))
+        local reason = prepared and (prepared.reason
+          or (type(prepared.presentation) == "table"
+            and prepared.presentation.reason)) or "incomplete"
+        return failed(ok and reason or tostring(prepared))
       end
       local legacySurface = prepared.presentation.kind == "legacy_surface"
         and prepared.presentation.surface or nil
@@ -360,11 +292,6 @@ function Runtime.new(core)
           textSize=self:option("text_size", "auto"),
           fontFamily=self:option("font", "plain_pixel"),
           density=self:option("density", "auto") }
-        if model.kind == "battle" then
-          solveRequest.probe = function(envelope, candidateFont, density)
-            return battleFits(envelope, model, candidateFont, density)
-          end
-        end
         solved = Solver.solve(solveRequest)
         if not solved.ok then return failed(solved.error.code) end
         local fontCode, fontMessage
@@ -454,10 +381,6 @@ function Runtime.new(core)
         end, 90000)
       subscriptions[#subscriptions + 1] = self.mod.events:on(
         "mods.loaded", function() self:invalidate("mods_loaded") end, 90000)
-      -- v0.1.86 can change the screen stack without the newer
-      -- render.ui.prepare seam. Drop the completed canvas at the stack
-      -- boundary so a closed or replaced screen cannot remain eligible for
-      -- the next HUD composition pass.
       subscriptions[#subscriptions + 1] = self.mod.events:on(
         "screen.pushed", function() self:invalidate("screen_pushed") end,
         90000)
@@ -480,8 +403,7 @@ function Runtime.new(core)
         -- is queried, so suppression is still atomic and the native state
         -- never flashes underneath a V3 frame. Newer hosts prepare through
         -- render.ui.prepare first, making this path a no-op for that frame.
-        local game = gameFromState(state)
-          or self.lastGame
+        local game = gameFromState(state) or self.lastGame
           or gameFromMod(self.mod)
         local candidate = self.candidate
         if game and (not candidate or candidate.game ~= game
@@ -497,7 +419,9 @@ function Runtime.new(core)
         local visible = nextFn(state)
         if visible == false then return false end
         candidate = self.candidate
-        if candidate and candidate.hidden[state] then return false end
+        if candidate and candidate.hidden[state] then
+          return false
+        end
         return visible
       end, 90000)
     subscriptions[#subscriptions + 1] = self.mod.hooks:wrap("render.hud",

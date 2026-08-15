@@ -14,7 +14,7 @@ function AnimationLayout.measure(base, model, font, density)
   if animation.overlay == true then
     -- Overlay animations deliberately cover the whole viewport while leaving
     -- the source-owned underlay visible.  This is the V3 seam for timed
-    -- transitions such as the Gen II battle wipe; it must not invent a
+    -- source-owned Gen II wipe; it must not invent a
     -- centered paper panel over the world that the transition is decorating.
     local stage = base.viewport or base.outer
     local empty = Rect.new(stage.x, stage.y, 0, 0)

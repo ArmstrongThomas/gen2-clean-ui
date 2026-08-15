@@ -220,6 +220,17 @@ check(dexListView.kind == "menu" and dexListView.preset == "L"
 check(dexListView.details.sprite.path == "pokemon/chikorita/front.png"
   and dexListView.details.sprite.palette[2][1] == 120,
   "Pokedex presentation carries its full-color sprite descriptor")
+check(dexListView.details.title == "CHIKORITA"
+  and dexListView.details.fields[1].label == "NUMBER"
+  and dexListView.details.fields[1].value == "No.152"
+  and dexListView.details.fields[2].value == "OWNED"
+  and dexListView.details.typeBadges[1] == "GRASS"
+  and dexListView.rows[1].label == "No.152 CHIKORITA"
+  and dexListView.rows[1].right == "OWNED",
+  "Pokedex list uses a Gen1 Modern-inspired number/status preview rail")
+check(dexListView.description:find("SEEN 2", 1, true)
+  and dexListView.description:find("OWNED 1", 1, true),
+  "Pokedex footer keeps totals and clean navigation hints")
 
 dexState.view, dexState.page, dexState.entryAction = "entry", 2, 3
 local dexEntry = assert(Pokedex.extract(dexState))
@@ -231,8 +242,11 @@ check(dexEntry.model.entry.selectedAction == 3
   "Pokedex entry preserves the native action cursor")
 local dexEntryView = assert(PokedexPresenter.convert(dexEntry.model))
 check(dexEntryView.sourceView == "entry" and dexEntryView.selected == 3
-  and dexEntryView.art.paletteKey == "CHIKORITA",
-  "Pokedex entry presenter retains action and color-art data")
+  and dexEntryView.art.paletteKey == "CHIKORITA"
+  and dexEntryView.details.title == "CHIKORITA"
+  and dexEntryView.details.typeBadges[1] == "GRASS"
+  and dexEntryView.details.fields[1].value == "No.152",
+  "Pokedex entry presenter retains action, preview, and color-art data")
 
 dexState.view, dexState.areaRegion = "area", "johto"
 local dexArea = assert(Pokedex.extract(dexState))

@@ -13,8 +13,7 @@ local Shell = {}
 
 -- Pointer/touch hit testing remains implemented for a future input pass, but
 -- the current Clean UI deliberately leaves it disabled. The released host
--- exposes the hook, while several screens still have incomplete or poor
--- pointer behavior.
+-- exposes the hook, while several screens still have incomplete behavior.
 local POINTER_TOUCH_ENABLED = false
 
 local function slug(value)

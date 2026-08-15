@@ -41,6 +41,7 @@ function Envelope.measure(presetId, viewport, safeArea, uiSize)
     scale = scale,
     fitCap = fitCap,
     targetScale = targetScale,
+    aspect = resolvedPreset.aspect,
     orientation = orientation,
   }
 end
