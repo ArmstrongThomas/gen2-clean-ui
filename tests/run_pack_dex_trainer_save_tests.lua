@@ -187,7 +187,7 @@ local dexState = {
       spriteFront="pokemon/chikorita/front.png" },
     CYNDAQUIL = { name="CYNDAQUIL", types={"FIRE"},
       spriteFront="pokemon/cyndaquil/front.png" },
-    TOTODILE = { name="TOTODILE", types={"WATER"},
+    TOTODILE = { name="TOTODILE", types={"WATER", "WATER"},
       spriteFront="pokemon/totodile/front.png" },
   },
   moves = {
@@ -253,6 +253,12 @@ check(dexListView.details.title == "CHIKORITA"
 check(dexListView.description:find("SEEN 2", 1, true)
   and dexListView.description:find("OWNED 1", 1, true),
   "Pokedex footer keeps totals and clean navigation hints")
+local duplicateTypeState = Data.copy(dexState)
+duplicateTypeState.index = 3
+local duplicateType = assert(Pokedex.extract(duplicateTypeState))
+check(#duplicateType.model.current.types == 1
+  and duplicateType.model.current.types[1] == "WATER",
+  "Pokedex removes duplicate single-type data from the snapshot")
 
 dexState.view, dexState.page, dexState.entryAction = "entry", 2, 3
 local dexEntry = assert(Pokedex.extract(dexState))

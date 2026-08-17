@@ -228,7 +228,16 @@ return function(ctx)
     local entry = dexEntry(state, species)
     local page = Data.integer(rawget(state, "page"), 1)
     local definition = pokemonEntry(state, species)
-    local types = definition and rawget(definition, "types") or nil
+    local rawTypes = definition and rawget(definition, "types") or nil
+    local types, seenTypes = {}, {}
+    for index = 1, 2 do
+      local typeName = type(rawTypes) == "table"
+        and Data.text(rawget(rawTypes, index), "") or ""
+      if typeName ~= "" and not seenTypes[typeName] then
+        types[#types + 1] = typeName
+        seenTypes[typeName] = true
+      end
+    end
     return {
       species = species,
       name = monName(state, species),
@@ -245,7 +254,7 @@ return function(ctx)
       },
       pageLines = splitEntryText(entry and rawget(entry,
         page == 2 and "text2" or "text")),
-      types = Data.array(types, 2),
+      types = types,
       art = artSnapshot(state, species),
       reference = referenceSnapshot(state, species),
     }
