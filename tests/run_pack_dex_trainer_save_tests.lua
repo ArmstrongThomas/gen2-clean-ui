@@ -233,6 +233,12 @@ check(dexList.model.current.reference.tmhm[1].move == "TM01"
   and dexList.model.current.reference.tmhm[1].type == "FIGHTING",
   "Pokedex snapshots TM/HM compatibility and move metadata")
 local dexListView = assert(PokedexPresenter.convert(dexList.model))
+local CorePresentationModel = assert(loadfile(root
+  .. "/mods/gen2_clean_ui/vendor/clean_ui_core/presentation/model.lua"))()
+local listModelValid, listModelCode, listModelDetail =
+  CorePresentationModel.validate(dexListView)
+check(listModelValid, ("Pokedex list document validates: %s %s")
+  :format(tostring(listModelCode), tostring(listModelDetail)))
 check(dexListView.schema == "clean_ui.v3.presentation.v1"
   and dexListView.apiVersion == 3,
   "Pokedex presenter emits the canonical V3 model")

@@ -189,13 +189,9 @@ return function(ctx)
                 type = "list", items = listItems, visible = 12,
                 scroll = model.navigation.scroll or 0,
               },
-            },
-          },
-          {
-            id = "species-scrollbar", role = "content", preferredWidth = 28,
-            components = {
               {
                 type = "scrollbar",
+                anchor = "right",
                 index = model.navigation.scroll or 0,
                 visible = 12,
                 total = #listItems,
@@ -207,7 +203,6 @@ return function(ctx)
             components = previewComponents,
           },
         },
-        contentLayout = "columns",
         controls = "UP/DOWN SPECIES   A DATA   SELECT OPTIONS   B BACK",
       },
     }
