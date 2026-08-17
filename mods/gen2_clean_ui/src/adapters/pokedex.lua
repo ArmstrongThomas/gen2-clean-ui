@@ -50,7 +50,90 @@ return function(ctx)
   local function pokemonEntry(state, species)
     local pokemon = rawget(state, "pokemon")
     local value = type(pokemon) == "table" and rawget(pokemon, species) or nil
+    if type(value) ~= "table" then
+      local game = rawget(state, "game")
+      local data = type(game) == "table" and rawget(game, "data") or nil
+      pokemon = type(data) == "table" and rawget(data, "pokemon") or nil
+      value = type(pokemon) == "table" and rawget(pokemon, species) or nil
+    end
     return type(value) == "table" and value or nil
+  end
+
+  local function moveDefinition(state, move)
+    local moves = rawget(state, "moves")
+    local value = type(moves) == "table" and rawget(moves, move) or nil
+    if type(value) ~= "table" then
+      local game = rawget(state, "game")
+      local data = type(game) == "table" and rawget(game, "data") or nil
+      moves = type(data) == "table" and rawget(data, "moves") or nil
+      value = type(moves) == "table" and rawget(moves, move) or nil
+    end
+    return type(value) == "table" and value or nil
+  end
+
+  local function evolutionRequirement(row)
+    if type(row) ~= "table" then return "" end
+    local method = Data.text(rawget(row, "method"), "")
+    local level = rawget(row, "level")
+    local item = Data.text(rawget(row, "item"), "")
+    local time = Data.text(rawget(row, "time"), "")
+    local comparison = Data.text(rawget(row, "comparison"), "")
+    if level ~= nil then return "LEVEL " .. tostring(level) end
+    if item ~= "" then return item:gsub("_", " ") end
+    if time ~= "" then return time:gsub("_", " ") end
+    if comparison ~= "" then return comparison:gsub("_", " ") end
+    return method:gsub("_", " ")
+  end
+
+  local function referenceSnapshot(state, species)
+    local definition = pokemonEntry(state, species)
+    if not definition then return nil end
+    local evolutions, levelMoves, machines = {}, {}, {}
+    for _, row in ipairs(rawget(definition, "evolutions") or {}) do
+      if type(row) == "table" then
+        evolutions[#evolutions + 1] = {
+          into = Data.id(rawget(row, "into")),
+          requirement = evolutionRequirement(row),
+          method = Data.id(rawget(row, "method")),
+          level = Data.integer(rawget(row, "level"), 0),
+          item = Data.id(rawget(row, "item")),
+          time = Data.id(rawget(row, "time")),
+          comparison = Data.id(rawget(row, "comparison")),
+        }
+      end
+    end
+    for _, row in ipairs(rawget(definition, "levelMoves") or {}) do
+      if type(row) == "table" then
+        local move = Data.id(rawget(row, "move"))
+        local moveRow = moveDefinition(state, move)
+        levelMoves[#levelMoves + 1] = {
+          level = Data.integer(rawget(row, "level"), 0),
+          move = move,
+          name = Data.text(moveRow and rawget(moveRow, "name"), move),
+          type = Data.text(moveRow and rawget(moveRow, "type"), ""),
+          power = Data.integer(moveRow and rawget(moveRow, "power"), 0),
+          accuracy = Data.integer(moveRow and rawget(moveRow, "accuracy"), 0),
+          description = Data.text(moveRow and rawget(moveRow, "description"), ""),
+        }
+      end
+    end
+    for _, move in ipairs(rawget(definition, "tmhm") or {}) do
+      local moveId = Data.id(move)
+      local moveRow = moveDefinition(state, moveId)
+      machines[#machines + 1] = {
+        move = moveId,
+        name = Data.text(moveRow and rawget(moveRow, "name"), moveId),
+        type = Data.text(moveRow and rawget(moveRow, "type"), ""),
+        power = Data.integer(moveRow and rawget(moveRow, "power"), 0),
+        accuracy = Data.integer(moveRow and rawget(moveRow, "accuracy"), 0),
+        description = Data.text(moveRow and rawget(moveRow, "description"), ""),
+      }
+    end
+    return {
+      evolutions = evolutions,
+      levelMoves = levelMoves,
+      tmhm = machines,
+    }
   end
 
   local function monName(state, species)
@@ -164,6 +247,7 @@ return function(ctx)
         page == 2 and "text2" or "text")),
       types = Data.array(types, 2),
       art = artSnapshot(state, species),
+      reference = referenceSnapshot(state, species),
     }
   end
 

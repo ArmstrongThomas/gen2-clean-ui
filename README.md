@@ -152,12 +152,8 @@ See [Architecture](docs/ARCHITECTURE.md),
 For local testing with the main launcher, double-click
 `sync_gen2_clean_ui.cmd`. It refreshes Core, copies the unpacked mod to
 `%APPDATA%\pokemon-love2d\mods\gen2_clean_ui`, builds the launcher-ready
-archive, and leaves the game ready to reload after restart. When the sibling
-`gen1recomp-grandmas-kitchen` checkout exists, it may also mirror the exact
-tree to that checkout's `mods/gen2_clean_ui` for an optional local source-tree
-smoke test. That checkout is a read-only test target, not a product
-dependency; the supported drop-in path is the released launcher and its
-AppData mod installation.
+archive, and leaves the game ready to reload after restart. The supported
+drop-in path is the released launcher and its AppData mod installation.
 
 For the v0.1.87 release-floor smoke, always use an unmodified released
 launcher. After running `sync_gen2_clean_ui.cmd`, fully restart the launcher
@@ -176,6 +172,23 @@ or documentation.
 
 The Lua contract tests are in `tests/run_contract_tests.lua` and can be run
 with the project's LÖVE/Lua test harness.
+
+On Linux or macOS, install LÖVE 11.5 and run:
+
+```bash
+./tests/run_lua_tests.sh
+```
+
+Set `LOVE_BIN` when LÖVE is not on `PATH`, and set
+`GEN2_CLEAN_UI_HEADLESS=1` to disable the test window. The POSIX wrapper
+defaults to headless mode so it works on systems without an OpenGL display:
+
+```bash
+LOVE_BIN=/path/to/love ./tests/run_lua_tests.sh
+```
+
+Set `GEN2_CLEAN_UI_HEADLESS=0` for the hidden-window graphics smoke when a
+working OpenGL environment is available.
 
 ## Modern UI compatibility
 

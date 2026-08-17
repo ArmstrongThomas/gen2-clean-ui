@@ -1,6 +1,6 @@
 # Gen2 Clean UI release status
 
-Current line: `0.3.0` (development). The `0.2.0` release is complete.
+Current line: `0.4.0` (development). The `0.2.0` release is complete.
 
 ## Battle UI deferment — 2026-08-15
 
@@ -19,9 +19,12 @@ The official renderer owns the complete Pokegear flow, including phone, clock,
 map/Fly, and radio surfaces. Existing adapters, presenters, and fixtures are
 retained only as inactive reference material for a later redesign.
 
-The Pokédex remains active and now uses a stable V3 list/preview composition
-inspired by Gen1 Modern UI, with number-first rows, seen/owned markers, type
-badges, palette-aware detached sprites, totals, and navigation hints.
+The Pokédex remains active. The 0.4.0 redesign now uses clearer Info and
+Habitat compositions, map-backed landmark markers, number-first rows,
+seen/owned markers, type badges, palette-aware detached sprites, totals, and
+navigation hints. Evolution, level-up move, and TM/HM reference data is
+detached and model-ready, but additional live pages remain pending a
+drop-in-compatible navigation seam.
 
 ## Poké Mart commerce UI — 2026-08-15
 
@@ -39,7 +42,9 @@ walkthrough confirms Clean UI ownership after sync; minor Mart bugs remain.
   solver probes required text across the shell and detached V3 presentation
   families and steps down before truncation; this is deterministic coverage,
   not live-launcher proof.
-- Current milestone: continue non-battle Clean UI polish and verification.
+- Current milestone: continue the 0.4.0 Pokédex visual redesign and
+  verification. Battle is deferred and is not a release milestone for this
+  worktree.
   Battle is deferred and is not a release milestone for this worktree.
 - Runtime status: battle remains official-host/native by design. The previous
   live failure is no longer masked by an active Clean UI battle replacement.
@@ -58,7 +63,7 @@ walkthrough confirms Clean UI ownership after sync; minor Mart bugs remain.
   battle reference changes; it includes no screenshots or host-repository
   changes. The GitHub release archive remains workflow-generated after merge.
 
-- Manifest version: `0.3.0`.
+- Manifest version: `0.4.0`.
 - Host floor: `>=0.1.87 <2.0.0`.
 - Core lock: pinned to the `0.1.0-alpha.12-local` development snapshot recorded
   in `clean-ui-core.lock.json`; the shared settings compatibility fallback now
@@ -295,9 +300,8 @@ at `docs/archive/battle-ui-deferred-2026-08-15/`.
   visually inspected locally.
 - Real Gold battle-host probes also pass: trainer intro and sprite scaling,
   battle Pack refusal/return, forced-switch Party selection, and catch through
-  the post-catch state. Visual evidence is retained under
-  `G:\dev\misc\gen1recomp-grandmas-kitchen\tests\shots\battle-audit*`;
-  battle-owned Pack/Party and post-catch child stacks remain native by design.
+  the post-catch state. Battle-owned Pack/Party and post-catch child stacks
+  remain native by design.
 - The post-catch nickname path is now verified end to end on the real host:
   YES opens the Clean UI naming keyboard, directional input enters `CATCH`,
   and the settled party record retains the nickname. Evidence is retained
@@ -552,8 +556,7 @@ at `docs/archive/battle-ui-deferred-2026-08-15/`.
 
 ## Follow-up after 0.1.0
 
-1. Expand the real-host smoke as the next Grandma's Kitchen build becomes
-   available, especially around deferred battle-owned child states.
+1. Expand the real-host smoke around deferred battle-owned child states.
 2. Verify the native-art Pokegear Map and smartphone shell against the next
    host build, including the Johto/Kanto transition after the Elite Four.
 3. Keep the v3 editor WIP aligned with the callback-free contract catalog;

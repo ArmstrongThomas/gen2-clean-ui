@@ -2,9 +2,23 @@
 
 Last verified: 2026-08-17
 Release floor: `0.1.87`  
-Current manifest: `0.3.0`
-Release policy: 0.2.0 is released; the current 0.3.0 development line carries
-follow-up work only. No host-repository changes or screenshots are checked in.
+Current manifest: `0.4.0`
+Release policy: 0.2.0 is released; the current 0.4.0 development line carries
+the Pokédex visual redesign and follow-up verification. No host-repository
+changes or screenshots are checked in.
+
+## Pokédex visual redesign — 0.4.0
+
+- [x] Audit the read-only host data and navigation boundaries.
+- [x] Add detached evolution, level-up move, and TM/HM reference snapshots.
+- [x] Redesign the reachable Info presentation within the existing V3 menu
+  contract.
+- [x] Redesign the reachable Habitat presentation with map-backed landmark
+  markers and safe route-list fallback.
+- [ ] Add and validate mod-owned navigation seams for Evolution, Moves, and
+  TM/HM after the visual redesign is complete.
+- [ ] Perform the first live in-game walkthrough of the redesigned Info and
+  Habitat pages.
 
 ## Shared font choices — 2026-08-16
 

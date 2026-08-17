@@ -82,9 +82,12 @@ return function(ctx)
     local current = model.current
     if type(current) ~= "table" then return nil, "entry_unavailable" end
     local rows = {}
+    local actionLabels = { PAGE = "INFO", AREA = "AREA", CRY = "CRY",
+      PRNT = "PRNT" }
     if not model.entry.newEntry then
       for index, source in ipairs(model.entry.actions or {}) do
-        rows[index] = row(source)
+        rows[index] = row(source, nil, actionLabels[source.label]
+          or source.label)
       end
     end
     local details = richDetails(current.art, {
@@ -102,7 +105,7 @@ return function(ctx)
       description = current.pageLines and #current.pageLines > 0
         and current.pageLines or (model.entry.newEntry
           and "A/B CONTINUE" or "LEFT/RIGHT ACTION   A CHOOSE   B LIST"),
-      title = (current.name or "ENTRY") .. "  /  PAGE "
+      title = (current.name or "ENTRY") .. "  /  INFO "
         .. tostring(current.page or 1),
       art = Data.copy(current.art),
       entry = Data.copy(current),
@@ -128,10 +131,22 @@ return function(ctx)
         label = "AREA UNKNOWN", disabled = true,
       }
     end
+    local mapRows = {}
+    for index, nest in ipairs(area.nests or {}) do
+      mapRows[index] = {
+        index = nest.index, x = nest.x, y = nest.y, name = nest.name,
+        nest = true, selected = index == 1,
+      }
+    end
     return {
       rows = rows,
       selected = nil,
       scroll = 0,
+      mapView = true,
+      map = {
+        rows = mapRows,
+        current = mapRows[1],
+      },
       details = richDetails(area.art, {
         { label = "POKEMON", value = area.name },
         { label = "REGION", value = (area.region or "johto"):upper(),
@@ -139,7 +154,7 @@ return function(ctx)
         { label = "KNOWN NESTS", value = #area.nests },
       }, area.name or "AREA"),
       description = "LEFT/RIGHT REGION   A/B RETURN",
-      title = (area.name or "POKEMON") .. " NESTS",
+      title = (area.name or "POKEMON") .. "  /  HABITAT",
       art = Data.copy(area.art),
       area = Data.copy(area),
     }

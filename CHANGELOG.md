@@ -3,9 +3,32 @@
 Release history for Gen2 Clean UI. Version 0.1.0 is an intentionally early,
 experimental public release.
 
+## 0.4.0 — Unreleased
+
+The 0.4.0 line begins the visual redesign of the Gen 2 Pokédex while keeping
+the host-owned navigation boundary intact. New reference pages are being
+prepared as drop-in data models before any additional navigation seams are
+introduced.
+
+- Added the approved Cartridge Pages / Field Guide Pokédex redesign plan and
+  compatibility audit.
+- Added detached, function-free Pokédex reference snapshots for evolution
+  requirements, level-up moves, and TM/HM compatibility.
+- Redesigned the reachable Pokédex Info presentation with clearer INFO
+  labeling, species metadata hierarchy, type badges, and entry-page titles.
+- Redesigned the reachable Habitat presentation with map-backed landmark
+  markers, region metadata, and safe route-list fallback behavior.
+- Added Linux fixture coverage for the new Pokédex reference data and habitat
+  presentation.
+
+The native `Gen2PokedexMenu` still owns navigation. Evolution, level-up move,
+and TM/HM pages remain model-ready but are not claimed as live pages until a
+drop-in-compatible action seam is available.
+
 ## 0.3.0 — Unreleased
 
-The 0.2.0 release is complete. The development manifest now targets 0.3.0;
+The 0.2.0 release is complete. The 0.3.0 development history is retained
+below; the current manifest now targets 0.4.0.
 the deferred battle and Pokegear boundaries remain unchanged while follow-up
 Clean UI work continues.
 

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760">
+  <rect width="1200" height="760" fill="#e7e6dc"/>
+  <g font-family="monospace" font-weight="700" fill="#20252d">
+    <text x="34" y="42" font-size="22">CONCEPT 01 / SLATE INDEX</text>
+    <g transform="translate(30 70)">
+      <rect width="350" height="650" rx="8" fill="#f5f2e8" stroke="#20252d" stroke-width="3"/>
+      <text x="24" y="42" font-size="25">POKéDEX</text><text x="24" y="70" font-size="13" fill="#65717a">INDEX / 251</text>
+      <rect x="20" y="92" width="310" height="42" rx="5" fill="#cbd9d5"/>
+      <text x="34" y="119" font-size="15">SEARCH    ALL TYPES</text>
+      <g font-size="16">
+        <text x="25" y="175">No.015  BEEDRILL</text><text x="288" y="175" font-size="12">SEEN</text>
+        <text x="25" y="220">No.016  PIDGEY</text><text x="282" y="220" font-size="12" fill="#2367c9">OWNED</text>
+        <text x="25" y="265">No.017  PIDGEOTTO</text><text x="25" y="310">No.018  PIDGEOT</text>
+        <text x="25" y="355">No.019  RATTATA</text><text x="25" y="400">No.020  RATICATE</text>
+      </g>
+      <rect x="18" y="186" width="314" height="48" rx="4" fill="#b8cbc5" stroke="#2367c9" stroke-width="4"/>
+      <text x="24" y="690" font-size="13" fill="#65717a">UP/DOWN SELECT   A OPEN   B BACK</text>
+    </g>
+    <g transform="translate(425 70)">
+      <rect width="350" height="650" rx="8" fill="#f5f2e8" stroke="#20252d" stroke-width="3"/>
+      <text x="24" y="42" font-size="22">PIDGEY</text><text x="24" y="70" font-size="13" fill="#65717a">No.016 / OWNED</text>
+      <circle cx="175" cy="190" r="92" fill="#dedfd4"/>
+      <path d="M120 190l45-42 54 18-21 39 24 27-58 22-39-23z" fill="#ba7b95" stroke="#20252d" stroke-width="5"/>
+      <g font-size="15"><text x="30" y="340">TYPE</text><text x="30" y="370">NORMAL</text><text x="30" y="400">FLYING</text><text x="205" y="340">STATUS</text><text x="205" y="370" fill="#2367c9">OWNED</text><text x="205" y="400">HEIGHT  100</text></g>
+      <rect x="22" y="450" width="306" height="45" fill="#cbd9d5"/><text x="34" y="479" font-size="15">DATA</text>
+      <rect x="22" y="500" width="306" height="45" fill="#f5f2e8" stroke="#b8c0be"/><text x="34" y="529" font-size="15">HABITAT</text>
+      <text x="24" y="620" font-size="13" fill="#65717a">LEFT/RIGHT PAGE   A OPEN</text>
+    </g>
+    <g transform="translate(820 70)">
+      <rect width="350" height="650" rx="8" fill="#f5f2e8" stroke="#20252d" stroke-width="3"/>
+      <text x="24" y="42" font-size="22">PIDGEY / HABITAT</text><text x="24" y="70" font-size="13" fill="#65717a">JOHTO / GRASSLAND</text>
+      <rect x="24" y="95" width="302" height="250" fill="#d5ded2" stroke="#20252d" stroke-width="2"/>
+      <path d="M38 285l80-92 55 40 61-102 72 154M35 170l68 36 45-62 72 73 100-36" fill="none" stroke="#6b8173" stroke-width="8"/>
+      <circle cx="178" cy="232" r="11" fill="#2367c9"/><circle cx="275" cy="180" r="8" fill="#ba7b95"/>
+      <g font-size="15"><text x="25" y="395">ROUTE 29</text><text x="25" y="435">ROUTE 30</text><text x="25" y="475">ROUTE 31</text><text x="25" y="515">NATIONAL PARK</text></g>
+      <text x="24" y="620" font-size="13" fill="#65717a">LEFT/RIGHT REGION   B RETURN</text>
+    </g>
+  </g>
+</svg>

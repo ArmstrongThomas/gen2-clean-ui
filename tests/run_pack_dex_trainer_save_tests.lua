@@ -180,11 +180,23 @@ local dexState = {
   } },
   pokemon = {
     CHIKORITA = { name="CHIKORITA", types={"GRASS"},
+      evolutions = { { method="LEVEL", into="BAYLEEF", level=16 } },
+      levelMoves = { { level=1, move="TACKLE" },
+        { level=6, move="RAZOR_LEAF" } },
+      tmhm = { "TM01" },
       spriteFront="pokemon/chikorita/front.png" },
     CYNDAQUIL = { name="CYNDAQUIL", types={"FIRE"},
       spriteFront="pokemon/cyndaquil/front.png" },
     TOTODILE = { name="TOTODILE", types={"WATER"},
       spriteFront="pokemon/totodile/front.png" },
+  },
+  moves = {
+    TACKLE = { name="TACKLE", type="NORMAL", power=35, accuracy=95,
+      description="A physical attack." },
+    RAZOR_LEAF = { name="RAZOR LEAF", type="GRASS", power=55, accuracy=95,
+      description="Sharp leaves strike." },
+    TM01 = { name="DYNAMICPUNCH", type="FIGHTING", power=100, accuracy=50,
+      description="A powerful punch." },
   },
   palettes = { pokemon = {
     CHIKORITA = { normal={ {120,210,100}, {40,120,55} } },
@@ -210,6 +222,16 @@ check(dexList.model.rows[1].art.sprite == "pokemon/chikorita/front.png"
 check(dexList.model.rows[3].disabled and dexList.model.totals.seen == 2
   and dexList.model.totals.caught == 1,
   "Pokedex snapshots seen/caught visibility and totals")
+check(dexList.model.current.reference.evolutions[1].into == "BAYLEEF"
+  and dexList.model.current.reference.evolutions[1].requirement == "LEVEL 16"
+  and true,
+  "Pokedex snapshots evolution targets and readable requirements")
+check(dexList.model.current.reference.levelMoves[2].name == "RAZOR LEAF"
+  and dexList.model.current.reference.levelMoves[2].power == 55,
+  "Pokedex resolves level-up move metadata from game data")
+check(dexList.model.current.reference.tmhm[1].move == "TM01"
+  and dexList.model.current.reference.tmhm[1].type == "FIGHTING",
+  "Pokedex snapshots TM/HM compatibility and move metadata")
 local dexListView = assert(PokedexPresenter.convert(dexList.model))
 check(dexListView.schema == "clean_ui.v3.presentation.v1"
   and dexListView.apiVersion == 3,
@@ -244,6 +266,7 @@ local dexEntryView = assert(PokedexPresenter.convert(dexEntry.model))
 check(dexEntryView.sourceView == "entry" and dexEntryView.selected == 3
   and dexEntryView.art.paletteKey == "CHIKORITA"
   and dexEntryView.details.title == "CHIKORITA"
+  and dexEntryView.title == "CHIKORITA  /  INFO 2"
   and dexEntryView.details.typeBadges[1] == "GRASS"
   and dexEntryView.details.fields[1].value == "No.152",
   "Pokedex entry presenter retains action, preview, and color-art data")
@@ -254,8 +277,10 @@ check(#dexArea.model.area.nests == 1
   and dexArea.model.area.nests[1].name == "ROUTE 29",
   "Pokedex AREA computes read-only native grass nests")
 check(dexArea.model.area.region == "johto"
-  and PokedexPresenter.convert(dexArea.model).sourceView == "area",
-  "Pokedex AREA preserves region and produces a complete view")
+  and PokedexPresenter.convert(dexArea.model).sourceView == "area"
+  and PokedexPresenter.convert(dexArea.model).mapView == true
+  and PokedexPresenter.convert(dexArea.model).map.rows[1].name == "ROUTE 29",
+  "Pokedex AREA preserves region and produces a map-backed view")
 
 dexState.view, dexState.areaRegion = "option", nil
 local dexOptions = assert(Pokedex.extract(dexState))

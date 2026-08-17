@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760">
+  <rect width="1200" height="760" fill="#ece8dc"/>
+  <g font-family="monospace" font-weight="700" fill="#282b2b">
+    <text x="34" y="42" font-size="22">CONCEPT 03 / HABITAT ATLAS</text>
+    <g transform="translate(30 70)">
+      <rect width="350" height="650" rx="8" fill="#f7f2e5" stroke="#282b2b" stroke-width="3"/>
+      <text x="25" y="42" font-size="23">HABITAT ATLAS</text><text x="25" y="70" font-size="13" fill="#77715f">SELECT A REGION</text>
+      <rect x="22" y="96" width="306" height="155" fill="#d8dfca"/>
+      <path d="M42 190l70-65 68 45 73-37 54 60-72 32-73-16-80 18z" fill="#9eb397" stroke="#586c58" stroke-width="4"/>
+      <circle cx="193" cy="169" r="12" fill="#2367c9"/>
+      <g font-size="16"><text x="30" y="310">JOHTO</text><text x="30" y="355">KANTO</text><text x="30" y="400">DUNGEONS</text><text x="30" y="445">WATER</text></g>
+      <rect x="20" y="282" width="310" height="46" fill="#c6d4c1" stroke="#2367c9" stroke-width="3"/>
+      <text x="25" y="690" font-size="13" fill="#77715f">UP/DOWN REGION   A OPEN   B BACK</text>
+    </g>
+    <g transform="translate(425 70)">
+      <rect width="350" height="650" rx="8" fill="#f7f2e5" stroke="#282b2b" stroke-width="3"/>
+      <text x="25" y="42" font-size="23">JOHTO / PIDGEY</text><text x="25" y="70" font-size="13" fill="#77715f">ALL LOCATIONS</text>
+      <rect x="22" y="95" width="306" height="320" fill="#d8dfca" stroke="#282b2b" stroke-width="2"/>
+      <path d="M38 360l75-130 60 54 45-101 85 168M45 168l85 74 60-46 104 54" fill="none" stroke="#687b5f" stroke-width="10"/>
+      <circle cx="113" cy="230" r="13" fill="#2367c9"/><circle cx="218" cy="282" r="13" fill="#ba7b95"/><circle cx="285" cy="178" r="13" fill="#c34d65"/>
+      <g font-size="14"><text x="40" y="465">3 LOCATIONS FOUND</text><text x="40" y="505">ROUTE 29     COMMON</text><text x="40" y="545">ROUTE 30     COMMON</text></g>
+      <text x="25" y="620" font-size="13" fill="#77715f">A LOCATION DETAILS   B REGIONS</text>
+    </g>
+    <g transform="translate(820 70)">
+      <rect width="350" height="650" rx="8" fill="#f7f2e5" stroke="#282b2b" stroke-width="3"/>
+      <text x="25" y="42" font-size="23">ROUTE 29</text><text x="25" y="70" font-size="13" fill="#77715f">PIDGEY HABITAT</text>
+      <rect x="22" y="95" width="306" height="180" fill="#d8dfca"/>
+      <path d="M35 245h280M70 130l65 60 62-42 80 81" fill="none" stroke="#687b5f" stroke-width="9"/>
+      <circle cx="142" cy="190" r="14" fill="#2367c9"/>
+      <g font-size="15"><text x="28" y="340">TIME</text><text x="190" y="340">DAY / MORNING</text><text x="28" y="385">METHOD</text><text x="190" y="385">GRASS</text><text x="28" y="430">LEVEL</text><text x="190" y="430">2 - 5</text><text x="28" y="475">FREQUENCY</text><text x="190" y="475">COMMON</text></g>
+      <text x="25" y="620" font-size="13" fill="#77715f">LEFT/RIGHT ROUTE   B RETURN</text>
+    </g>
+  </g>
+</svg>
