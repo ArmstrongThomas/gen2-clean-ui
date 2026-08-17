@@ -18,6 +18,8 @@ introduced.
   labeling, species metadata hierarchy, type badges, and entry-page titles.
 - Tightened the reachable Pokédex index rows with explicit unseen states,
   lightweight leaders, and footer-safe composition.
+- Connected the document list viewport to the host Pokédex scroll offset so
+  controller selection stays inside the visible rows.
 - Redesigned the reachable Habitat presentation with map-backed landmark
   markers, region metadata, and safe route-list fallback behavior.
 - Added Linux fixture coverage for the new Pokédex reference data and habitat

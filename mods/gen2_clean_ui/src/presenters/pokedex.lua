@@ -180,6 +180,7 @@ return function(ctx)
               {
                 type = "list",
                 items = listItems,
+                scroll = model.navigation.scroll or 0,
                 scrollbar = {
                   side = "right",
                   index = model.navigation.scroll or 0,
