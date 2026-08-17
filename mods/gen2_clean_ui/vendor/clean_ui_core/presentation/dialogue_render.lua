@@ -1,6 +1,7 @@
 local requireCore = ...
 local Color = requireCore("design.color")
 local Frame = requireCore("design.frame")
+local MenuRender = requireCore("presentation.menu_render")
 
 local DialogueRender = {}
 
@@ -42,8 +43,9 @@ local function drawDialogue(G, model, layout, font, theme)
     + math.max(0, #lines - 1) * layout.lineGap
   local y = layout.body.y + math.max(0, math.floor((layout.body.h - total) / 2))
   for _, line in ipairs(lines) do
-    printAt(G, font, theme.colors.ink, fit(font, line, layout.body.w),
-      layout.body.x, y)
+    local run = MenuRender.resolveTextRun(layout, font, line, layout.body.w)
+    printAt(G, run.font, theme.colors.ink, run.text, layout.body.x,
+      y + math.floor((font:getHeight() - run.height) / 2))
     y = y + font:getHeight() + layout.lineGap
   end
 end
@@ -59,9 +61,11 @@ local function drawChoice(G, model, layout, font, theme)
         math.max(2, math.floor(3 * layout.scale)), rect.h - 2)
     end
     local text = option.label or option.value or (measured.index == 1 and "YES" or "NO")
-    printAt(G, font, option.disabled and theme.colors.muted or theme.colors.ink,
-      fit(font, text, rect.w - 20), rect.x + 10,
-      rect.y + math.floor((rect.h - font:getHeight()) / 2))
+    local run = MenuRender.resolveTextRun(layout, font, text, rect.w - 20)
+    printAt(G, run.font,
+      option.disabled and theme.colors.muted or theme.colors.ink,
+      run.text, rect.x + 10,
+      rect.y + math.floor((rect.h - run.height) / 2))
   end
 end
 
@@ -76,9 +80,11 @@ function DialogueRender.draw(G, model, layout, font, theme)
     layout.footer.x + layout.footer.w, layout.footer.y)
   local controls = model.controls or (model.kind == "choice"
     and "A CHOOSE   B NO" or "A/B CONTINUE")
-  printAt(G, font, theme.colors.muted, fit(font, controls, layout.footer.w),
+  local controlsRun = MenuRender.resolveTextRun(layout, font, controls,
+    layout.footer.w)
+  printAt(G, controlsRun.font, theme.colors.muted, controlsRun.text,
     layout.footer.x,
-    layout.footer.y + math.floor((layout.footer.h - font:getHeight()) / 2))
+    layout.footer.y + math.floor((layout.footer.h - controlsRun.height) / 2))
   if model.more or layout.textOverflow then
     local marker = "..."
     printAt(G, font, theme.colors.focus, marker,

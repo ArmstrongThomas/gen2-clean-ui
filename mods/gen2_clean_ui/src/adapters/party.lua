@@ -10,7 +10,64 @@ return function(ctx)
   }
 
   local TYPE_NAMES = { PSYCHIC_TYPE="PSYCHIC", CURSE_TYPE="???" }
+  local GENDER_SHEETS = {
+    [10] = {
+      path="assets/generated/icons/gen2/gender10px.png",
+      assetPath="overrides/icons/gen2/gender10px.png",
+      size=10,
+    },
+    [16] = {
+      path="assets/generated/icons/gen2/gender16px.png",
+      assetPath="overrides/icons/gen2/gender16px.png",
+      size=16,
+    },
+  }
   local MAX_PARTY, MAX_SUBMENU = 6, 64
+  -- Extraction runs after the host has advanced its cursor. These weak maps
+  -- retain only the last visible cursor for the live host tables, allowing a
+  -- hidden terminal/action boundary to preserve directional wraparound without adding
+  -- state to the detached presenter model.
+  local partyCursorMemory = setmetatable({}, { __mode="k" })
+  local submenuCursorMemory = setmetatable({}, { __mode="k" })
+
+  local function genderKind(value)
+    local gender = tostring(value or ""):lower()
+    if gender == "female" or gender == "f" then return "female" end
+    if gender == "male" or gender == "m" then return "male" end
+    if gender == "none" or gender == "genderless"
+        or gender == "no_gender" or gender == "no-gender"
+        or gender == "nogender" or gender == "no gender"
+        or gender == "unknown" then
+      return "none"
+    end
+    return nil
+  end
+
+  local function genderIconFor(value)
+    local kind = genderKind(value)
+    if not kind then return nil end
+    local slot = kind == "male" and 0
+      or (kind == "female" and 1 or 2)
+    local variants = {}
+    for size, sheet in pairs(GENDER_SHEETS) do
+      variants[tostring(size)] = {
+        path=sheet.path, assetPath=sheet.assetPath,
+        crop={ x=slot * sheet.size, y=0,
+          w=sheet.size, h=sheet.size },
+        sourceSize=sheet.size,
+      }
+    end
+    -- Keep a 10px descriptor at the top level for older renderers. The
+    -- current Clean renderer selects one of the two variants from the active
+    -- font's physical pixel height before drawing it.
+    local default = variants["10"]
+    return {
+      kind="gender_icon", gender=kind,
+      path=default.path, assetPath=default.assetPath,
+      crop=Data.copy(default.crop), sourceSize=default.sourceSize,
+      variants=variants,
+    }
+  end
 
   local function fail(code, detail)
     return nil, code, detail
@@ -31,6 +88,30 @@ return function(ctx)
   local function requiredText(value)
     if type(value) ~= "string" or value == "" then return nil end
     return Data.text(value)
+  end
+
+  -- The host's runtime gender is DV-derived for ordinary species, but its
+  -- species definition is authoritative for the three endpoint ratios:
+  -- 0x00 male-only, 0xFE female-only, and 0xFF genderless.  Use those
+  -- presentation facts when V3 exposes them so a forced-gender species does
+  -- not inherit a contradictory DV-derived symbol.  Preserve the host value
+  -- for ordinary ratios so the mod does not reimplement battle semantics.
+  local function genderFor(state, mon)
+    if type(mon) ~= "table" or rawget(mon, "isEgg") == true then
+      return nil
+    end
+    local raw = Data.scalar(rawget(mon, "gender"))
+    local species = requiredText(rawget(mon, "species"))
+    local pokemon = type(state) == "table" and rawget(state, "pokemon")
+      or nil
+    local definition = species and type(pokemon) == "table"
+      and rawget(pokemon, species) or nil
+    local ratio = type(definition) == "table"
+      and tonumber(rawget(definition, "genderRatio")) or nil
+    if ratio == 0xff then return "none" end
+    if ratio == 0 then return "male" end
+    if ratio == 0xfe then return "female" end
+    return raw
   end
 
   -- Source images are loaded by mod.ui.sourceImage, which intentionally only
@@ -227,10 +308,19 @@ return function(ctx)
     if not (iconId and path and frames and width and height) then
       return fail("icon_incomplete", species or "EGG")
     end
+    local frameHeight = math.floor(height / frames)
+    if frameHeight < 1 then
+      return fail("icon_incomplete", species or "EGG")
+    end
     if not palette then return fail("palette_incomplete", "partyMenu[1]") end
     return {
       kind="party_icon", id=iconId, path=path, frames=frames,
       width=width, height=height,
+      crop={ x=0, y=0, w=width, h=frameHeight },
+      -- Official Gen2 PartyMenu alternates the two sheet frames every
+      -- sixteen fixed update steps.  Keep the timing in the descriptor so
+      -- the detached renderer can select a source-sized frame.
+      animation={ axis="y", frames=frames, frameDuration=16 },
       palette=palette, paletteMode="gen2_2bpp",
     }
   end
@@ -308,9 +398,10 @@ return function(ctx)
     if statusCode then return fail(statusCode, species) end
     local name = isEgg and "EGG" or requiredText(rawget(mon, "nickname"))
       or requiredText(rawget(mon, "name")) or species
+    local gender = genderFor(state, mon)
     return {
       sourceIndex=sourceIndex, species=species, name=name, level=level,
-      isEgg=isEgg, gender=isEgg and nil or Data.scalar(rawget(mon, "gender")),
+      isEgg=isEgg, gender=gender, genderIcon=genderIconFor(gender),
       hp=hp, maxHp=maxHp, status=status,
       hpFraction=maxHp > 0 and hp / maxHp or 0,
       shiny=rawget(mon, "shiny") == true,
@@ -354,6 +445,9 @@ return function(ctx)
       return fail("source_mismatch", "submenu.mon")
     end
     local output = {}
+    local displayedSelected
+    local firstVisibleSourceIndex
+    local lastVisibleSourceIndex
     for sourceIndex = 1, count do
       local item = rawget(sourceItems, sourceIndex)
       if type(item) ~= "table" then
@@ -364,21 +458,55 @@ return function(ctx)
       if not (id and label) then
         return fail("submenu_item_incomplete", tostring(sourceIndex))
       end
-      local actionId = inputAction(actionMap,
-        "submenu.choose." .. sourceIndex, submenuKind(item), id,
-        sourceIndex, "a", rawget(item, "disabled") ~= true,
-        "screen.updateSubmenu")
-      output[sourceIndex] = {
-        id=id, label=label, sourceIndex=sourceIndex,
-        kind=submenuKind(item), selected=sourceIndex == selected,
-        disabled=rawget(item, "disabled") == true,
-        actionId=actionId,
-      }
+      local kind = submenuKind(item)
+      if kind ~= "back" and kind ~= "move_reorder" then
+        firstVisibleSourceIndex = firstVisibleSourceIndex
+          or sourceIndex
+        lastVisibleSourceIndex = sourceIndex
+        local displayIndex = #output + 1
+        local actionId = inputAction(actionMap,
+          "submenu.choose." .. sourceIndex, kind, id,
+          sourceIndex, "a", rawget(item, "disabled") ~= true,
+          "screen.updateSubmenu")
+        output[displayIndex] = {
+          id=id, label=kind == "summary" and "DETAILS" or label,
+          sourceIndex=sourceIndex,
+          kind=kind, selected=false,
+          disabled=rawget(item, "disabled") == true,
+          actionId=actionId,
+        }
+        if sourceIndex == selected then displayedSelected = displayIndex end
+      end
+    end
+    if #output < 1 then
+      return fail("submenu_empty", "submenu.items")
+    end
+    -- The host can leave its source cursor on CANCEL while the Clean modal
+    -- intentionally omits that row. Treat that boundary as a directional
+    -- wrap: Down from the last real action goes to the first, and Up from the
+    -- first goes to the last. An initial extraction falls back to the last
+    -- action, matching the native cursor's current position.
+    if displayedSelected == nil then
+      local previous = submenuCursorMemory[submenu]
+      local wrappedToFirst = previous == #output
+      displayedSelected = wrappedToFirst and 1 or #output
+      local targetSourceIndex = wrappedToFirst
+        and firstVisibleSourceIndex or lastVisibleSourceIndex
+      -- Provider extraction runs after the host's update step. Normalize the
+      -- live cursor now so the following A press is handled by the selected
+      -- real action rather than by the hidden native CANCEL row. This is a
+      -- presentation-owned boundary: B still closes the host submenu.
+      rawset(submenu, "index", targetSourceIndex)
+    end
+    submenuCursorMemory[submenu] = displayedSelected
+    for displayIndex, item in ipairs(output) do
+      item.selected = displayIndex == displayedSelected
     end
     inputAction(actionMap, "submenu.back", "back", "submenu", nil, "b",
       true, "screen.updateSubmenu")
     return {
-      selectedIndex=selected, sourceSlot=slot,
+      selectedIndex=displayedSelected, sourceSelectedIndex=selected,
+      sourceSlot=slot,
       pokemonName=party[slot].name, items=output,
     }
   end
@@ -404,12 +532,28 @@ return function(ctx)
     if count < 1 then return fail("shape_range", "party") end
     local switching = rawget(state, "switchFrom") ~= nil
     local maximumIndex = switching and count or count + 1
-    local selectedIndex = integer(rawget(state, "index"), 1, maximumIndex)
+    local sourceSelectedIndex = integer(rawget(state, "index"), 1, maximumIndex)
     local switchFrom = switching
       and integer(rawget(state, "switchFrom"), 1, count) or nil
-    if not selectedIndex or (switching and not switchFrom) then
+    if not sourceSelectedIndex or (switching and not switchFrom) then
       return fail("shape_range", "index")
     end
+    -- The native party state includes a trailing CANCEL index in normal
+    -- mode. It is a source boundary, not a Clean-visible party row; keep
+    -- the clean selection attached to a real Pokemon while B remains the
+    -- sole back action.
+    local selectedIndex = math.min(sourceSelectedIndex, count)
+    if sourceSelectedIndex > count then
+      local previous = partyCursorMemory[state]
+      local wrappedToFirst = previous == count
+      selectedIndex = wrappedToFirst and 1 or count
+      -- The host updates its cursor before the presentation hook runs. Keep
+      -- the source cursor aligned with the visible last row so A cannot
+      -- dispatch the host's hidden CANCEL action on the next update. The
+      -- target also preserves the direction that caused the boundary wrap.
+      rawset(state, "index", selectedIndex)
+    end
+    partyCursorMemory[state] = selectedIndex
 
     local actionMap = Actions.new("Gen2PartyMenu")
     local party, rows = {}, {}
@@ -426,18 +570,14 @@ return function(ctx)
         id="party.mon." .. sourceIndex, sourceIndex=sourceIndex,
         kind=snapshot.isEgg and "egg" or "pokemon", label=snapshot.name,
         level=snapshot.level, hp=snapshot.hp, maxHp=snapshot.maxHp,
-        status=snapshot.status, held=snapshot.item ~= nil,
+        status=snapshot.status, hpFraction=snapshot.hpFraction,
+        gender=snapshot.gender, genderIcon=Data.copy(snapshot.genderIcon),
+        types=Data.copy(snapshot.types),
+        icon=Data.copy(snapshot.icon), isEgg=snapshot.isEgg,
+        held=snapshot.item ~= nil,
         selected=selectedIndex == sourceIndex,
         switchOrigin=switchFrom == sourceIndex,
         actionId=actionId,
-      }
-    end
-    if not switching then
-      rows[count + 1] = {
-        id="party.back", sourceIndex=count + 1, kind="back", label="CANCEL",
-        selected=selectedIndex == count + 1,
-        actionId=inputAction(actionMap, "party.cancel", "back", "party.back",
-          count + 1, "a", true),
       }
     end
     inputAction(actionMap, "party.back", "back", "party", nil, "b", true)
@@ -457,9 +597,6 @@ return function(ctx)
       kind=selectedMon.isEgg and "egg" or "pokemon",
       sourceIndex=selectedIndex, id="party.mon." .. selectedIndex,
       label=selectedMon.name,
-    } or {
-      kind="back", sourceIndex=count + 1, id="party.back", label="CANCEL",
-      description="Return to the previous screen.",
     }
     local selectedSubmenu = submenu and submenu.items[submenu.selectedIndex]
     local heldItemState = selectedSubmenu
@@ -476,6 +613,7 @@ return function(ctx)
       prompt=switching and "Move to where?" or prompt,
       navigation={
         selectedIndex=selectedIndex, selectedId=selection.id,
+        sourceSelectedIndex=sourceSelectedIndex,
         itemCount=#rows, scroll=0, switchFrom=switchFrom,
       },
       rows=rows, party=party, selection=selection,
@@ -489,5 +627,7 @@ return function(ctx)
     return { model=model, actions=actionMap }
   end
 
+  Party.genderIconFor = genderIconFor
+  Party.genderFor = genderFor
   return Party
 end

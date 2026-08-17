@@ -24,6 +24,7 @@ end
 local Solver = loadCore("layout.solver")
 local MenuLayout = loadCore("presentation.menu_layout")
 local PresentationRuntime = loadCore("presentation.runtime")
+local FontCatalog = loadCore("text.font_catalog")
 
 local checks = 0
 local function check(condition, message)
@@ -88,6 +89,46 @@ check(MenuLayout.contentWidth({ preset="NAV", scale=1, minW=320,
   "comfortable") == 440,
   "content that requires it can use the full NAV width")
 
+local fallbackSteps = {}
+local fallbackResult = Solver.solve({
+  preset="NAV", viewport={x=0,y=0,w=1280,h=720},
+  safeArea={x=0,y=0,w=1280,h=720}, uiSize="auto",
+  textSize="3", fontFamily="openttd_mono", density="comfortable",
+  probe=function(_, candidate)
+    fallbackSteps[#fallbackSteps + 1] = candidate.step
+    return candidate.step == 1
+  end,
+})
+check(fallbackResult.ok and fallbackResult.value.font.step == 1,
+  "shared solver falls back to the next fitting font step")
+check(table.concat(fallbackSteps, ",") == "3,2,1",
+  "shared solver probes every lower font step in descending order")
+
+local catalogGraphics = {}
+function catalogGraphics.newFont(path, size)
+  local font = { path=path, size=size }
+  function font:getWidth(value)
+    return #tostring(value or "") * self.size * 0.5
+  end
+  function font:getHeight() return self.size end
+  function font:setFilter() end
+  return font
+end
+local catalog = FontCatalog.new(catalogGraphics, {
+  openttdMono="assets/fonts/openttd-mono/otm.ttf",
+})
+local mixedPolicy = { family="openttd_mono", step=3, physicalPx=30 }
+local shortRun = catalog:fit(mixedPolicy, "POKEMON", 120)
+local longRun = catalog:fit(mixedPolicy, "Party Pokemon status", 120)
+check(shortRun and longRun and shortRun.font ~= longRun.font,
+  "per-run catalog fitting keeps multiple font faces available")
+check(shortRun.policy.step == 3,
+  "short text keeps the frame's solved/base font step")
+check(longRun.policy.step == 1,
+  "only the long constrained text steps down")
+check(mixedPolicy.step == 3,
+  "per-run fitting does not mutate the shared frame policy")
+
 local viewports = {
   { 320, 180 }, { 640, 360 }, { 360, 640 }, { 390, 844 },
   { 1024, 768 }, { 1280, 720 }, { 1280, 1024 }, { 1600, 1000 },
@@ -95,13 +136,14 @@ local viewports = {
   { 3840, 2160 }, { 5120, 2784 },
 }
 local uiSizes = { "auto", "small", "medium", "large" }
-local textSizes = { "auto", "1", "2", "3", "4" }
-local fonts = { "plain_pixel", "system" }
+local textSizes = { "auto", "1", "2", "3" }
+local fonts = { "openttd_mono", "plain_pixel", "system" }
 local densities = { "auto", "comfortable", "compact" }
 
 local function fakeFont(layout)
   local height = layout.font.physicalPx
-  local step = height / 15
+  local base = layout.font.family == "openttd_mono" and 10 or 15
+  local step = height / base
   return {
     getHeight = function() return height end,
     getWidth = function(_, value) return #tostring(value or "") * 8 * step end,
@@ -191,7 +233,7 @@ for _, dimensions in ipairs(viewports) do
 end
 
 local optionValues = {
-  ui_size = "auto", text_size = "auto", font = "plain_pixel",
+  ui_size = "auto", text_size = "auto", font = "openttd_mono",
 }
 local runtime = PresentationRuntime.new({
   config = {}, provider = {},

@@ -14,7 +14,7 @@ function AnimationLayout.measure(base, model, font, density)
   if animation.overlay == true then
     -- Overlay animations deliberately cover the whole viewport while leaving
     -- the source-owned underlay visible.  This is the V3 seam for timed
-    -- source-owned Gen II wipe; it must not invent a
+    -- transitions such as the Gen II battle wipe; it must not invent a
     -- centered paper panel over the world that the transition is decorating.
     local stage = base.viewport or base.outer
     local empty = Rect.new(stage.x, stage.y, 0, 0)
@@ -48,6 +48,15 @@ function AnimationLayout.measure(base, model, font, density)
   base.scale, base.fontHeight, base.gap = scale, fontHeight, gap
   base.animationId = model.animation.id
   return base
+end
+
+function AnimationLayout.fits(base, model, font, density)
+  local measured = AnimationLayout.measure(base, model, font, density)
+  local animation = model.animation or {}
+  if animation.overlay == true then return true end
+  -- Text labels use layout.textRun during drawing; the base font only owns
+  -- the stage geometry.  Do not lower the whole animation for one label.
+  return true
 end
 
 return AnimationLayout

@@ -5,6 +5,7 @@ Model.KINDS = {
   menu = true,
   dialogue = true,
   choice = true,
+  battle = true,
   animation = true,
   device = true,
   map = true,
@@ -14,7 +15,7 @@ Model.KINDS = {
 -- dense-array check catches the most common integration mistakes (a keyed
 -- map, a missing middle entry, or a scalar row) before layout code receives
 -- the model. Empty collections remain valid for source-owned transitional
--- states such as a saving screen.
+-- states such as a battle message or a saving screen.
 local function collection(value, name, itemType)
   if type(value) ~= "table" then
     return nil, name .. " must be a table"
@@ -260,6 +261,9 @@ local function mapMarkerShape(value, name)
   if value.index ~= nil and not positiveInteger(value.index) then
     return nil, name .. ".index must be a positive integer when present"
   end
+  if value.nest ~= nil and type(value.nest) ~= "boolean" then
+    return nil, name .. ".nest must be boolean when present"
+  end
   return true
 end
 
@@ -406,6 +410,15 @@ local function spriteShape(value, name)
   if type(path) ~= "string" or path == "" then
     return nil, name .. ".path must be a non-empty asset path"
   end
+  if value.assetPath ~= nil then
+    if type(value.assetPath) ~= "string"
+        or value.assetPath:sub(1, 9) ~= "overrides/"
+        or value.assetPath:find("..", 1, true)
+        or value.assetPath:find("\\", 1, true)
+        or value.assetPath:find(":", 1, true) then
+      return nil, name .. ".assetPath must be a safe overrides-relative path"
+    end
+  end
   if value.normalized ~= nil and type(value.normalized) ~= "boolean" then
     return nil, name .. ".normalized must be boolean"
   end
@@ -517,6 +530,104 @@ local function labelShape(value, name)
   return true
 end
 
+local function nonNegativeInteger(value, name)
+  if value == nil then return true end
+  if type(value) ~= "number" or value ~= math.floor(value) or value < 0 then
+    return nil, name .. " must be a non-negative integer when present"
+  end
+  return true
+end
+
+local function namingShape(value, name)
+  if type(value) ~= "table" then
+    return nil, name .. " must be a naming descriptor"
+  end
+  local entry = value.entry
+  if type(entry) ~= "table" or type(entry.text) ~= "string" then
+    return nil, name .. ".entry.text must be a string"
+  end
+  for _, field in ipairs({ "maxLength", "sourceLength" }) do
+    local number = entry[field]
+    if number ~= nil and (type(number) ~= "number"
+        or number ~= math.floor(number) or number < 0) then
+      return nil, name .. ".entry." .. field
+        .. " must be a non-negative integer when present"
+    end
+  end
+  if entry.maxLength ~= nil and entry.maxLength < 1 then
+    return nil, name .. ".entry.maxLength must be positive"
+  end
+  if entry.glyphs ~= nil then
+    local glyphCount, glyphError = collection(entry.glyphs,
+      name .. ".entry.glyphs", "string")
+    if not glyphCount then return nil, glyphError end
+    if entry.maxLength ~= nil and glyphCount > entry.maxLength then
+      return nil, name .. ".entry.glyphs exceeds maxLength"
+    end
+  end
+  if value.case ~= nil and value.case ~= "upper" and value.case ~= "lower" then
+    return nil, name .. ".case must be upper or lower when present"
+  end
+
+  local keyboard = value.keyboard
+  if type(keyboard) ~= "table" then
+    return nil, name .. ".keyboard must be a table"
+  end
+  local columns = keyboard.columns
+  if type(columns) ~= "number" or columns ~= math.floor(columns)
+      or columns < 1 then
+    return nil, name .. ".keyboard.columns must be a positive integer"
+  end
+  local rowCount, rowError = collection(keyboard.rows,
+    name .. ".keyboard.rows", "table")
+  if not rowCount or rowCount == 0 then
+    return nil, rowError or (name .. ".keyboard.rows must not be empty")
+  end
+  for rowIndex, row in ipairs(keyboard.rows) do
+    local cellCount, cellError = collection(row,
+      name .. ".keyboard.rows[" .. tostring(rowIndex) .. "]", "string")
+    if not cellCount or cellCount == 0 then
+      return nil, cellError or (name .. ".keyboard.rows["
+        .. tostring(rowIndex) .. "] must not be empty")
+    end
+  end
+  if keyboard.bottom ~= nil then
+    local bottomCount, bottomError = collection(keyboard.bottom,
+      name .. ".keyboard.bottom", "table")
+    if not bottomCount then return nil, bottomError end
+    for index, target in ipairs(keyboard.bottom) do
+      if type(target.label) ~= "string" or target.label == "" then
+        return nil, name .. ".keyboard.bottom[" .. tostring(index)
+          .. "].label must be a non-empty string"
+      end
+    end
+  end
+
+  if value.cursor ~= nil then
+    if type(value.cursor) ~= "table" then
+      return nil, name .. ".cursor must be a table"
+    end
+    if value.cursor.bottomRow ~= nil
+        and type(value.cursor.bottomRow) ~= "boolean" then
+      return nil, name .. ".cursor.bottomRow must be boolean"
+    end
+    local valid, cursorError = nonNegativeInteger(value.cursor.row,
+      name .. ".cursor.row")
+    if not valid then return nil, cursorError end
+    valid, cursorError = nonNegativeInteger(value.cursor.col,
+      name .. ".cursor.col")
+    if not valid then return nil, cursorError end
+    if value.cursor.targetIndex ~= nil then
+      if type(value.cursor.targetIndex) ~= "number"
+          or value.cursor.targetIndex ~= math.floor(value.cursor.targetIndex)
+          or value.cursor.targetIndex < 1 then
+        return nil, name .. ".cursor.targetIndex must be positive integer"
+      end
+    end
+  end
+  return true
+end
+
 function Model.validate(value)
   if type(value) ~= "table" then
     return nil, "invalid_model", "presentation model must be a table"
@@ -543,6 +654,12 @@ function Model.validate(value)
     end
     local ok, errorMessage = indexField(value.selected, "menu.selected")
     if not ok then return nil, "invalid_model", errorMessage end
+    if value.naming ~= nil then
+      local namingValid, namingError = namingShape(value.naming, "menu.naming")
+      if not namingValid then
+        return nil, "invalid_model", namingError
+      end
+    end
   elseif value.kind == "dialogue" then
     count, collectionError = collection(value.lines, "dialogue.lines", "string")
     if not count then
@@ -557,6 +674,20 @@ function Model.validate(value)
     end
     local ok, errorMessage = indexField(value.selected, "choice.selected")
     if not ok then return nil, "invalid_model", errorMessage end
+  elseif value.kind == "battle" then
+    if type(value.player) ~= "table" or type(value.enemy) ~= "table" then
+      return nil, "invalid_model",
+        "battle presentation requires player and enemy tables"
+    end
+    count, collectionError = collection(value.actions, "battle.actions", "table")
+    if not count then
+      return nil, "invalid_model", "battle presentation requires "
+        .. collectionError
+    end
+    for _, field in ipairs({ "selectedAction", "selectedMove" }) do
+      local ok, errorMessage = indexField(value[field], "battle." .. field)
+      if not ok then return nil, "invalid_model", errorMessage end
+    end
   elseif value.kind == "device" then
     local valid, deviceError = deviceShape(value.device, "device")
     if not valid then return nil, "invalid_model", deviceError end

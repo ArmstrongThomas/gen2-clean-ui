@@ -22,8 +22,15 @@ Assert-True ($manifest.game_version -eq ">=0.1.87 <2.0.0") `
   "minimum host version"
 Assert-True ($null -eq $manifest.PSObject.Properties["experimental"]) `
   "obsolete experimental manifest flag is absent"
-Assert-True (Test-Path -LiteralPath (Join-Path $root "sync_gen2_clean_ui.cmd")) `
-  "main-launcher sync script exists"
+$syncPath = Join-Path $root "sync_gen2_clean_ui.cmd"
+Assert-True (Test-Path -LiteralPath $syncPath) "main-launcher sync script exists"
+$syncText = Get-Content -LiteralPath $syncPath -Raw
+$syncCoreAt = $syncText.IndexOf("sync_core.ps1",
+  [StringComparison]::OrdinalIgnoreCase)
+$syncModAt = $syncText.IndexOf("sync_mod.ps1", [StringComparison]::OrdinalIgnoreCase)
+Assert-True ($syncCoreAt -ge 0) "main-launcher sync refreshes shared Core"
+Assert-True ($syncCoreAt -lt $syncModAt) `
+  "main-launcher refreshes shared Core before copying the mod"
 Assert-True (@($manifest.games).Count -eq 1 -and $manifest.games[0] -eq "gen2") `
   "manifest must be Gen2-only"
 Assert-True (@($manifest.conflicts) -contains "gen1_modern_ui") `
@@ -87,7 +94,14 @@ Assert-True (@($ids | Select-Object -Unique).Count -eq 51) "catalog IDs must be 
 $optionsText = Get-Content -LiteralPath (Join-Path $modRoot "options.lua") -Raw
 $optionKeys = [regex]::Matches($optionsText,
   '(?m)^    key = "([^"]+)",\r?$')
-Assert-True ($optionKeys.Count -eq 11) "clean settings schema must have 11 rows"
+Assert-True ($optionKeys.Count -eq 12) "clean settings schema must have 12 rows"
+Assert-True ($optionsText -match 'key = "dark_mode"') `
+  "dark mode toggle is exposed below the theme choice"
+foreach ($theme in @("clean", "red", "blue", "yellow", "gold", "silver",
+    "crystal", "high_contrast")) {
+  Assert-True ($optionsText -match ('"' + [regex]::Escape($theme) + '"')) `
+    "theme choice is exposed: $theme"
+}
 
 $lock = Get-Content -LiteralPath (Join-Path $root "clean-ui-core.lock.json") -Raw |
   ConvertFrom-Json
@@ -95,6 +109,14 @@ Assert-True ($lock.status -eq "ready") "core lock must be ready"
 Assert-True ([IO.Directory]::Exists(
   (Join-Path $modRoot "vendor\clean_ui_core"))) `
   "ready core payload must be vendored"
+$shellRuntimePath = Join-Path $modRoot "vendor\clean_ui_core\shell\runtime.lua"
+Assert-True ([IO.File]::Exists($shellRuntimePath)) `
+  "vendored Core shell runtime exists"
+$shellRuntimeText = Get-Content -LiteralPath $shellRuntimePath -Raw
+Assert-True ($shellRuntimeText -match 'self:setting\(screen\.model, "theme"\)') `
+  "shell theme uses the Core settings adapter"
+Assert-True ($shellRuntimeText -notmatch 'self\.mod\.options:get\("theme"\)') `
+  "shell theme does not bypass the Core settings adapter"
 & (Join-Path $root "scripts\verify_core_lock.ps1")
 & (Join-Path $root "scripts\verify_sandbox.ps1") -RepositoryRoot $root
 

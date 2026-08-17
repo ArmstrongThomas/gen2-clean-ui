@@ -18,17 +18,24 @@ entry is `bootstrap.lua`.
 - byte size and lowercase SHA-256 for every file.
 
 `scripts/sync_core.ps1` accepts either a local core checkout or an already
-downloaded tagged archive. It stages and hashes the snapshot before replacing
-the narrowly scoped vendor target. `scripts/verify_core_lock.ps1` rejects any
-missing, changed, or extra file. `build_release.ps1` refuses to run unless that
-verification succeeds.
+downloaded tagged archive. For a local checkout it resolves the current Git
+HEAD automatically; archive mode requires an explicit commit. It stages and
+hashes the snapshot before replacing the narrowly scoped vendor target.
+`scripts/verify_core_lock.ps1` rejects any missing, changed, or extra file.
+`build_release.ps1` refuses to run unless that verification succeeds.
+
+`sync_gen2_clean_ui.cmd` calls the local-checkout mode before copying the mod
+to the launcher, so the ordinary test workflow refreshes Core and the product
+in one command. It expects the sibling checkout at `..\clean-ui-core` and
+stops before the launcher copy when that source or its lock verification is
+invalid.
 
 The current development lock is ready and records the exact vendored snapshot:
 
 ```json
 { "schema_version": 1, "status": "ready",
-  "core": { "tag": "0.1.0-alpha.10",
-    "commit": "cfed683ff907a1cad57331058ebc6f23bf4f5110" } }
+  "core": { "tag": "0.1.0-alpha.12-local",
+    "commit": "6a41dd56654fe1dca4b787c6a749684cbc16d39c" } }
 ```
 
 The host source checkout is not part of this lock and must never be copied into

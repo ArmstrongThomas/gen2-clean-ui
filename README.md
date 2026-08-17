@@ -94,18 +94,21 @@ whole visible stack; pending service contracts continue to fail open.
 
 The product schema contains the intentionally small Clean UI settings set:
 
-- Theme: Clean, Dark, High Contrast
+- Theme: Clean, Red, Blue, Yellow, Gold, Silver, Crystal, High Contrast
+- Dark Mode: On/Off, selecting the matching dark or light palette variant
 - UI Size: Auto, Small, Medium, Large
-- Text Size: Auto or whole Plain Pixel steps 1x-4x
-- Font: Plain Pixel or System
+- Text Size: Auto or whole family-relative steps 1x-3x (explicit internal 4x
+  remains reserved for authored display styles)
+- Font: OpenTTD Mono, Plain Pixel, or System
 - Density: Auto, Comfortable, Compact
 - Pointer & Touch
 - generation-relevant Use Native UI switches
 
 Reset Defaults writes every schema default through the public options surface,
-using the shared V3 session-local fallback on hosts such as v0.1.86 that do not
-yet expose `mod.options:set`. There is no private manager writer or legacy
-import path.
+using the shared V3 persistent `mod.storage` fallback on hosts such as v0.1.86
+that do not yet expose `mod.options:set`. The fallback is scoped to the active
+playthrough and remains session-local only before a storage context exists.
+There is no private manager writer or legacy import path.
 
 ## Core vendoring and builds
 
@@ -120,6 +123,12 @@ To refresh the checked-in development snapshot or pin a tagged core:
 .\scripts\verify_core_lock.ps1
 .\build_release.ps1
 ```
+
+For the normal local workflow, `sync_gen2_clean_ui.cmd` refreshes the
+vendored snapshot from the sibling `..\clean-ui-core` checkout first. The
+local sync resolves and records that checkout's current Git commit, so Core
+changes are not silently masked by an old lock entry. Archive-based release
+syncs still require an explicit tag and commit.
 
 CI may pass a downloaded tagged archive with `-Archive` instead of `-Source`.
 The release builder refuses pending or stale core locks. Its one output is
@@ -141,7 +150,7 @@ See [Architecture](docs/ARCHITECTURE.md),
 ```
 
 For local testing with the main launcher, double-click
-`sync_gen2_clean_ui.cmd`. It copies the unpacked mod to
+`sync_gen2_clean_ui.cmd`. It refreshes Core, copies the unpacked mod to
 `%APPDATA%\pokemon-love2d\mods\gen2_clean_ui`, builds the launcher-ready
 archive, and leaves the game ready to reload after restart. When the sibling
 `gen1recomp-grandmas-kitchen` checkout exists, it may also mirror the exact

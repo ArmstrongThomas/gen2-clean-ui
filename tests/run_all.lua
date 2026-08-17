@@ -56,6 +56,7 @@ print(("Lua syntax: %d files passed"):format(#syntaxFiles))
 
 assert(loadfile(root .. "/tests/run_contract_tests.lua"))()
 assert(loadfile(root .. "/tests/run_foundation_model_tests.lua"))()
+assert(loadfile(root .. "/tests/run_load_report_tests.lua"))()
 assert(loadfile(root .. "/tests/run_shared_ui_tests.lua"))()
 assert(loadfile(root .. "/tests/run_product_smoke.lua"))()
 assert(loadfile(root .. "/tests/run_v0186_sprite_fallback_tests.lua"))()

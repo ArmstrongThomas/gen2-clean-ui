@@ -9,12 +9,30 @@ local Party = ctx.load("adapters.party")
 local Summary = ctx.load("adapters.summary")
 local PartyModels = ctx.load("presenters.party_models")
 local PartyPresenters = ctx.load("presenters.party_presenters")
+local vendorRoot = root .. "/mods/gen2_clean_ui/vendor/clean_ui_core"
+local coreCache = {}
+local function loadCore(name)
+  if coreCache[name] ~= nil then return coreCache[name] end
+  local path = vendorRoot .. "/" .. name:gsub("%.", "/") .. ".lua"
+  local chunk, loadError = loadfile(path)
+  assert(chunk, loadError)
+  local exported = chunk(loadCore)
+  coreCache[name] = exported
+  return exported
+end
+local MenuLayout = loadCore("presentation.menu_layout")
+local MenuRender = loadCore("presentation.menu_render")
 
 local checks = 0
 local function check(condition, message)
   checks = checks + 1
   assert(condition, ("check %d failed: %s"):format(checks, message))
 end
+
+check(MenuRender.textStyles.title.stepDelta == 1
+  and MenuRender.textStyles.display.stepDelta == 2
+  and MenuRender.textStyleOptions("caption").stepDelta == -1,
+  "Party/Summary uses the shared per-run typography roles")
 
 local function descriptor(model, id)
   for _, entry in ipairs(model.actionDescriptors or {}) do
@@ -168,7 +186,8 @@ local function baseSummaryState(page)
   return state, data
 end
 
--- Party list snapshots preserve exact source rows and make CANCEL meaningful.
+-- Party list snapshots preserve the visible Pokemon rows; native CANCEL is a
+-- source boundary handled by B rather than a Clean-visible row.
 local partyState = basePartyState(1)
 local partyBundle = assert(Party.extract(partyState))
 local partyModel = partyBundle.model
@@ -178,12 +197,12 @@ check(Data.isFunctionFree(partyModel),
   "Party model is a plain function-free snapshot")
 check(partyModel.preset == "L" and partyModel.family == "party",
   "Party uses the fixed L envelope")
-check(#partyModel.rows == 3 and partyModel.rows[3].kind == "back"
-  and partyModel.rows[3].label == "CANCEL",
-  "Party exposes CANCEL as a real final row")
+check(#partyModel.rows == 2 and partyModel.rows[2].kind == "pokemon",
+  "Party exposes only visible Pokemon rows")
 check(partyModel.rows[1].sourceIndex == 1
-  and partyModel.rows[3].sourceIndex == 3,
-  "Party rows preserve exact source indices")
+  and partyModel.rows[2].sourceIndex == 2
+  and descriptor(partyModel, "party.cancel") == nil,
+  "Party rows preserve source indices without a hidden CANCEL action")
 check(descriptor(partyModel, "party.choose.1").dispatch == "source_input"
   and descriptor(partyModel, "party.choose.1").sourceIndex == 1,
   "Party selection remains source-input owned")
@@ -194,8 +213,125 @@ check(partyModel.artwork.path:find("totodile", 1, true) ~= nil
 check(partyModel.party[1].icon.path:find("monster", 1, true) ~= nil
   and #partyModel.party[1].icon.palette == 4,
   "Party row icon carries its source image and OBJ palette")
+check(partyModel.party[1].icon.crop.x == 0
+  and partyModel.party[1].icon.crop.y == 0
+  and partyModel.party[1].icon.crop.w == 16
+  and partyModel.party[1].icon.crop.h == 16,
+  "Party icon snapshots pin the first frame of the animated icon sheet")
+check(partyModel.party[1].icon.animation.frames == 2
+  and partyModel.party[1].icon.animation.frameDuration == 16,
+  "Party icon snapshots preserve the official two-frame timing contract")
+check(partyModel.party[1].genderIcon.path
+  == "assets/generated/icons/gen2/gender10px.png"
+  and partyModel.party[1].genderIcon.assetPath
+    == "overrides/icons/gen2/gender10px.png"
+  and partyModel.party[1].genderIcon.crop.x == 0
+  and partyModel.party[1].genderIcon.crop.w == 10
+  and partyModel.party[1].genderIcon.variants["16"].crop.x == 0
+  and partyModel.party[1].genderIcon.variants["16"].crop.w == 16,
+  "Male party members use both authored gender-sheet variants")
+local femalePartyState = basePartyState(1)
+femalePartyState.party[1].gender = "female"
+local femalePartyModel = assert(Party.extract(femalePartyState)).model
+check(femalePartyModel.party[1].genderIcon.crop.x == 10
+  and femalePartyModel.party[1].genderIcon.variants["16"].crop.x == 16,
+  "Female party members use the authored female gender-sheet crop")
+local genderlessPartyState = basePartyState(1)
+genderlessPartyState.party[1].gender = "genderless"
+local genderlessPartyModel = assert(Party.extract(genderlessPartyState)).model
+check(genderlessPartyModel.party[1].genderIcon.gender == "none"
+  and genderlessPartyModel.party[1].genderIcon.crop.x == 20
+  and genderlessPartyModel.party[1].genderIcon.variants["16"].crop.x == 32,
+  "Genderless party members use the authored purple-circle slot")
+local ratioFixture = {
+  pokemon={
+    NIDORAN_F={ genderRatio=254 },
+    NIDORAN_M={ genderRatio=0 },
+    DITTO={ genderRatio=255 },
+  },
+}
+check(Party.genderFor(ratioFixture,
+    { species="NIDORAN_F", gender="male" }) == "female"
+  and Party.genderFor(ratioFixture,
+    { species="NIDORAN_M", gender="female" }) == "male"
+  and Party.genderFor(ratioFixture,
+    { species="DITTO", gender="unknown" }) == "none",
+  "Species gender-ratio endpoints override contradictory runtime gender")
+check(Party.genderIconFor("unknown").gender == "none",
+  "The host unknown gender sentinel selects the authored genderless icon")
+local ordinaryRatioState = basePartyState(1)
+ordinaryRatioState.pokemon.TOTODILE.genderRatio = 127
+ordinaryRatioState.party[1].gender = "female"
+local ordinaryRatioModel = assert(Party.extract(ordinaryRatioState)).model
+check(ordinaryRatioModel.party[1].gender == "female",
+  "Ordinary species preserve the host DV-derived gender value")
 check(partyModel.selectedPokemon.item.name == "BERRY",
   "Party selected details preserve the held item")
+
+local conditionState = basePartyState(2)
+conditionState.party[2].status = "paralysis"
+local conditionModel = assert(Party.extract(conditionState)).model
+local conditionView = assert(PartyPresenters.convert(
+  "Gen2PartyMenu", conditionModel))
+check(conditionView.partyLayout == "list"
+  and conditionView.partyCountText == "2 / 6"
+  and conditionView.controlScheme.id == "gen2_party_clean_v1",
+  "Party presenter selects the fixed Clean list layout and declarative controls")
+check(conditionView.rows[1].status == nil
+  and conditionView.rows[2].status == "PAR"
+  and conditionView.rows[2].gender == "male"
+  and conditionView.rows[2].genderIcon.crop.x == 0
+  and #conditionView.rows[2].types == 1,
+  "Healthy party rows omit a status badge while abnormal rows expose a three-character code")
+
+local function layoutForFontHeight(model, height)
+  local font = {
+    getHeight=function() return height end,
+    getWidth=function(_, value)
+      return #tostring(value or "") * math.max(1, math.floor(height * 0.5))
+    end,
+  }
+  return assert(MenuLayout.measure({
+    outer={ x=0, y=0, w=800, h=600 }, scale=1,
+    font={ step=1 },
+  }, model, font, "comfortable"))
+end
+local tenPixelLayout = layoutForFontHeight(conditionView, 10)
+local twentyPixelLayout = layoutForFontHeight(conditionView, 20)
+check(tenPixelLayout.partyList.columns.genderIconSize == 10
+  and twentyPixelLayout.partyList.columns.genderIconSize == 20,
+  "gender icon geometry follows the selected font pixel height")
+check(tenPixelLayout.partyList.columns.genderIconSize
+    < tenPixelLayout.partyList.columns.pokemonIconSize,
+  "gender art is not allowed to overpower the party icon slot at 1x")
+local function iconForFontHeight(height)
+  return MenuRender.resolveGenderIcon(partyModel.party[1].genderIcon, {
+    getHeight=function() return height end,
+  })
+end
+local tenIcon, tenSource = iconForFontHeight(10)
+local twentyIcon, twentySource = iconForFontHeight(20)
+local sixteenIcon, sixteenSource = iconForFontHeight(16)
+local thirtyTwoIcon, thirtyTwoSource = iconForFontHeight(32)
+local fifteenIcon, fifteenSource = iconForFontHeight(15)
+check(tenSource == 10 and tenIcon.path:find("gender10px", 1, true) ~= nil
+  and tenIcon.crop.w == 10
+  and twentySource == 10 and twentyIcon.crop.w == 10
+  and sixteenSource == 16 and sixteenIcon.crop.w == 16
+  and thirtyTwoSource == 16 and thirtyTwoIcon.crop.w == 16,
+  "Gender art selects the matching source sheet for clean font multiples")
+check(fifteenSource == 10 and fifteenIcon.crop.w == 10,
+  "Gender art falls back to the largest clean source that fits an in-between size")
+
+local dualTypeState, dualTypeData = basePartyState(1)
+dualTypeData.pokemon.TOTODILE.types = { "WATER", "ICE" }
+local dualTypeModel = assert(Party.extract(dualTypeState)).model
+local dualTypeView = assert(PartyPresenters.convert(
+  "Gen2PartyMenu", dualTypeModel))
+check(#dualTypeView.rows[1].types == 2
+  and dualTypeView.rows[1].types[1].label == "WATER"
+  and dualTypeView.rows[1].types[2].label == "ICE",
+  "Party presentation preserves distinct dual types without duplicating single types")
 
 partyState.party[1].nickname = "MUTATED"
 partyState.palettes.pokemon.TOTODILE.normal[1][1] = 1
@@ -203,17 +339,33 @@ check(partyModel.party[1].name == "TOTO"
   and partyModel.artwork.palette[2][1] == 80,
   "Party snapshot is detached from later source mutation")
 
-local cancelState = basePartyState(3)
-local cancelBundle = assert(Party.extract(cancelState))
-check(cancelBundle.model.selection.kind == "back"
-  and cancelBundle.model.selectedPokemon == nil
-  and cancelBundle.model.selection.description ~= nil,
-  "Selecting CANCEL yields an explicit back selection instead of an empty UI")
-local cancelView = assert(PartyPresenters.convert(
-  "Gen2PartyMenu", cancelBundle.model))
-check(cancelView.preset == "L" and cancelView.selected == 3
-  and cancelView.details[1].label == "BACK",
-  "Party presenter keeps CANCEL selected with meaningful details")
+local sourceEndState = basePartyState(3)
+local sourceEndBundle = assert(Party.extract(sourceEndState))
+check(sourceEndBundle.model.navigation.selectedIndex == 2
+  and sourceEndBundle.model.navigation.sourceSelectedIndex == 3
+  and sourceEndState.index == 2
+  and sourceEndBundle.model.selection.kind == "pokemon"
+  and sourceEndBundle.model.selectedPokemon ~= nil,
+  "Native trailing CANCEL index clamps the live cursor to the last visible Pokemon")
+local sourceEndView = assert(PartyPresenters.convert(
+  "Gen2PartyMenu", sourceEndBundle.model))
+check(sourceEndView.preset == "L" and sourceEndView.selected == 2
+  and sourceEndView.details.title == "CYNDA",
+  "Party presenter keeps the clamped selection on a visible row")
+
+local partyWrapState = basePartyState(2)
+partyWrapState.index = 2
+assert(Party.extract(partyWrapState))
+partyWrapState.index = 3
+local partyDownWrap = assert(Party.extract(partyWrapState))
+check(partyDownWrap.model.navigation.selectedIndex == 1
+  and partyWrapState.index == 1,
+  "Party Down from the last Pokemon wraps to the first visible row")
+partyWrapState.index = 3
+local partyUpWrap = assert(Party.extract(partyWrapState))
+check(partyUpWrap.model.navigation.selectedIndex == 2
+  and partyWrapState.index == 2,
+  "Party Up from the first Pokemon wraps to the last visible row")
 
 -- The native action submenu remains a modal snapshot; ITEM is not executed.
 local actionState = basePartyState(1)
@@ -233,9 +385,15 @@ local actionBundle = assert(Party.extract(actionState))
 check(injectedCalls == 0 and actionState.calls.count == 0,
   "Party submenu extraction invokes no callback")
 check(actionBundle.model.mode == "actions"
-  and actionBundle.model.submenu.items[3].kind == "held_item"
-  and actionBundle.model.submenu.items[3].sourceIndex == 3,
-  "Held-item submenu state and exact index are represented")
+  and #actionBundle.model.submenu.items == 2
+  and actionBundle.model.submenu.items[1].kind == "summary"
+  and actionBundle.model.submenu.items[1].label == "DETAILS"
+  and actionBundle.model.submenu.items[2].kind == "held_item"
+  and actionBundle.model.submenu.items[2].sourceIndex == 3
+  and actionBundle.model.submenu.items[2].id ~= "CANCEL"
+  and descriptor(actionBundle.model, "submenu.choose.2") == nil
+  and descriptor(actionBundle.model, "submenu.choose.4") == nil,
+  "Action submenu hides MOVE and CANCEL while preserving source indices")
 check(actionBundle.model.heldItemState.active
   and actionBundle.model.heldItemState.held.name == "BERRY",
   "Held-item action exposes the currently held item")
@@ -244,9 +402,57 @@ check(descriptor(actionBundle.model, "submenu.choose.3").dispatch
   "Held-item action is deferred to native source input")
 local actionView = assert(PartyPresenters.convert(
   "Gen2PartyMenu", actionBundle.model))
-check(actionView.modal and actionView.modal.selected == 3
-  and actionView.modal.options[3].kind == "held_item",
-  "Party presenter preserves the native action submenu")
+check(actionView.modal and actionView.modal.selected == 2
+  and #actionView.modal.options == 2
+  and actionView.modal.compact
+  and actionView.modal.options[1].label == "DETAILS"
+  and actionView.modal.options[2].kind == "held_item",
+  "Party presenter emits a compact action submenu without MOVE or CANCEL")
+local actionLayout = layoutForFontHeight(actionView, 20)
+check(actionLayout.modal and actionLayout.modal.options[1].rect.h
+    < actionLayout.partyList.rowHeight
+  and #actionLayout.modal.options == 2
+  and actionLayout.modal.rect.w < actionLayout.inner.w * 0.7,
+  "Action modal uses compact rows and content-sized geometry")
+
+local cancelActionState = basePartyState(1)
+cancelActionState.submenu = {
+  items={
+    { id="STATS", label="STATS" },
+    { id="MOVE", label="MOVE" },
+    { id="ITEM", label="ITEM" },
+    { id="CANCEL", label="CANCEL" },
+  },
+  index=4, mon=cancelActionState.party[1], slot=1,
+}
+local cancelActionBundle = assert(Party.extract(cancelActionState))
+check(cancelActionState.submenu.index == 3
+  and cancelActionBundle.model.submenu.sourceSelectedIndex == 4
+  and cancelActionBundle.model.submenu.selectedIndex == 2
+  and cancelActionBundle.model.submenu.items[2].id == "ITEM",
+  "Hidden action boundary remaps the live host cursor to the visible final action")
+
+local actionWrapState = basePartyState(1)
+actionWrapState.submenu = {
+  items={
+    { id="STATS", label="STATS" },
+    { id="MOVE", label="MOVE" },
+    { id="ITEM", label="ITEM" },
+    { id="CANCEL", label="CANCEL" },
+  },
+  index=3, mon=actionWrapState.party[1], slot=1,
+}
+assert(Party.extract(actionWrapState))
+actionWrapState.submenu.index = 4
+local actionDownWrap = assert(Party.extract(actionWrapState))
+check(actionDownWrap.model.submenu.selectedIndex == 1
+  and actionWrapState.submenu.index == 1,
+  "Action-menu Down from the last visible action wraps to the first action")
+actionWrapState.submenu.index = 4
+local actionUpWrap = assert(Party.extract(actionWrapState))
+check(actionUpWrap.model.submenu.selectedIndex == 2
+  and actionWrapState.submenu.index == 3,
+  "Action-menu Up from the first action wraps to the last visible action")
   check(actionView.details.sprite.path:find("totodile", 1, true) ~= nil
     and #actionView.details.sprite.palette == 4
     and #actionView.details.typeBadges == 1
@@ -289,17 +495,54 @@ check(statusModel.artwork.path:find("totodile", 1, true) ~= nil
   and #statusModel.artwork.palette == 4,
   "Status page carries full-color Pokemon artwork")
 check(statusModel.status.hp == 20 and statusModel.status.maxHp == 24
-  and statusModel.status.experience.toNext >= 0,
-  "Status page preserves HP and calculated experience fields")
+  and statusModel.status.experience.toNext >= 0
+  and statusModel.status.experience.nextLevel == 6
+  and statusModel.status.experience.progressSpan > 0
+  and statusModel.status.experience.fraction >= 0
+  and statusModel.status.experience.fraction <= 1,
+  "Status page preserves HP and level-to-level experience progress")
+check(statusModel.pokemon.name == "TOTO"
+  and statusModel.pokemon.nickname == "TOTO"
+  and statusModel.pokemon.speciesName == "TOTODILE",
+  "Summary identity exposes nickname and species separately")
+local speciesOnlyState = baseSummaryState(1)
+speciesOnlyState.mon.nickname = nil
+speciesOnlyState.mon.name = "TOTODILE"
+local speciesOnly = assert(Summary.extract(speciesOnlyState)).model
+check(speciesOnly.pokemon.name == "TOTODILE"
+  and speciesOnly.pokemon.nickname == nil
+  and speciesOnly.pokemon.speciesName == "TOTODILE",
+  "Summary identity keeps species-only records to one visible name")
 check(statusModel.heldItem.name == "BERRY"
   and statusModel.stats.trainer.id == 12345,
   "Summary preserves held item and trainer fields")
+check(statusModel.pokemon.genderIcon.path
+  == "assets/generated/icons/gen2/gender10px.png"
+  and statusModel.pokemon.genderIcon.assetPath
+    == "overrides/icons/gen2/gender10px.png"
+  and statusModel.pokemon.genderIcon.crop.x == 0,
+  "Summary identity uses the same authored gender-sheet descriptor")
 local statusView = assert(PartyPresenters.convert(
   "Gen2SummaryMenu", statusModel))
 check(statusView.details.sprite.path == statusModel.artwork.path
   and #statusView.details.sprite.palette == 4
-  and statusView.details.custom_fields.columns == 2,
-  "Status page rich details retains the full-color front sprite")
+  and statusView.details.custom_fields.columns == 2
+  and #statusView.details.custom_fields.data == 8,
+  "Status page details fills the journal grid with exposed fields")
+check(statusView.partyLayout == "summary"
+  and statusView.pageTabs[1].id == "journal"
+  and statusView.pageTabs[2].id == "moves"
+  and statusView.pageTabs[3].id == "details"
+  and statusView.pageTabs[1].selected
+  and statusView.controlScheme.id == "gen2_summary_clean_v1"
+  and statusView.controlLegend[1].label == "LEFT/RIGHT PAGE"
+  and statusView.controlLegend[3].label == "B BACK",
+  "Summary presenter follows the host Journal/Moves/Details tab order and Clean control contract")
+local statusLayout = layoutForFontHeight(statusView, 20)
+check(statusLayout.summary and statusLayout.summary.content
+  and statusLayout.summary.content.h > 0
+  and statusLayout.summary.portrait.h == statusLayout.summary.info.h,
+  "Journal geometry keeps the identity rail and dense content region aligned")
 
 local movesState = baseSummaryState(2)
 local movesModel = assert(Summary.extract(movesState)).model
@@ -311,6 +554,18 @@ check(movesModel.purpose == "moves" and movesModel.artwork.path ~= nil
 check(movesView.details.sprite.path == movesModel.artwork.path
   and #movesView.details.sprite.palette == 4,
   "Moves page rich details retains the full-color front sprite")
+local movesLayout = layoutForFontHeight(movesView, 20)
+check(movesLayout.summary and #movesLayout.summary.moveRows == 4
+  and movesLayout.summary.moveList.h > 0
+  and movesLayout.summary.moveInfo.h > 0
+  and movesLayout.summary.moveInfo.y > movesLayout.summary.moveList.y,
+  "Moves geometry keeps all four slots and a separate detail rail")
+check(movesView.pageTabs[2].selected and not movesView.pageTabs[1].selected
+  and movesView.summary.moves[1].description[1]:find("<NEXT>", 1, true) == nil,
+  "Moves page selects MOVES and keeps continuation markers out of descriptions")
+check(movesView.controlLegend[1].label == "SELECT VIEW MOVES"
+  and movesView.controlLegend[2].label == "UP/DOWN POKEMON",
+  "Moves preview exposes the host-supported move-detail transition")
 check(movesView.rows[1].label == "SCRATCH"
   and movesView.rows[1].sourceIndex == 1
   and movesView.rows[3].disabled,
@@ -325,8 +580,12 @@ check(statsModel.purpose == "stats" and statsModel.artwork.path ~= nil
   and statsView.rows[5].label == "SPEED",
   "Stats page preserves all five Gen2 stats and Pokemon artwork")
 check(statsView.details.sprite.path == statsModel.artwork.path
-  and #statsView.details.sprite.palette == 4,
-  "Stats page rich details retains the full-color front sprite")
+  and #statsView.details.sprite.palette == 4
+  and #statsView.details.custom_fields.data == 10,
+  "Details page fills both columns with exposed identity and stat fields")
+check(statsView.pageTabs[3].selected
+  and statsView.pageTabs[3].label == "DETAILS",
+  "Stats source page is presented as the Clean Details tab")
 
 -- Move detail captures reorder state without swapping or calling source code.
 local reorderState = baseSummaryState(2)
@@ -354,7 +613,9 @@ check(reorder.moves[1].sourceIndex == 1
 local reorderView = assert(PartyPresenters.convert(
   "Gen2SummaryMenu", reorder))
 check(reorderView.selected == 2
-  and reorderView.description:find("PLACE", 1, true) ~= nil,
+  and reorderView.description:find("PLACE", 1, true) ~= nil
+  and reorderView.controlLegend[1].label == "A PLACE MOVE"
+  and reorderView.controlLegend[2].label == "UP/DOWN MOVE",
   "Move presenter shows the selected drop target and reorder instruction")
 check(reorderView.details.sprite.path == reorder.artwork.path
   and reorderView.details.footer_lists[1].title == "LEER INFO",

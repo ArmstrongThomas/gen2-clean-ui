@@ -15,7 +15,7 @@ function State.new(view, payload)
     layoutWidth = nil, layoutWidthContext = nil,
     galleryFamily = 1,
     preview = { content = "NORMAL", ui_size = "auto",
-      text_size = "auto", font = "plain_pixel" },
+      text_size = "auto", font = "openttd_mono" },
   }
 
   function self:preset(nextView)

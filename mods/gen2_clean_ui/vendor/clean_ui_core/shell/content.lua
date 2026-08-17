@@ -21,6 +21,11 @@ local TITLES = {
   gallery_preview = "UI GALLERY PREVIEW",
 }
 
+local FONT_LABELS = {
+  plain_pixel = "PLAIN PIXEL", system = "SYSTEM",
+  openttd_mono = "OPENTTD MONO",
+}
+
 local function selectedLabel(options, value)
   for _, option in ipairs(options or {}) do
     if option.value == value then return tostring(option.label or value) end
@@ -259,7 +264,7 @@ function Content.rows(shell, state)
       { id = "text_size", label = "TEXT SIZE",
         right = tostring(preview.text_size or "AUTO"):upper() },
       { id = "font", label = "FONT",
-      right = preview.font == "system" and "SYSTEM" or "PLAIN PIXEL" },
+      right = FONT_LABELS[preview.font] or "OPENTTD MONO" },
     }
   elseif state.view == "v3_screen" then
     local model = state.payload and state.payload.model or {}

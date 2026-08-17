@@ -9,7 +9,7 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$Tag,
 
-  [Parameter(Mandatory = $true)]
+  [Parameter(Mandatory = $true, ParameterSetName = "Archive")]
   [ValidatePattern("^[0-9a-fA-F]{40}$")]
   [string]$Commit
 )
@@ -56,6 +56,15 @@ try {
     if (-not [IO.Directory]::Exists($sourceRuntime)) {
       throw "Local core runtime not found: $sourceRuntime"
     }
+    $resolvedCommit = (& git -C $coreRoot rev-parse HEAD 2>$null)
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($resolvedCommit)) {
+      throw "Local core source is not a readable Git checkout"
+    }
+    $resolvedCommit = $resolvedCommit.Trim()
+    if ($Commit -and $Commit.ToLowerInvariant() -ne $resolvedCommit.ToLowerInvariant()) {
+      throw "Requested commit does not match local checkout HEAD"
+    }
+    $Commit = $resolvedCommit
   }
 
   $stagedVendor = Join-Path $stagingRoot "vendor"

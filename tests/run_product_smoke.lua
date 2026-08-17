@@ -75,6 +75,11 @@ local mod = {
       return screen
     end,
   },
+  assets = {
+    path = function(_, relative)
+      return root .. "/mods/gen2_clean_ui/" .. tostring(relative)
+    end,
+  },
   game = fakeGame,
 }
 function mod:read(relative)
@@ -95,8 +100,11 @@ local entry = assert(sandbox.compile(entrySource, "@gen2_clean_ui/main.lua"))()
 assert(type(entry) == "function", "main.lua must return an installer")
 local product = entry(mod)
 assert(type(product) == "table", "product bootstrap result")
-assert(type(definedSchema) == "table" and #definedSchema == 11,
-  "clean settings schema")
+assert(type(definedSchema) == "table" and #definedSchema == 12,
+  "clean settings schema (got " .. tostring(type(definedSchema) == "table"
+    and #definedSchema or "nil") .. ", core=" .. tostring(
+    mod.exports.gen2CleanUi and mod.exports.gen2CleanUi.coreStatus or "unknown")
+    .. ")")
 for _, row in ipairs(definedSchema) do
   assert(row.key ~= "pointer_touch", "pointer/touch is hidden from settings")
 end
@@ -415,6 +423,33 @@ if not headless then
     liveMain) == false, "complete production frame suppresses exact source")
   hookWrappers["render.hud"](function() end, fakeGame,
     { width=640, height=360 })
+
+  local liveConfirm = setmetatable({
+    game = fakeGame, screenId = "Gen2MainMenu", hasSave = true,
+    phase = "confirm", confirmDelay = 0,
+    save = {
+      player = { name = "TOMMY", badges = { ZEPHYR = true } },
+      pokedex = { caught = { [1] = true, [4] = true, [7] = true,
+        [10] = true, [25] = true } },
+      playTime = { hours = 0, minutes = 42 },
+    },
+    list = { items = {
+      { label = "CONTINUE", value = "continue" },
+      { label = "NEW GAME", value = "new" },
+      { label = "OPTION", value = "option" },
+      { label = "EXIT GAME", value = "exit" },
+    }, index = 1, scroll = 0 },
+  }, classes.Gen2MainMenu)
+  fakeStack.states = { liveConfirm }
+  -- This is the persisted choice in the user's current launcher config. The
+  -- host face may be unavailable while the optional asset is being mounted;
+  -- the bundled-font fallback must keep the confirm report Clean-owned.
+  stored.font = "plain_pixel"
+  hookWrappers["render.ui.prepare"](function() end, fakeGame,
+    { width=640, height=360 })
+  assert(hookWrappers["screen.render_visible"](function() return true end,
+    liveConfirm) == false,
+    "save/load report remains clean-owned during the confirm phase")
 
   fakeStack.states[2] = { screenId = "Gen2FutureMenu" }
   hookWrappers["render.ui.prepare"](function() end, fakeGame,

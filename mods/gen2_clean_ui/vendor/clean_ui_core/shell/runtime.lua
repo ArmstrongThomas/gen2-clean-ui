@@ -4,6 +4,7 @@ local Data = requireCore("foundation.data")
 local Viewport = requireCore("geometry.viewport")
 local Modal = requireCore("components.modal")
 local FontCatalog = requireCore("text.font_catalog")
+local Presets = requireCore("design.presets")
 local State = requireCore("shell.state")
 local Content = requireCore("shell.content")
 local Layout = requireCore("shell.layout")
@@ -28,9 +29,10 @@ function Shell.new(core)
     screenId = core.provider.game == "gen1"
       and "Gen1CleanUiShell" or "Gen2CleanUiShell",
   }
-  self.fonts = FontCatalog.new(love and love.graphics, {
-    plainPixel = "assets/fonts/plainpixel/PlainPixel-Regular.ttf",
-  })
+  self.fonts = FontCatalog.new(love and love.graphics,
+    core.fontPaths or {
+      plainPixel = "assets/fonts/plainpixel/PlainPixel-Regular.ttf",
+    })
 
   function self:active(game)
     local stack = game and game.stack
@@ -151,33 +153,74 @@ function Shell.new(core)
     return self.core:setting(key)
   end
 
-  function self:fontPolicy(viewport, safeArea, state)
+  local function shellControls(state)
+    if state.notice then return tostring(state.notice) end
+    if state.view == "mod_menus" then
+      return "A OPEN   SELECT PIN   B BACK"
+    elseif state.view == "gallery" then
+      return "LEFT/RIGHT FAMILY   A PREVIEW   B BACK"
+    elseif state.view == "gallery_preview" then
+      return "LEFT/RIGHT FIXTURE   UP/DOWN CONTENT   A SIZE   SELECT TEXT   START FONT"
+    elseif state.view == "v3_screen" then
+      local model = state.payload and state.payload.model or {}
+      return model.description or "A CHOOSE   B BACK"
+    end
+    return "A CHOOSE   B BACK"
+  end
+
+  local function shellCandidateFits(envelope, state, rows, font)
+    if not (type(envelope) == "table" and type(state) == "table"
+        and font and type(font.getWidth) == "function") then return false end
+    -- Shell rows, titles, and controls use the same per-run resolver as V3
+    -- presentation screens.  Candidate fitting is reserved for structural
+    -- availability; a single long translation must not resize the shell.
+    return true
+  end
+
+  function self:fontPolicy(viewport, safeArea, state, rows)
     local solved = self.core.pipeline.solver.solve({
       preset = state:preset(), viewport = viewport, safeArea = safeArea,
       uiSize = self:setting(state, "ui_size") or "auto",
       textSize = self:setting(state, "text_size") or "auto",
-      fontFamily = self:setting(state, "font") or "plain_pixel",
+      fontFamily = self:setting(state, "font") or "openttd_mono",
       density = self:setting(state, "density") or "auto",
       settingsRevision = self.settingsRevision,
+      probe = function(envelope, candidate)
+        local _, font = self.fonts:resolve(candidate)
+        return font and shellCandidateFits(envelope, state, rows, font) or false
+      end,
     })
-    return solved.ok and solved.value.font or { family="system", physicalPx=15 }
+    if solved.ok and solved.value and solved.value.font then
+      local resolved, _, code, message = self.fonts:resolve(
+        solved.value.font)
+      if resolved then
+        solved.value.font = resolved
+      else
+        return { family="system", step=1, physicalPx=15 },
+          Result.err(code or "font_unavailable", message)
+      end
+    end
+    return solved.ok and solved.value.font or { family="system", step=1,
+      physicalPx=15 }, solved
   end
 
   function self:draw(screen, viewport)
     viewport = Viewport.rect(viewport, love and love.graphics)
     local safeArea = Viewport.safeArea(viewport, love and love.graphics,
       love and love.window)
-    local policy = self:fontPolicy(viewport, safeArea, screen.model)
+    local rows = self:rows(screen)
+    local policy, shellSolved = self:fontPolicy(viewport, safeArea,
+      screen.model, rows)
     local font = self.fonts:get(policy)
     if not font then font = love.graphics.newFont(policy.physicalPx or 15) end
     if screen.model.view == "v3_screen" then
       local model = screen.model.payload and screen.model.payload.model
       if type(model) ~= "table" then return end
-      local solved = self.core.pipeline.solver.solve({
+      local solved = self.core.presentation:solveModel(model, {
         preset=model.preset or "M", viewport=viewport, safeArea=safeArea,
         uiSize=self:setting(screen.model, "ui_size") or "auto",
         textSize=self:setting(screen.model, "text_size") or "auto",
-        fontFamily=self:setting(screen.model, "font") or "plain_pixel",
+        fontFamily=self:setting(screen.model, "font") or "openttd_mono",
         density=self:setting(screen.model, "density") or "auto",
         settingsRevision=self.settingsRevision,
       })
@@ -188,17 +231,19 @@ function Shell.new(core)
         v3Font, self:setting(screen.model, "density") or "auto")
       if not layout then return end
       screen.model.layout, screen.rows = layout, model.rows or {}
-      local theme = self.core.themes:get(self.core:setting("theme") or "clean")
+      local theme = self.core:themeFor(
+        self:setting(screen.model, "theme") or "clean",
+        self:setting(screen.model, "dark_mode"))
       self.core.presentation:drawModel(model, layout, v3Font, theme)
       return
     end
     local preview = self:previewModel(screen.model)
     if preview then
-      local solved = self.core.pipeline.solver.solve({
+      local solved = self.core.presentation:solveModel(preview, {
         preset = preview.preset or "L", viewport = viewport, safeArea = safeArea,
         uiSize = self:previewSetting(screen.model, "ui_size") or "auto",
         textSize = self:previewSetting(screen.model, "text_size") or "auto",
-        fontFamily = self:previewSetting(screen.model, "font") or "plain_pixel",
+        fontFamily = self:previewSetting(screen.model, "font") or "openttd_mono",
         density = self:previewSetting(screen.model, "density") or "auto",
         settingsRevision = self.settingsRevision,
       })
@@ -213,21 +258,30 @@ function Shell.new(core)
       if not previewLayout then return end
       screen.model.layout = previewLayout
       screen.rows = previewModel.rows or previewModel.options or {}
-      local theme = self.core.themes:get(self.mod.options:get("theme") or "clean")
+      local theme = self.core:themeFor(
+        self:previewSetting(screen.model, "theme") or "clean",
+        self:previewSetting(screen.model, "dark_mode"))
       self.core.presentation:drawModel(previewModel, previewLayout,
         previewFont, theme)
       return
     end
-    local rows = self:rows(screen)
-    local layout = Layout.measure(self, screen.model, viewport, safeArea, rows, font)
+    local layout = Layout.measure(self, screen.model, viewport, safeArea, rows,
+      font, shellSolved)
     if not layout then return end
+    self.core.presentation:attachTextRuns(layout, policy)
     screen.model.layout, screen.rows = layout, rows
     if screen.model.modal then
       screen.model.modal.layout = Layout.measureModal(layout,
         screen.model.modal.descriptor, font)
+      self.core.presentation:attachTextRuns(screen.model.modal.layout, policy)
       Modal.ensureVisible(screen.model.modal)
     end
-    local theme = self.core.themes:get(self.mod.options:get("theme") or "clean")
+    local theme = self.core:themeFor(
+      self:setting(screen.model, "theme") or "clean",
+      self:setting(screen.model, "dark_mode"))
+    if self.core.dropdown then
+      self.core.presentation:attachTextRuns(self.core.dropdown.layout, policy)
+    end
     Render.draw(self, screen.model, layout, rows, font, theme)
   end
 
@@ -378,7 +432,8 @@ function Shell.new(core)
 
   local CONTENT_LEVELS = { "EMPTY", "MINIMAL", "NORMAL", "DENSE", "OVERFLOW" }
   local UI_SIZES = { "auto", "small", "medium", "large" }
-  local TEXT_SIZES = { "auto", "1", "2", "3", "4" }
+  local TEXT_SIZES = { "auto", "1", "2", "3" }
+  local FONTS = { "openttd_mono", "plain_pixel", "system" }
   local function cycle(values, current, delta)
     local found = 1
     for index, value in ipairs(values) do if value == current then found = index break end end
@@ -511,8 +566,7 @@ function Shell.new(core)
       screen.model.preview.text_size = cycle(TEXT_SIZES,
         screen.model.preview.text_size, 1)
     elseif screen.model.view == "gallery_preview" and input:wasPressed("start") then
-      screen.model.preview.font = screen.model.preview.font == "system"
-        and "plain_pixel" or "system"
+      screen.model.preview.font = cycle(FONTS, screen.model.preview.font, 1)
     elseif input:wasPressed("up") then
       if screen.model.view == "v3_screen" then
         screen.model:moveSelectable(-1, rows)

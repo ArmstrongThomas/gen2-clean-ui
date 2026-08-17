@@ -25,14 +25,19 @@ end
 local originalNewImage = assert(love and love.graphics
   and love.graphics.newImage, "LÖVE graphics.newImage is required")
 local loadedPaths = {}
+local filterCalls = 0
+local draws = {}
 local fakeImage = {
   getWidth = function() return 56 end,
   getHeight = function() return 56 end,
-  setFilter = function() end,
+  setFilter = function() filterCalls = filterCalls + 1 end,
 }
 local fakeGraphics = {
   setColor = function() end,
-  draw = function() end,
+  draw = function(...) draws[#draws + 1] = {...} end,
+  newQuad = function(x, y, w, h, iw, ih)
+    return { x=x, y=y, w=w, h=h, iw=iw, ih=ih }
+  end,
   getShader = function() return nil end,
   setShader = function() end,
 }
@@ -63,6 +68,23 @@ local ok, testError = xpcall(function()
     "v0.1.86 fallback loads a Battle/back generated sprite")
   check(loadedPaths[1] == frontPath and loadedPaths[2] == backPath,
     "fallback forwards only the declared generated sprite paths")
+  check(draws[1] ~= nil and math.abs(56 * draws[1][5] - 112) < 0.0001
+      and math.abs(56 * draws[1][6] - 112) < 0.0001,
+    "magnified sprites use a whole-pixel scale factor")
+  check(filterCalls == 2,
+    "every loaded sprite enables nearest-neighbor filtering")
+
+  local cropOk, cropCode = MenuRender.drawSprite(fakeGraphics, {
+    path=frontPath, crop={ x=0, y=0, w=16, h=16 },
+  }, { x=1.4, y=2.6, w=10.4, h=10.4 })
+  local cropDraw = draws[#draws]
+  check(cropOk == true and cropCode == nil and cropDraw ~= nil,
+    "cropped sprites render through the shared image path")
+  check(cropDraw[3] == 3 and cropDraw[4] == 4,
+    "cropped sprites snap their destination origin to pixel boundaries")
+  check(math.abs(16 * cropDraw[6] - 8) < 0.0001
+      and math.abs(16 * cropDraw[7] - 8) < 0.0001,
+    "cropped sprites use exact reciprocal reduction without mixels")
 
   for _, invalidPath in ipairs({
     "assets/generated/../secret.png",

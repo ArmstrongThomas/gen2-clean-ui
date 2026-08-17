@@ -138,9 +138,21 @@ return function(ctx)
     }
   end
 
+  local function growthThreshold(curve, level)
+    local n = math.max(1, math.floor(level))
+    local threshold = math.floor(curve.numerator * n * n * n
+      / curve.denominator) + curve.squared * n * n
+      + curve.linear * n - curve.constant
+    return math.max(0, math.floor(threshold))
+  end
+
   local function growthSnapshot(state, definition, level, experience)
     if level >= 100 then
-      return { level=level, nextLevel=100, experience=experience, toNext=0 }
+      return {
+        level=level, nextLevel=100, experience=experience,
+        currentThreshold=experience, nextThreshold=experience,
+        progress=0, progressSpan=0, fraction=1, toNext=0,
+      }
     end
     local pokemon = rawget(state, "pokemon")
     local curves = type(pokemon) == "table" and rawget(pokemon, "growthRates")
@@ -165,13 +177,21 @@ return function(ctx)
         and squared and linear and constant) then
       return fail("growth_incomplete", curveId)
     end
-    local n = level + 1
-    local threshold = math.floor(numerator * n * n * n / denominator)
-      + squared * n * n + linear * n - constant
-    threshold = math.max(0, math.floor(threshold))
+    local curveValues = {
+      numerator=numerator, denominator=denominator, squared=squared,
+      linear=linear, constant=constant,
+    }
+    local currentThreshold = growthThreshold(curveValues, level)
+    local threshold = growthThreshold(curveValues, level + 1)
+    local progressSpan = math.max(0, threshold - currentThreshold)
+    local progress = math.max(0, math.min(progressSpan,
+      experience - currentThreshold))
     return {
-      curveId=curveId, level=level, nextLevel=n,
+      curveId=curveId, level=level, nextLevel=level + 1,
       experience=experience, nextThreshold=threshold,
+      currentThreshold=currentThreshold, progress=progress,
+      progressSpan=progressSpan,
+      fraction=progressSpan > 0 and progress / progressSpan or 0,
       toNext=math.max(0, threshold - experience),
     }
   end
@@ -358,12 +378,20 @@ return function(ctx)
     local definition = species and rawget(rawget(state, "pokemon"), species)
       or nil
     local level = integer(rawget(mon, "level"), 1, 100)
-    local name = requiredText(rawget(mon, "nickname"))
-      or requiredText(rawget(mon, "name")) or species
     local dex = type(definition) == "table"
       and integer(rawget(definition, "dex"), 1, 9999) or nil
     local speciesName = type(definition) == "table"
       and requiredText(rawget(definition, "name")) or nil
+    local nickname = requiredText(rawget(mon, "nickname"))
+    local sourceName = requiredText(rawget(mon, "name"))
+    if not nickname and sourceName and speciesName
+        and sourceName:upper() ~= speciesName:upper() then
+      nickname = sourceName
+    end
+    if nickname and speciesName and nickname:upper() == speciesName:upper() then
+      nickname = nil
+    end
+    local name = nickname or speciesName or sourceName or species
     if not (species and type(definition) == "table" and level and name
         and dex and speciesName) then
       return fail("pokemon_definition", tostring(species))
@@ -420,6 +448,7 @@ return function(ctx)
     else
       addPageActions(actionMap, page, partyIndex, partyCount)
     end
+    local gender = Party.genderFor(state, mon)
     local model = {
       schema="clean_ui.presenter_model.v1", screenId="Gen2SummaryMenu",
       family="summary", preset="L", title="SUMMARY",
@@ -437,8 +466,10 @@ return function(ctx)
         moveIndex=moveIndex, moveCount=moveCount, swapFrom=swapFrom,
       },
       pokemon={
-        species=species, speciesName=speciesName, name=name, dex=dex,
-        level=level, gender=Data.scalar(rawget(mon, "gender")),
+        species=species, speciesName=speciesName, nickname=nickname,
+        name=name, dex=dex,
+        level=level, gender=gender,
+        genderIcon=Party.genderIconFor(gender),
         shiny=rawget(mon, "shiny") == true, isEgg=false,
       },
       artwork=artwork,
