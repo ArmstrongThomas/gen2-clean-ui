@@ -73,8 +73,11 @@ return function(ctx)
         {
           id = "page-header", role = "header",
           components = {
-            { type = "label",
-              text = "INFO  ·  AREA  ·  EVO  ·  MOVES  ·  TM" },
+            {
+              type = "tabs",
+              values = { "INFO", "AREA", "EVO", "MOVES", "TM" },
+              active = selectedAction <= 2 and selectedAction or nil,
+            },
           },
         },
         {

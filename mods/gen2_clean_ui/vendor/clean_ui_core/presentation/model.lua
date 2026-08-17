@@ -368,7 +368,7 @@ local function mapShape(value, name)
 end
 
 local DOCUMENT_COMPONENTS = {
-  heading = true, label = true, text = true, image = true, badges = true,
+  heading = true, label = true, tabs = true, text = true, image = true, badges = true,
   metadata = true, list = true, map = true, divider = true,
 }
 
@@ -404,6 +404,14 @@ local function documentComponentShape(value, name)
     if not nonEmptyString(value.text) then
       return nil, name .. ".text must be a non-empty string"
     end
+  elseif componentType == "tabs" or componentType == "badges" then
+    local count, collectionError = collection(value.values, name .. ".values",
+      "string")
+    if not count then return nil, collectionError end
+    if value.active ~= nil and (type(value.active) ~= "number"
+        or value.active < 1 or value.active > count) then
+      return nil, name .. ".active must identify one tab when present"
+    end
   elseif componentType == "text" then
     local count, collectionError = collection(value.lines, name .. ".lines",
       "string")
@@ -412,10 +420,6 @@ local function documentComponentShape(value, name)
     if not nonEmptyString(value.asset or value.path) then
       return nil, name .. " requires a non-empty asset or path"
     end
-  elseif componentType == "badges" then
-    local count, collectionError = collection(value.values, name .. ".values",
-      "string")
-    if not count then return nil, collectionError end
   elseif componentType == "metadata" or componentType == "list" then
     local count, collectionError = collection(value.items, name .. ".items",
       "table")

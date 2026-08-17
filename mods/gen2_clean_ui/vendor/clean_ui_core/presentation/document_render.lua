@@ -35,6 +35,19 @@ local function drawComponent(G, component, rect, layout, font, theme)
     printText(G, layout, font, theme, component.text, x, y, width, "heading")
   elseif kind == "label" then
     printText(G, layout, font, theme, component.text, x, y, width, "label")
+  elseif kind == "tabs" then
+    local values = component.values or {}
+    local tabWidth = width / math.max(1, #values)
+    for index, value in ipairs(values) do
+      local tabX = x + (index - 1) * tabWidth
+      local style = index == component.active and "accent" or "label"
+      printText(G, layout, font, theme, value, tabX, y, tabWidth, style)
+      if index == component.active then
+        Color.set(G, theme.colors.accent)
+        G.rectangle("fill", tabX, y + font:getHeight() + 2,
+          math.max(1, tabWidth - pad), math.max(1, math.floor(layout.scale)))
+      end
+    end
   elseif kind == "text" then
     for index, line in ipairs(component.lines or {}) do
       printText(G, layout, font, theme, line, x, y
