@@ -271,7 +271,7 @@ check(dexEntryView.sourceView == "entry" and dexEntryView.kind == "document"
   and dexEntryView.details.typeBadges[1] == "GRASS"
   and dexEntryView.details.fields[1].value == "No.152",
   "Pokedex entry presenter retains action, preview, and color-art data")
-check(dexEntryView.document.regions[1].components[2].text
+check(dexEntryView.document.regions[1].components[1].text
   == "INFO  ·  AREA  ·  EVO  ·  MOVES  ·  TM"
   and dexEntryView.document.regions[4].components[2].lines[1]
     == "Its leaf senses warmth.",

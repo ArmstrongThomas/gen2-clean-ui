@@ -73,7 +73,6 @@ return function(ctx)
         {
           id = "page-header", role = "header",
           components = {
-            { type = "heading", text = current.name or "ENTRY" },
             { type = "label",
               text = "INFO  ·  AREA  ·  EVO  ·  MOVES  ·  TM" },
           },
