@@ -128,7 +128,7 @@ return function(ctx)
       local namePadding = string.rep(" ",
         math.max(1, 10 - #name))
       local label = number .. "   " .. name .. namePadding
-        .. ". . . . . ."
+        .. ". ."
       rows[index] = row(source, marker, label)
     end
     local current = model.current or {}
@@ -136,7 +136,8 @@ return function(ctx)
     for index, item in ipairs(rows) do
       listItems[index] = {
         label = item.label,
-        value = item.right ~= "" and (string.rep(" ", 10) .. item.right)
+        value = item.right ~= "" and (". . . . " .. string.rep(" ", 2)
+          .. item.right)
           or item.right,
         selected = index == model.navigation.selectedIndex,
       }
@@ -168,16 +169,11 @@ return function(ctx)
       description = ("SEEN %d  OWNED %d   A DATA   A OPTIONS   B BACK")
         :format(model.totals.seen or 0, model.totals.caught or 0),
       art = Data.copy(current.art),
+      title = "POKEDEX  /  " .. tostring(model.sortMode)
+        .. string.rep(" ", 18) .. "MODE: "
+        .. tostring(model.sortMode) .. "  ·  001–251",
       document = {
         regions = {
-          {
-            id = "index-header", role = "header",
-            components = {
-              { type = "label",
-                text = "MODE: " .. tostring(model.sortMode)
-                  .. "  ·  001–251" },
-            },
-          },
           {
             id = "species-list", role = "content",
             components = {

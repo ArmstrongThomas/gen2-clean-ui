@@ -23,6 +23,8 @@ introduced.
 - Added a compact list-column header to the reachable Pokédex index.
 - Tuned Pokédex list row spacing with three-digit numbers, cleaner leaders,
   and right-justified status text.
+- Moved the index mode indicator into the title line and spread its visual
+  leaders across the name-to-status gap.
 - Redesigned the reachable Habitat presentation with map-backed landmark
   markers, region metadata, and safe route-list fallback behavior.
 - Added Linux fixture coverage for the new Pokédex reference data and habitat
