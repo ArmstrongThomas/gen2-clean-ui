@@ -121,34 +121,19 @@ return function(ctx)
     local rows = {}
     for index, source in ipairs(model.rows or {}) do
       local number = source.dex and source.dex > 0
-        and ("%03d"):format(source.dex) or "---"
+        and ("No.%03d"):format(source.dex) or ""
       local marker = source.caught and "OWNED"
-        or source.seen and "SEEN" or "UNSEEN"
+        or source.seen and "SEEN" or ""
       local label = number .. " " .. tostring(source.label or "-----")
       rows[index] = row(source, marker, label)
     end
     local current = model.current or {}
-    local visibleRows = 12
-    local selectedIndex = tonumber(model.navigation.selectedIndex) or 1
-    local scroll = math.max(0, tonumber(model.navigation.scroll) or 0)
-    if selectedIndex <= scroll then
-      scroll = selectedIndex - 1
-    elseif selectedIndex > scroll + visibleRows then
-      scroll = selectedIndex - visibleRows
-    end
-    scroll = math.min(scroll, math.max(0, #rows - visibleRows))
     local listItems = {}
     for index, item in ipairs(rows) do
       listItems[index] = {
         label = item.label,
         value = item.right,
-        selected = index == selectedIndex,
-        columns = {
-          number = item.label:match("^(%d+|%-%-%-)")
-            or "---",
-          name = item.label:gsub("^(%d+|%-%-%-)%s*", ""),
-          status = item.right,
-        },
+        selected = index == model.navigation.selectedIndex,
       }
     end
     local previewComponents = {
@@ -158,7 +143,7 @@ return function(ctx)
     local currentArt = sprite(current.art)
     if currentArt then
       previewComponents[#previewComponents + 1] = {
-        type = "image", asset = currentArt.path, maxHeight = 240,
+        type = "image", asset = currentArt.path,
       }
     end
     previewComponents[#previewComponents + 1] = {
@@ -167,18 +152,10 @@ return function(ctx)
     previewComponents[#previewComponents + 1] = {
       type = "label", text = status(current),
     }
-    previewComponents[#previewComponents + 1] = { type = "divider" }
-    previewComponents[#previewComponents + 1] = {
-      type = "metadata",
-      items = {
-        { label = "SEEN", value = model.totals.seen or 0 },
-        { label = "OWNED", value = model.totals.caught or 0 },
-      },
-    }
     return {
       rows = rows,
-      selected = selectedIndex,
-      scroll = scroll,
+      selected = model.navigation.selectedIndex,
+      scroll = model.navigation.scroll,
       details = richDetails(current.art, {
         { label = "NUMBER", value = dexNumber(current.dex) },
         { label = "STATUS", value = status(current), style = "accent" },
@@ -202,12 +179,10 @@ return function(ctx)
               {
                 type = "list",
                 items = listItems,
-                visible = visibleRows,
-                scroll = scroll,
                 scrollbar = {
                   side = "right",
-                  index = scroll,
-                  visible = visibleRows,
+                  index = model.navigation.scroll or 0,
+                  visible = 7,
                   total = #listItems,
                 },
               },
@@ -216,6 +191,18 @@ return function(ctx)
           {
             id = "preview", role = "content",
             components = previewComponents,
+          },
+          {
+            id = "progress", role = "footer",
+            components = {
+              {
+                type = "metadata",
+                items = {
+                  { label = "SEEN", value = model.totals.seen or 0 },
+                  { label = "OWNED", value = model.totals.caught or 0 },
+                },
+              },
+            },
           },
         },
         controls = "UP/DOWN SPECIES   A DATA   SELECT OPTIONS   B BACK",
