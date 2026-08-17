@@ -123,8 +123,9 @@ return function(ctx)
       local number = source.dex and source.dex > 0
         and ("No.%03d"):format(source.dex) or ""
       local marker = source.caught and "OWNED"
-        or source.seen and "SEEN" or ""
+        or source.seen and "SEEN" or "UNSEEN"
       local label = number .. " " .. tostring(source.label or "-----")
+        .. "  . . . ."
       rows[index] = row(source, marker, label)
     end
     local current = model.current or {}
@@ -191,18 +192,6 @@ return function(ctx)
           {
             id = "preview", role = "content",
             components = previewComponents,
-          },
-          {
-            id = "progress", role = "footer",
-            components = {
-              {
-                type = "metadata",
-                items = {
-                  { label = "SEEN", value = model.totals.seen or 0 },
-                  { label = "OWNED", value = model.totals.caught or 0 },
-                },
-              },
-            },
           },
         },
         controls = "UP/DOWN SPECIES   A DATA   SELECT OPTIONS   B BACK",
