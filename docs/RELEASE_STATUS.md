@@ -65,7 +65,7 @@ walkthrough confirms Clean UI ownership after sync; minor Mart bugs remain.
 
 - Manifest version: `0.4.0`.
 - Host floor: `>=0.1.87 <2.0.0`.
-- Core lock: pinned to the `0.1.0-alpha.12-local` development snapshot recorded
+- Core lock: pinned to the `0.1.0-alpha.13-local` development snapshot recorded
   in `clean-ui-core.lock.json`; the shared settings compatibility fallback now
   persists through public `mod.storage` on hosts without `mod.options:set`.
 - GitHub Actions validate the product and build logic. The `v0.1.0` release is

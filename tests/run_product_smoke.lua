@@ -110,7 +110,7 @@ for _, row in ipairs(definedSchema) do
 end
 assert(mod.exports.cleanUiHost.apiVersion == 3, "V3 host surface")
 assert(mod.exports.cleanUiHost.productId == "gen2_clean_ui", "exact product id")
-assert(mod.exports.cleanUiHost.coreVersion == "0.1.0-alpha.12",
+assert(mod.exports.cleanUiHost.coreVersion == "0.1.0-alpha.13",
   "vendored V3 core version")
 local coreModel = assert(loadfile(root
   .. "/mods/gen2_clean_ui/vendor/clean_ui_core/presentation/model.lua"))(
