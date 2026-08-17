@@ -253,10 +253,12 @@ check(dexListView.details.title == "CHIKORITA"
   and dexListView.details.fields[1].value == "No.152"
   and dexListView.details.fields[2].value == "OWNED"
   and dexListView.details.typeBadges[1] == "GRASS"
-  and dexListView.title
-    == "POKEDEX  /  NEW                  MODE: NEW  ·  001–251"
+  and dexListView.title == "POKEDEX  /  NEW"
   and dexListView.rows[1].label == "152   CHIKORITA . ."
   and dexListView.rows[1].right == "OWNED"
+  and dexListView.document.header.right.type == "label"
+  and dexListView.document.header.right.text
+    == "MODE: NEW  ·  001–251"
   and dexListView.document.regions[1].components[1].text
     == "NO.   NAME                       STATUS"
   and dexListView.document.regions[1].components[2].scroll == 0,
