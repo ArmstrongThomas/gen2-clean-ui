@@ -121,11 +121,11 @@ return function(ctx)
     local rows = {}
     for index, source in ipairs(model.rows or {}) do
       local number = source.dex and source.dex > 0
-        and ("No.%03d"):format(source.dex) or ""
+        and ("%03d"):format(source.dex) or "---"
       local marker = source.caught and "OWNED"
         or source.seen and "SEEN" or "UNSEEN"
       local label = number .. " " .. tostring(source.label or "-----")
-        .. "  . . . ."
+        .. "  . . . . . ."
       rows[index] = row(source, marker, label)
     end
     local current = model.current or {}
@@ -133,7 +133,8 @@ return function(ctx)
     for index, item in ipairs(rows) do
       listItems[index] = {
         label = item.label,
-        value = item.right,
+        value = item.right ~= "" and (string.rep(" ", 10) .. item.right)
+          or item.right,
         selected = index == model.navigation.selectedIndex,
       }
     end

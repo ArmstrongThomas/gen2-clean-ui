@@ -253,7 +253,7 @@ check(dexListView.details.title == "CHIKORITA"
   and dexListView.details.fields[1].value == "No.152"
   and dexListView.details.fields[2].value == "OWNED"
   and dexListView.details.typeBadges[1] == "GRASS"
-  and dexListView.rows[1].label == "No.152 CHIKORITA  . . . ."
+  and dexListView.rows[1].label == "152 CHIKORITA  . . . . . ."
   and dexListView.rows[1].right == "OWNED"
   and dexListView.document.regions[2].components[1].text
     == "NO.  NAME                  STATUS"

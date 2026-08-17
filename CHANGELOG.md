@@ -21,6 +21,8 @@ introduced.
 - Connected the document list viewport to the host Pokédex scroll offset so
   controller selection stays inside the visible rows.
 - Added a compact list-column header to the reachable Pokédex index.
+- Tuned Pokédex list row spacing with three-digit numbers, cleaner leaders,
+  and right-justified status text.
 - Redesigned the reachable Habitat presentation with map-backed landmark
   markers, region metadata, and safe route-list fallback behavior.
 - Added Linux fixture coverage for the new Pokédex reference data and habitat
