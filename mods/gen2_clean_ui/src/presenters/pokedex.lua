@@ -53,6 +53,66 @@ return function(ctx)
     return "UNSEEN"
   end
 
+  local function entryDocument(current, selectedAction)
+    local art = sprite(current.art)
+    local components = {
+      { type = "heading", text = current.name or "ENTRY" },
+      { type = "label", text = dexNumber(current.dex) .. " · "
+        .. tostring(current.kind or "UNKNOWN") },
+    }
+    if art then
+      components[#components + 1] = {
+        type = "image", asset = art.path, id = "species-art",
+      }
+    end
+    components[#components + 1] = {
+      type = "badges", values = Data.copy(current.types or {}),
+    }
+    return {
+      regions = {
+        {
+          id = "page-header", role = "header",
+          components = {
+            { type = "heading", text = current.name or "ENTRY" },
+            { type = "label",
+              text = "INFO  ·  AREA  ·  EVO  ·  MOVES  ·  TM" },
+          },
+        },
+        {
+          id = "identity", role = "content", components = components,
+        },
+        {
+          id = "metadata", role = "content",
+          components = {
+            {
+              type = "metadata",
+              items = {
+                { label = "NUMBER", value = dexNumber(current.dex) },
+                { label = "HEIGHT",
+                  value = current.caught and current.height or "?" },
+                { label = "WEIGHT",
+                  value = current.caught and current.weight or "?" },
+                { label = "STATUS", value = status(current), tone = "accent" },
+              },
+            },
+          },
+        },
+        {
+          id = "entry", role = "content",
+          components = {
+            { type = "heading", text = "POKÉDEX ENTRY" },
+            { type = "text", lines = Data.copy(current.pageLines or {}) },
+          },
+        },
+      },
+      controls = "LEFT/RIGHT PAGE   A SELECT   B BACK",
+      focus = {
+        initial = tostring(selectedAction or 1),
+        order = { "page-header", "identity", "metadata", "entry" },
+      },
+    }
+  end
+
   local function listPresentation(model)
     local rows = {}
     for index, source in ipairs(model.rows or {}) do
@@ -109,6 +169,7 @@ return function(ctx)
         .. tostring(current.page or 1),
       art = Data.copy(current.art),
       entry = Data.copy(current),
+      document = entryDocument(current, model.entry.selectedAction),
     }
   end
 
@@ -239,7 +300,7 @@ return function(ctx)
     if not convert then return nil, "unknown_view", model.view end
     local content, code = convert(model)
     if not content then return nil, code or "conversion_failed" end
-    content.kind = "menu"
+    content.kind = content.document and "document" or "menu"
     content.preset = "L"
     content.opaque = true
     content.title = content.title or ("POKEDEX  /  " .. tostring(model.sortMode))

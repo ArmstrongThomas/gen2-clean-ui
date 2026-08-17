@@ -263,13 +263,19 @@ check(dexEntry.model.entry.selectedAction == 3
   and dexEntry.model.entry.actions[3].id == "cry",
   "Pokedex entry preserves the native action cursor")
 local dexEntryView = assert(PokedexPresenter.convert(dexEntry.model))
-check(dexEntryView.sourceView == "entry" and dexEntryView.selected == 3
+check(dexEntryView.sourceView == "entry" and dexEntryView.kind == "document"
+  and dexEntryView.selected == 3
   and dexEntryView.art.paletteKey == "CHIKORITA"
   and dexEntryView.details.title == "CHIKORITA"
   and dexEntryView.title == "CHIKORITA  /  INFO 2"
   and dexEntryView.details.typeBadges[1] == "GRASS"
   and dexEntryView.details.fields[1].value == "No.152",
   "Pokedex entry presenter retains action, preview, and color-art data")
+check(dexEntryView.document.regions[1].components[2].text
+  == "INFO  ·  AREA  ·  EVO  ·  MOVES  ·  TM"
+  and dexEntryView.document.regions[4].components[2].lines[1]
+    == "Its leaf senses warmth.",
+  "Pokedex INFO uses the shared document page contract")
 
 dexState.view, dexState.areaRegion = "area", "johto"
 local dexArea = assert(Pokedex.extract(dexState))
