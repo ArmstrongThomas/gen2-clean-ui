@@ -456,6 +456,21 @@ local function documentComponentShape(value, name)
   return true
 end
 
+local function documentHeaderShape(value, name)
+  if value == nil then return true end
+  if type(value) ~= "table" then
+    return nil, name .. " must be a header descriptor"
+  end
+  for _, side in ipairs({ "left", "right" }) do
+    if value[side] ~= nil then
+      local valid, componentError = documentComponentShape(value[side],
+        name .. "." .. side)
+      if not valid then return nil, componentError end
+    end
+  end
+  return true
+end
+
 local function documentShape(value, name)
   if type(value) ~= "table" then
     return nil, name .. " must be a document descriptor"
@@ -493,6 +508,9 @@ local function documentShape(value, name)
       return nil, path .. ".overflow must be clip or scroll"
     end
   end
+  local headerOk, headerError = documentHeaderShape(value.header,
+    name .. ".header")
+  if not headerOk then return nil, headerError end
   local controlsOk, controlsError = documentControls(value.controls,
     name .. ".controls")
   if not controlsOk then return nil, controlsError end

@@ -120,6 +120,23 @@ local function drawComponent(G, component, rect, layout, font, theme)
   return true
 end
 
+local function drawHeaderSlot(G, component, layout, font, theme, side)
+  if type(component) ~= "table" then return true end
+  local text = tostring(component.text or "")
+  local style = component.style
+    or (component.type == "heading" and "heading" or "label")
+  local pad = math.max(8, math.floor(10 * layout.scale))
+  local width = math.max(1, math.min(layout.header.w - pad * 2,
+    font:getWidth(text)))
+  local x = side == "right"
+    and layout.header.x + layout.header.w - pad - width
+    or layout.header.x + pad
+  local y = layout.header.y
+    + math.floor((layout.header.h - font:getHeight()) / 2)
+  printText(G, layout, font, theme, text, x, y, width, style)
+  return true
+end
+
 function DocumentRender.draw(G, model, layout, font, theme)
   if model.opaque then
     Color.set(G, theme.colors.raised)
@@ -130,6 +147,17 @@ function DocumentRender.draw(G, model, layout, font, theme)
     + math.floor((layout.header.h - font:getHeight()) / 2)
   printText(G, layout, font, theme, model.title or "DOCUMENT",
     layout.header.x, titleY, layout.header.w, "heading")
+  local header = model.document and model.document.header
+  if type(header) == "table" then
+    for _, side in ipairs({ "left", "right" }) do
+      local component = header[side]
+      if component then
+        local ok, code, message = drawHeaderSlot(G, component, layout,
+          font, theme, side)
+        if ok ~= true then return nil, code, message end
+      end
+    end
+  end
   Color.set(G, theme.colors.muted)
   G.rectangle("fill", layout.header.x,
     layout.header.y + layout.header.h - 1, layout.header.w, 1)
