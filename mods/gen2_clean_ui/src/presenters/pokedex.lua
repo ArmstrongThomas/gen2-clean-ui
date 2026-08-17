@@ -55,6 +55,8 @@ return function(ctx)
 
   local function entryDocument(current, selectedAction)
     local art = sprite(current.art)
+    local activeTab = ({ [1] = 1, [2] = 2, [3] = 5, [4] = 6 })
+      [selectedAction]
     local components = {
       { type = "heading", text = current.name or "ENTRY" },
       { type = "label", text = dexNumber(current.dex) .. " · "
@@ -75,8 +77,8 @@ return function(ctx)
           components = {
             {
               type = "tabs",
-              values = { "INFO", "AREA", "EVO", "MOVES", "TM" },
-              active = selectedAction <= 2 and selectedAction or nil,
+              values = { "INFO", "AREA", "EVO", "MOVES/TM", "CRY", "PRNT" },
+              active = activeTab,
             },
           },
         },

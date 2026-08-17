@@ -273,7 +273,10 @@ check(dexEntryView.sourceView == "entry" and dexEntryView.kind == "document"
   "Pokedex entry presenter retains action, preview, and color-art data")
 check(dexEntryView.document.regions[1].components[1].type == "tabs"
   and dexEntryView.document.regions[1].components[1].values[1] == "INFO"
-  and dexEntryView.document.regions[1].components[1].active == nil
+  and dexEntryView.document.regions[1].components[1].values[4] == "MOVES/TM"
+  and dexEntryView.document.regions[1].components[1].values[5] == "CRY"
+  and dexEntryView.document.regions[1].components[1].values[6] == "PRNT"
+  and dexEntryView.document.regions[1].components[1].active == 5
   and dexEntryView.document.regions[4].components[2].lines[1]
     == "Its leaf senses warmth.",
   "Pokedex INFO uses the shared document page contract")
