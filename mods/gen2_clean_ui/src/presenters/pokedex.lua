@@ -153,14 +153,6 @@ return function(ctx)
     previewComponents[#previewComponents + 1] = {
       type = "label", text = status(current),
     }
-    previewComponents[#previewComponents + 1] = { type = "divider" }
-    previewComponents[#previewComponents + 1] = {
-      type = "metadata",
-      items = {
-        { label = "SEEN", value = model.totals.seen or 0 },
-        { label = "OWNED", value = model.totals.caught or 0 },
-      },
-    }
     return {
       rows = rows,
       selected = model.navigation.selectedIndex,
