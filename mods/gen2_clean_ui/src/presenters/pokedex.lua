@@ -175,7 +175,18 @@ return function(ctx)
           },
           {
             id = "species-list", role = "content",
-            components = { { type = "list", items = listItems } },
+            components = {
+              {
+                type = "list",
+                items = listItems,
+                scrollbar = {
+                  side = "right",
+                  index = model.navigation.scroll or 0,
+                  visible = 7,
+                  total = #listItems,
+                },
+              },
+            },
           },
           {
             id = "preview", role = "content",

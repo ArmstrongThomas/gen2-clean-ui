@@ -26,6 +26,32 @@ local function componentHeight(component, font, pad, regionHeight)
   return line + pad
 end
 
+local function drawScrollbar(G, component, rect, layout, theme, pad)
+  local railX = component.side == "right"
+    and rect.x + rect.w - pad or rect.x + math.floor(rect.w * 0.5)
+  local top = rect.y + pad
+  local bottom = rect.y + rect.h - pad
+  local railWidth = math.max(2, math.floor(layout.scale * 2))
+  local arrow = math.max(4, math.floor(6 * layout.scale))
+  Color.set(G, theme.colors.muted)
+  G.rectangle("fill", railX - math.floor(railWidth / 2), top + arrow,
+    railWidth, math.max(1, bottom - top - arrow * 2))
+  Color.set(G, theme.colors.ink)
+  G.rectangle("fill", railX - arrow, top, arrow * 2, arrow)
+  G.rectangle("fill", railX - arrow, bottom - arrow, arrow * 2, arrow)
+  local total = math.max(1, component.total or 1)
+  local visible = math.max(1, math.min(total, component.visible or 1))
+  local track = math.max(1, bottom - top - arrow * 2)
+  local thumbHeight = math.max(8, math.floor(track * visible / total))
+  local range = math.max(0, track - thumbHeight)
+  local index = math.max(0, math.min(total - visible, component.index or 0))
+  local thumbY = top + arrow + (total > visible
+    and range * index / (total - visible) or 0)
+  Color.set(G, theme.colors.gen2Accent or theme.colors.focus)
+  G.rectangle("fill", railX - math.floor(5 * layout.scale),
+    thumbY, math.max(2, math.floor(10 * layout.scale)), thumbHeight)
+end
+
 local function drawComponent(G, component, rect, layout, font, theme)
   local pad = math.max(8, math.floor(10 * layout.scale))
   local x, y, width = rect.x + pad, rect.y + pad, math.max(1, rect.w - pad * 2)
@@ -80,37 +106,11 @@ local function drawComponent(G, component, rect, layout, font, theme)
         width * 0.45, (item.selected or item.tone == "accent")
           and "accent" or "value")
     end
-  elseif kind == "scrollbar" then
-    local railX = component.anchor == "right"
-      and rect.x + rect.w - pad or rect.x + math.floor(rect.w * 0.5)
-    local top = rect.y + pad
-    local bottom = rect.y + rect.h - pad
-    local railWidth = math.max(2, math.floor(layout.scale * 2))
-    local arrow = math.max(4, math.floor(6 * layout.scale))
-    Color.set(G, theme.colors.muted)
-    G.rectangle("fill", railX - math.floor(railWidth / 2), top + arrow,
-      railWidth, math.max(1, bottom - top - arrow * 2))
-    Color.set(G, theme.colors.ink)
-    if G.polygon then
-      G.polygon("fill", railX, top, railX - arrow, top + arrow * 1.4,
-        railX + arrow, top + arrow * 1.4)
-      G.polygon("fill", railX, bottom, railX - arrow, bottom - arrow * 1.4,
-        railX + arrow, bottom - arrow * 1.4)
-    else
-      G.rectangle("fill", railX - arrow, top, arrow * 2, arrow)
-      G.rectangle("fill", railX - arrow, bottom - arrow, arrow * 2, arrow)
+    if kind == "list" and type(component.scrollbar) == "table" then
+      drawScrollbar(G, component.scrollbar, rect, layout, theme, pad)
     end
-    local total = math.max(1, component.total or 1)
-    local visible = math.max(1, math.min(total, component.visible or 1))
-    local track = math.max(1, bottom - top - arrow * 2)
-    local thumbHeight = math.max(8, math.floor(track * visible / total))
-    local range = math.max(0, track - thumbHeight)
-    local index = math.max(0, math.min(total - visible, component.index or 0))
-    local thumbY = top + arrow + (total > visible
-      and range * index / (total - visible) or 0)
-    Color.set(G, theme.colors.gen2Accent or theme.colors.focus)
-    G.rectangle("fill", railX - math.floor(5 * layout.scale),
-      thumbY, math.max(2, math.floor(10 * layout.scale)), thumbHeight)
+  elseif kind == "scrollbar" then
+    drawScrollbar(G, component, rect, layout, theme, pad)
   elseif kind == "image" then
     local ok, code, message = MenuRender.drawSprite(G, {
       path = component.asset or component.path,
