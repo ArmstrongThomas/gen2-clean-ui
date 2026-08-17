@@ -147,7 +147,8 @@ return function(ctx)
     local ok, code, detail = V.fields(state, {
       save = "table", data = "table", dex = "table", pokemon = "table",
       palettes = "table", rows = "table", modeIndex = "number",
-      index = "number", scroll = "number", view = "string", page = "number",
+      index = "number", scroll = "number", view = { "string", "nil" },
+      page = "number",
       entryAction = "number", optionIndex = "number", searchIndex = "number",
       unownIndex = "number", searchType = "table",
     })
@@ -166,7 +167,7 @@ return function(ctx)
   end
 
   local function pokedexMode(state)
-    local ok, code, detail = V.enum(state.view, "view",
+    local ok, code, detail = V.enum(state.view or "list", "view",
       { "list", "entry", "area", "option", "search", "unown" })
     if not ok then return nil, code, detail end
     ok, code, detail = V.integer(state.page, "page", 1, 2)
