@@ -18,7 +18,10 @@ local function componentHeight(component, font, pad, regionHeight)
   elseif kind == "text" then
     return math.max(line, #component.lines * line + pad)
   elseif kind == "metadata" or kind == "list" then
-    return math.max(line, #component.items * line + pad)
+    local count = component.visible or #component.items
+    return math.max(line, count * line + pad)
+  elseif kind == "scrollbar" then
+    return math.max(line, regionHeight)
   end
   return line + pad
 end
@@ -57,8 +60,14 @@ local function drawComponent(G, component, rect, layout, font, theme)
     MenuRender.drawTypeBadges(G, component.values, rect, font, theme,
       layout.scale)
   elseif kind == "metadata" or kind == "list" then
-    for index, item in ipairs(component.items or {}) do
-      local rowY = y + (index - 1) * (font:getHeight() + pad * 0.35)
+    local first = kind == "list" and (component.scroll or 0) + 1 or 1
+    local last = kind == "list" and math.min(#(component.items or {}),
+      first + (component.visible or #component.items) - 1)
+      or #(component.items or {})
+    for index = first, last do
+      local item = component.items[index]
+      local rowIndex = index - first + 1
+      local rowY = y + (rowIndex - 1) * (font:getHeight() + pad * 0.35)
       if item.selected then
         Color.set(G, theme.colors.selection)
         G.rectangle("fill", rect.x, rowY - math.floor(pad * 0.35),
@@ -71,6 +80,31 @@ local function drawComponent(G, component, rect, layout, font, theme)
         width * 0.45, (item.selected or item.tone == "accent")
           and "accent" or "value")
     end
+  elseif kind == "scrollbar" then
+    local railX = rect.x + math.floor(rect.w * 0.5)
+    local top = rect.y + pad
+    local bottom = rect.y + rect.h - pad
+    local railWidth = math.max(2, math.floor(layout.scale * 2))
+    local arrow = math.max(4, math.floor(6 * layout.scale))
+    Color.set(G, theme.colors.muted)
+    G.rectangle("fill", railX - math.floor(railWidth / 2), top + arrow,
+      railWidth, math.max(1, bottom - top - arrow * 2))
+    Color.set(G, theme.colors.text)
+    G.polygon("fill", railX, top, railX - arrow, top + arrow * 1.4,
+      railX + arrow, top + arrow * 1.4)
+    G.polygon("fill", railX, bottom, railX - arrow, bottom - arrow * 1.4,
+      railX + arrow, bottom - arrow * 1.4)
+    local total = math.max(1, component.total or 1)
+    local visible = math.max(1, math.min(total, component.visible or 1))
+    local track = math.max(1, bottom - top - arrow * 2)
+    local thumbHeight = math.max(8, math.floor(track * visible / total))
+    local range = math.max(0, track - thumbHeight)
+    local index = math.max(0, math.min(total - visible, component.index or 0))
+    local thumbY = top + arrow + (total > visible
+      and range * index / (total - visible) or 0)
+    Color.set(G, theme.colors.accent)
+    G.rectangle("fill", railX - math.floor(5 * layout.scale),
+      thumbY, math.max(2, math.floor(10 * layout.scale)), thumbHeight)
   elseif kind == "image" then
     local ok, code, message = MenuRender.drawSprite(G, {
       path = component.asset or component.path,
@@ -98,6 +132,10 @@ function DocumentRender.draw(G, model, layout, font, theme)
     G.rectangle("fill", region.rect.x, region.rect.y,
       region.rect.w, region.rect.h)
     local pad = math.max(8, math.floor(10 * layout.scale))
+    local clipped = type(G.setScissor) == "function"
+    if clipped then
+      G.setScissor(region.rect.x, region.rect.y, region.rect.w, region.rect.h)
+    end
     local cursor = region.rect.y
     for _, component in ipairs(region.source.components or {}) do
       local remaining = math.max(1, region.rect.y + region.rect.h - cursor)
@@ -112,6 +150,7 @@ function DocumentRender.draw(G, model, layout, font, theme)
       cursor = cursor + height
       if cursor >= region.rect.y + region.rect.h then break end
     end
+    if clipped then G.setScissor() end
   end
   local controls = model.controls or (model.document and model.document.controls)
   if type(controls) == "string" then

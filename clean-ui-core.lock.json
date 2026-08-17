@@ -3,7 +3,7 @@
     "status": "ready",
     "core": {
         "tag": "0.1.0-alpha.13-local",
-        "commit": "57aeeebad8ac9a515bbea29e11fec00480303faf"
+        "commit": "dee9a6b9663c1acb43a342fdf879f8a4d9d00f6f"
     },
     "files": [
         {
@@ -228,13 +228,13 @@
         },
         {
             "path": "presentation/document_layout.lua",
-            "sha256": "0b2403c7ac8de95789112259ff3f3ef85211b80ae6432e96d7fa6ece1e5377c1",
-            "size": 2704
+            "sha256": "24cb4845d6770ce828ae7cb432ce24eb3fa170d1f7e494c321533f49e58b7001",
+            "size": 3457
         },
         {
             "path": "presentation/document_render.lua",
-            "sha256": "03e07b731e4638c4086af3714efc637e2b9b884747ad7a3963447f5ef13216b0",
-            "size": 5206
+            "sha256": "cdfd35d8fb7137159024aec9257fcb49204aba93f8d6b65ba34e26b8d760bf38",
+            "size": 7180
         },
         {
             "path": "presentation/menu_layout.lua",
@@ -248,8 +248,8 @@
         },
         {
             "path": "presentation/model.lua",
-            "sha256": "a4d5ce440a09fb5e6e0fcf0476726efd8ec3c9f4090a4f7a62f86641cf0bb425",
-            "size": 34295
+            "sha256": "aaee49e4b035f6b184e0f750bdeb550a4bf044af647563acb271950c306e318f",
+            "size": 35019
         },
         {
             "path": "presentation/pipeline.lua",

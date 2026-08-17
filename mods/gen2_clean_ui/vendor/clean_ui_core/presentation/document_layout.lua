@@ -44,17 +44,39 @@ function DocumentLayout.measure(base, model, font, _density)
     top = top + height + pad
   end
   local available = math.max(1, body.y + body.h - top)
-  local columns = #contentRegions > 1 and 2 or 1
+  local columns = model.document.contentLayout == "columns"
+    and #contentRegions or (#contentRegions > 1 and 2 or 1)
   local cellWidth = (body.w - pad * (columns - 1)) / columns
+  local widths = {}
+  if model.document.contentLayout == "columns" then
+    local fixed = 0
+    local flexible = 0
+    for index, region in ipairs(contentRegions) do
+      if region.preferredWidth then
+        widths[index] = math.max(1, math.floor(region.preferredWidth * scale))
+        fixed = fixed + widths[index]
+      else
+        flexible = flexible + 1
+      end
+    end
+    local remaining = math.max(1, body.w - pad * (columns - 1) - fixed)
+    for index, width in ipairs(widths) do
+      if not width then widths[index] = remaining / math.max(1, flexible) end
+    end
+  end
   local cellHeight = math.max(1, available / math.max(1,
     math.ceil(#contentRegions / columns)))
   for index, region in ipairs(contentRegions) do
     local column = (index - 1) % columns
     local row = math.floor((index - 1) / columns)
+    local x = body.x
+    for previous = 1, column do
+      x = x + (widths[previous] or cellWidth) + pad
+    end
     regionLayouts[#regionLayouts + 1] = {
       source = region,
-      rect = Rect.new(body.x + column * (cellWidth + pad),
-        top + row * (cellHeight + pad), cellWidth, cellHeight),
+      rect = Rect.new(x, top + row * (cellHeight + pad),
+        widths[index] or cellWidth, cellHeight),
     }
   end
   local footerTop = footer.y

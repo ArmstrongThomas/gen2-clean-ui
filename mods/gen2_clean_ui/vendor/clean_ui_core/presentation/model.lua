@@ -369,7 +369,7 @@ end
 
 local DOCUMENT_COMPONENTS = {
   heading = true, label = true, tabs = true, text = true, image = true, badges = true,
-  metadata = true, list = true, map = true, divider = true,
+  metadata = true, list = true, scrollbar = true, map = true, divider = true,
 }
 
 local function documentControls(value, name)
@@ -434,6 +434,21 @@ local function documentComponentShape(value, name)
         return nil, path .. ".value must be a string or number"
       end
     end
+  elseif componentType == "scrollbar" then
+    for _, field in ipairs({ "index", "visible", "total" }) do
+      local number = value[field]
+      if type(number) ~= "number" or number ~= math.floor(number)
+          or number < 0 then
+        return nil, name .. "." .. field
+          .. " must be a non-negative integer"
+      end
+    end
+    if value.visible < 1 then
+      return nil, name .. ".visible must be positive"
+    end
+    if value.total > 0 and value.index > value.total then
+      return nil, name .. ".index must not exceed total"
+    end
   elseif componentType == "map" then
     local valid, mapError = mapShape(value.map, name .. ".map")
     if not valid then return nil, mapError end
@@ -493,6 +508,9 @@ local function documentShape(value, name)
         name .. ".focus.order", "string")
       if not focusCount then return nil, focusError end
     end
+  end
+  if value.contentLayout ~= nil and value.contentLayout ~= "columns" then
+    return nil, name .. ".contentLayout must be columns when present"
   end
   return true
 end
