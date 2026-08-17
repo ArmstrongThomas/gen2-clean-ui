@@ -90,10 +90,15 @@ local function drawComponent(G, component, rect, layout, font, theme)
     G.rectangle("fill", railX - math.floor(railWidth / 2), top + arrow,
       railWidth, math.max(1, bottom - top - arrow * 2))
     Color.set(G, theme.colors.ink)
-    G.polygon("fill", railX, top, railX - arrow, top + arrow * 1.4,
-      railX + arrow, top + arrow * 1.4)
-    G.polygon("fill", railX, bottom, railX - arrow, bottom - arrow * 1.4,
-      railX + arrow, bottom - arrow * 1.4)
+    if G.polygon then
+      G.polygon("fill", railX, top, railX - arrow, top + arrow * 1.4,
+        railX + arrow, top + arrow * 1.4)
+      G.polygon("fill", railX, bottom, railX - arrow, bottom - arrow * 1.4,
+        railX + arrow, bottom - arrow * 1.4)
+    else
+      G.rectangle("fill", railX - arrow, top, arrow * 2, arrow)
+      G.rectangle("fill", railX - arrow, bottom - arrow, arrow * 2, arrow)
+    end
     local total = math.max(1, component.total or 1)
     local visible = math.max(1, math.min(total, component.visible or 1))
     local track = math.max(1, bottom - top - arrow * 2)
