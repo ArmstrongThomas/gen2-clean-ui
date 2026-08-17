@@ -124,8 +124,11 @@ return function(ctx)
         and ("%03d"):format(source.dex) or "---"
       local marker = source.caught and "OWNED"
         or source.seen and "SEEN" or "UNSEEN"
-      local label = number .. " " .. tostring(source.label or "-----")
-        .. "  . . . . . ."
+      local name = tostring(source.label or "-----")
+      local namePadding = string.rep(" ",
+        math.max(1, 10 - #name))
+      local label = number .. "   " .. name .. namePadding
+        .. ". . . . . ."
       rows[index] = row(source, marker, label)
     end
     local current = model.current or {}
@@ -178,7 +181,8 @@ return function(ctx)
           {
             id = "species-list", role = "content",
             components = {
-              { type = "label", text = "NO.  NAME                  STATUS" },
+              { type = "label",
+                text = "NO.   NAME                       STATUS" },
               {
                 type = "list",
                 items = listItems,
