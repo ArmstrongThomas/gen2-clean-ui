@@ -177,6 +177,7 @@ return function(ctx)
           {
             id = "species-list", role = "content",
             components = {
+              { type = "label", text = "NO.  NAME                  STATUS" },
               {
                 type = "list",
                 items = listItems,
