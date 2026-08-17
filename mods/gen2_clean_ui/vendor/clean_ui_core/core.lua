@@ -33,12 +33,34 @@ local CAPABILITIES = {
   presentation_models = "0.1.0",
 }
 
+local function modAssetPath(mod, relative)
+  local assets = mod and mod.assets
+  if assets and type(assets.path) == "function" then
+    local ok, path = pcall(assets.path, assets, relative)
+    if ok and type(path) == "string" and path ~= "" then return path end
+  end
+  return relative
+end
+
 function Core.new(config)
   assert(type(config.provider) == "table", "product provider is required")
   assert(config.provider.game == "gen1" or config.provider.game == "gen2",
     "provider game must be gen1 or gen2")
+  local configuredPaths = config.fontPaths or {}
+  local fontPaths = {
+    -- Plain Pixel remains host-provided. The other bundled faces are resolved
+    -- through the public mod.assets:path facade so they work from both a
+    -- development folder and a mounted release archive.
+    plainPixel = configuredPaths.plainPixel or config.plainPixelPath
+      or "assets/fonts/plainpixel/PlainPixel-Regular.ttf",
+    system = configuredPaths.system,
+    openttdMono = configuredPaths.openttdMono or config.openttdMonoPath
+      or modAssetPath(config.mod,
+        "assets/fonts/openttd_mono/OpenTTD-Mono.ttf"),
+  }
   local self = {
     config = config, mod = config.mod, provider = config.provider,
+    fontPaths = fontPaths,
     version = Version, presets = Presets, themes = Themes.new(),
     sessions = Session.new(), dropdown = Dropdown.new(),
     transaction = Transaction, registry = Registry.new(config.provider.game),
@@ -50,7 +72,7 @@ function Core.new(config)
   self.modMenus = ModMenus.new(self.catalog, self.pins)
   self.pipeline = Pipeline.new({ provider = config.provider, solver = Solver,
     sessions = self.sessions, uiSize = "auto", textSize = "auto",
-    fontFamily = "plain_pixel", density = "auto" })
+    fontFamily = "openttd_mono", density = "auto" })
   self.host = Host.new({ registry = self.registry,
     productId = config.provider.productId, game = config.provider.game,
     capabilities = CAPABILITIES,
@@ -146,6 +168,12 @@ function Core.new(config)
     return Settings.set(self.mod, key, value, self.settingsSchema)
   end
 
+  function self:themeFor(themeId, darkMode)
+    if darkMode == nil then darkMode = self:setting("dark_mode", false) end
+    return self.themes:resolve(themeId or self:setting("theme", "clean"),
+      darkMode)
+  end
+
   function self:composeStartMenu(items, game)
     return StartMenu.compose(items, self.catalog, self.pins, {
       activate = function(key, selectedGame)
@@ -200,10 +228,10 @@ function Core.new(config)
     if not model then return nil, modelCode, modelMessage end
     local viewport = options.viewport or { x = 0, y = 0, w = width, h = height }
     local safeArea = options.safeArea or viewport
-    local solved = self.pipeline.solver.solve({
+    local solved = self.presentation:solveModel(model, {
       preset = model.preset, viewport = viewport, safeArea = safeArea,
       uiSize = options.uiSize or "auto", textSize = options.textSize or "auto",
-      fontFamily = options.fontFamily or "plain_pixel",
+      fontFamily = options.fontFamily or "openttd_mono",
       density = options.density or "auto",
     })
     if not solved.ok then
@@ -226,18 +254,21 @@ function Core.new(config)
     model = layout and layout.v3Model or model
     local font = options.font or (layout and layout.v3Font)
     if not font then
-      local solved = self.pipeline.solver.solve({
+      local solved = self.presentation:solveModel(model, {
         preset = model.preset, viewport = options.viewport or { x = 0, y = 0,
           w = layout and layout.outer.w or 640, h = layout and layout.outer.h or 360 },
         safeArea = options.safeArea or options.viewport,
         uiSize = options.uiSize or "auto", textSize = options.textSize or "auto",
-        fontFamily = options.fontFamily or "plain_pixel",
+        fontFamily = options.fontFamily or "openttd_mono",
         density = options.density or "auto",
       })
       if solved.ok then font = v3Font(self.presentation, solved.value.font) end
     end
     if not font then return nil, "font_unavailable", "V3 preview font is unavailable" end
-    local theme = self.themes:get(options.theme or "clean")
+    local requestedDark = options.darkMode
+    if requestedDark == nil then requestedDark = options.dark_mode end
+    local theme = self:themeFor(options.theme or self:setting("theme", "clean"),
+      requestedDark)
     return self.presentation:drawModel(model, layout, font, theme)
   end
 

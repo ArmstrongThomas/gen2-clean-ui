@@ -23,11 +23,10 @@ function Solver.solve(request)
   if request.logicalWidth then
     envelope = Envelope.withLogicalWidth(envelope, request.logicalWidth)
   end
-  local family = request.fontFamily == "system" and "system" or "plain_pixel"
-  local candidates = FontPolicy.candidates(request.textSize, envelope.scale)
-  for _, candidate in ipairs(candidates) do
-    local font = family == "system" and FontPolicy.systemEquivalent(candidate.step)
-      or candidate
+  local family = FontPolicy.normalizeFamily(request.fontFamily)
+  local candidates = FontPolicy.candidates(request.textSize, envelope.scale,
+    family)
+  for _, font in ipairs(candidates) do
     local complete, decisions = true, {}
     if request.probe then
       local ok, outcome = pcall(request.probe, envelope, font, request.density)

@@ -41,12 +41,13 @@ local function adaptiveWidth(shell, state, result, rows, font, pad, frame)
   return Envelope.withLogicalWidth(result, state.layoutWidth)
 end
 
-function Layout.measure(shell, state, viewport, safeArea, rows, font)
-  local solved = shell.core.pipeline.solver.solve({
+function Layout.measure(shell, state, viewport, safeArea, rows, font,
+    solvedOverride)
+  local solved = solvedOverride or shell.core.pipeline.solver.solve({
     preset = state:preset(), viewport = viewport, safeArea = safeArea or viewport,
     uiSize = shell:setting(state, "ui_size") or "auto",
     textSize = shell:setting(state, "text_size") or "auto",
-    fontFamily = shell:setting(state, "font") or "plain_pixel",
+    fontFamily = shell:setting(state, "font") or "openttd_mono",
     density = shell:setting(state, "density") or "auto",
     settingsRevision = shell.settingsRevision,
   })

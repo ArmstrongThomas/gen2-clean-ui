@@ -3,6 +3,40 @@
 Release history for Gen2 Clean UI. Version 0.1.0 is an intentionally early,
 experimental public release.
 
+## 0.3.0 — Unreleased
+
+The 0.2.0 release is complete. The development manifest now targets 0.3.0;
+the deferred battle and Pokegear boundaries remain unchanged while follow-up
+Clean UI work continues.
+
+- Added Yellow and reorganized the palette selector to Red, Blue, Yellow,
+  Gold, Silver, Crystal, with a shared Dark Mode toggle instead of separate
+  light/dark selector rows. Light High Contrast is now the light counterpart
+  to the existing dark High Contrast palette.
+- Started the Gen2-first Party/Summary redesign from the clean retro-modern
+  reference: a fixed six-slot party list, detached animated icon/gender/HP/
+  status/type row data, beveled one- or two-type badges, and source-ordered
+  JOURNAL / MOVES / DETAILS summary tabs with a stable independent move panel.
+- The party and summary renderers now use the supplied male/female sprite
+  sheet, the official two-frame party-icon cadence, and reusable non-stretched
+  PlainPixel hierarchy styles for headings, labels, values, and accents.
+- Tightened shared image presentation for all detached Gen2 UI art: party and
+  gender sprites, map tiles, crops, and animation images now use nearest
+  filtering and whole-pixel/reciprocal scaling with integer-aligned output
+  bounds. Gender icons follow the selected font's actual pixel height without
+  forcing a fractional source scale. Native tilemaps use one shared pixel
+  scale for the complete grid so responsive rounding cannot create seams.
+- Made OpenTTD Mono the default bundled font family. The public choices are
+  OpenTTD Mono, Plain Pixel, and System; public text steps are AUTO/1×/2×/3×.
+  Explicit internal 4× remains available for authored display styles only.
+- Added shared largest-fitting font-step fallback: required text is measured
+  before rendering and falls back one authored step at a time instead of being
+  truncated with an ellipsis.
+- Added declarative Clean control-scheme metadata for the new Party/Summary
+  surfaces. The summary tab strip follows the host's source page order, so it
+  does not require a controller remap; live tab, move-control, and icon-cadence
+  walkthrough proof still remains a user-test requirement.
+
 ## 0.2.0 — 2026-08-15
 
 ### Deferred — 2026-08-15
@@ -25,6 +59,9 @@ experimental public release.
   stable list/preview split, number-first rows, seen/owned status markers,
   type badges, detached palette-aware art, totals, and cleaner navigation
   hints. This remains a V3 menu composition, not a copied native canvas.
+- Synced the shared Core settings compatibility fix into the Gen2 vendor:
+  hosts that expose `mod.options:define/get` without `options:set` now persist
+  Clean UI settings through public `mod.storage` for the active playthrough.
 
 The battle-specific entries in the historical Added list below describe the
 removed attempt and are not current live-launcher support or acceptance proof.
@@ -32,6 +69,10 @@ The historical Pokegear entries below likewise describe an inactive reference
 implementation; Pokegear and Map Radio are native in the current product.
 
 ### Added
+
+- Updated `sync_gen2_clean_ui.cmd` to refresh the sibling `clean-ui-core`
+  checkout before syncing the mod or building the launcher archive. Local Core
+  sync now records the checkout's current Git HEAD automatically.
 
 - Completed the active Poké Mart V3 menu composition for top-level BUY/SELL,
   item buying, quantity selection, selling through the Pack child, and sell
@@ -232,6 +273,12 @@ implementation; Pokegear and Map Radio are native in the current product.
 
 ### Fixed
 
+- Added Red, Gold, Blue, Silver, and Crystal selectable palettes to the Clean
+  UI theme selector; each is included in the vendored Core registry.
+- Fixed the Mod Menus shell theme path to use the persistent Core settings
+  adapter instead of the released host's default-only `mod.options:get`
+  reader. Dark and High Contrast now apply to that page after changing them in
+  Clean UI Settings.
 - Relaxed live-stack suppression so a complete supported V3 child no longer
   falls back merely because a native source-owned parent remains below it.
   Unknown or native states above a clean state still fail open, while opaque

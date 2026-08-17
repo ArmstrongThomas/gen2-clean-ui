@@ -17,6 +17,23 @@ return function(ctx)
     return table.concat(labels, " / ")
   end
 
+  -- The party and summary screens intentionally use a new Clean UI control
+  -- contract.  These are descriptors only: the V3 host still owns the live
+  -- state machine and source-input dispatch.
+  local PARTY_CONTROL_SCHEME = {
+    id="gen2_party_clean_v1", focus="pokemon",
+    up="previous_pokemon", down="next_pokemon",
+    a="open_actions", b="back",
+  }
+  local SUMMARY_CONTROL_SCHEME = {
+    id="gen2_summary_clean_v1", focus="tabs",
+    left="previous_tab", right="next_tab",
+    up="previous_pokemon", down="next_pokemon",
+    a="activate", b="back",
+    moves={ up="previous_move", down="next_move",
+      a="pick_or_place_move", b="back", select="open_move_detail" },
+  }
+
   local function spriteDetails(artwork)
     if type(artwork) ~= "table" or type(artwork.path) ~= "string" then
       return nil
@@ -45,6 +62,12 @@ return function(ctx)
       output[index] = {
         id=row.id, sourceIndex=row.sourceIndex, kind=row.kind,
         label=row.label, right=right, disabled=row.disabled == true,
+        icon=Data.copy(row.icon), gender=row.gender,
+        genderIcon=Data.copy(row.genderIcon),
+        types=Data.copy(row.types), level=row.level,
+        hp=row.hp, maxHp=row.maxHp, hpFraction=row.hpFraction,
+        status=(row.status and row.status ~= "OK") and row.status or nil,
+        isEgg=row.isEgg == true,
         bar=row.kind ~= "back" and row.kind ~= "egg" and {
           fraction=row.hpFraction or 0,
         } or nil,
@@ -94,16 +117,22 @@ return function(ctx)
     local submenu = source.submenu
     if not submenu then return nil end
     local options = {}
+    local selected
     for index, item in ipairs(submenu.items or {}) do
-      options[index] = {
-        id=item.id, label=item.label, sourceIndex=item.sourceIndex,
-        kind=item.kind, disabled=item.disabled == true,
-        actionId=item.actionId,
-      }
+      if item.kind ~= "back" then
+        local displayIndex = #options + 1
+        options[displayIndex] = {
+          id=item.id, label=item.label, sourceIndex=item.sourceIndex,
+          kind=item.kind, disabled=item.disabled == true,
+          actionId=item.actionId,
+        }
+        if index == submenu.selectedIndex then selected = displayIndex end
+      end
     end
+    if #options < 1 then return nil end
     return {
       title=(submenu.pokemonName or "POKEMON") .. " ACTIONS",
-      selected=submenu.selectedIndex, options=options,
+      selected=selected or #options, options=options, compact=true,
       dim_opacity=0.3,
     }
   end
@@ -117,8 +146,6 @@ return function(ctx)
       description = "A CHOOSE   B BACK"
     elseif source.mode == "switch" then
       description = "A MOVE HERE   B CANCEL"
-    elseif source.selection and source.selection.kind == "back" then
-      description = "A BACK   B BACK"
     else
       description = "A CHOOSE   B BACK"
     end
@@ -129,6 +156,10 @@ return function(ctx)
       scroll=0, details=partyDetails(source), description=description,
       purpose="party", mode=source.mode, prompt=source.prompt,
       selection=Data.copy(source.selection),
+      party=Data.copy(source.party), partyLayout="list",
+      partyCount=#(source.party or {}),
+      partyCountText=("%d / 6"):format(#(source.party or {})),
+      controlScheme=Data.copy(PARTY_CONTROL_SCHEME),
       artwork=Data.copy(source.artwork),
       modal=partyModal(source),
       heldItemState=Data.copy(source.heldItemState),
@@ -176,6 +207,12 @@ return function(ctx)
       fields[#fields + 1] = { label="EXP", value=exp.experience }
       fields[#fields + 1] = { label="NEXT", value=exp.toNext }
       fields[#fields + 1] = { label="DEX", value=mon.dex }
+      fields[#fields + 1] = {
+        label="HELD", value=source.heldItem and source.heldItem.name or "NONE",
+      }
+      fields[#fields + 1] = {
+        label="POKERUS", value=status.pokerus or "NONE",
+      }
     elseif source.purpose == "moves" then
       fields[#fields + 1] = {
         label="HELD", value=source.heldItem and source.heldItem.name or "NONE",
@@ -209,11 +246,16 @@ return function(ctx)
       local trainer = source.stats and source.stats.trainer or {}
       fields[#fields + 1] = { label="OT", value=trainer.name }
       fields[#fields + 1] = { label="ID", value=trainer.id }
+      fields[#fields + 1] = { label="TYPE", value=typeLabel(source.status and source.status.types) }
+      fields[#fields + 1] = { label="DEX", value=mon.dex }
       for _, stat in ipairs(source.stats and source.stats.values or {}) do
         fields[#fields + 1] = {
           label=stat.label, value=stat.value,
         }
       end
+      fields[#fields + 1] = {
+        label="HELD", value=source.heldItem and source.heldItem.name or "NONE",
+      }
     end
     return details
   end
@@ -278,14 +320,49 @@ return function(ctx)
     end
     if source.mode == "move_reorder" then
       if source.moveDetail and source.moveDetail.reorderActive then
-        return "A PLACE MOVE   B CANCEL"
+        return "A PLACE MOVE   UP/DOWN MOVE   B CANCEL"
       end
-      return "A PICK MOVE   B BACK   LEFT/RIGHT POKEMON"
+      return "A PICK MOVE   UP/DOWN MOVE   B BACK"
     end
     if source.purpose == "moves" then
-      return "LEFT/RIGHT PAGE   SELECT REORDER   B BACK"
+      return "SELECT VIEW MOVES   UP/DOWN POKEMON   B BACK"
     end
     return "LEFT/RIGHT PAGE   UP/DOWN POKEMON   B BACK"
+  end
+
+  local function summaryControlLegend(source)
+    if source.mode == "egg" then
+      return {
+        { label="A/B BACK" },
+        { label="UP/DOWN POKEMON" },
+      }
+    end
+    if source.mode == "move_reorder" then
+      if source.moveDetail and source.moveDetail.reorderActive then
+        return {
+          { label="A PLACE MOVE" },
+          { label="UP/DOWN MOVE" },
+          { label="B CANCEL" },
+        }
+      end
+      return {
+        { label="A PICK MOVE" },
+        { label="UP/DOWN MOVE" },
+        { label="B BACK" },
+      }
+    end
+    if source.purpose == "moves" then
+      return {
+        { label="SELECT VIEW MOVES" },
+        { label="UP/DOWN POKEMON" },
+        { label="B BACK" },
+      }
+    end
+    return {
+      { label="LEFT/RIGHT PAGE" },
+      { label="UP/DOWN POKEMON" },
+      { label="B BACK" },
+    }
   end
 
   local function convertSummary(source)
@@ -307,6 +384,17 @@ return function(ctx)
     local selected = source.mode == "move_reorder"
       and source.navigation.moveIndex or nil
     local titleName = source.pokemon and source.pokemon.name or "POKEMON"
+    -- Gen2's source pages are navigated in this order: pink/status,
+    -- green/moves, blue/stats. Keep the Clean labels in that same order so
+    -- host-owned LEFT/RIGHT edges never land on a different visual tab.
+    local visualTabs = {
+      { id="journal", label="JOURNAL", sourcePage=1,
+        selected=source.sourcePage == 1 },
+      { id="moves", label="MOVES", sourcePage=2,
+        selected=source.sourcePage == 2 },
+      { id="details", label="DETAILS", sourcePage=3,
+        selected=source.sourcePage == 3 },
+    }
     local model = {
       kind="menu", screenId="Gen2SummaryMenu", preset="L", opaque=true,
       title=("%s - %s"):format(titleName,
@@ -314,8 +402,18 @@ return function(ctx)
       rows=rows, selected=selected, scroll=0,
       details=summaryDetails(source),
       description=summaryDescription(source),
+      controlLegend=summaryControlLegend(source),
       purpose=source.purpose, mode=source.mode,
-      pageTabs=Data.copy(source.pageTabs),
+      partyLayout="summary", pageTabs=visualTabs,
+      sourcePage=source.sourcePage,
+      summary={
+        pokemon=Data.copy(source.pokemon), status=Data.copy(source.status),
+        heldItem=Data.copy(source.heldItem), moves=Data.copy(source.moves),
+        stats=Data.copy(source.stats), artwork=Data.copy(source.artwork),
+        egg=Data.copy(source.egg), moveDetail=Data.copy(source.moveDetail),
+        purpose=source.purpose,
+      },
+      controlScheme=Data.copy(SUMMARY_CONTROL_SCHEME),
       navigation=Data.copy(source.navigation),
       artwork=Data.copy(source.artwork),
       heldItem=Data.copy(source.heldItem),

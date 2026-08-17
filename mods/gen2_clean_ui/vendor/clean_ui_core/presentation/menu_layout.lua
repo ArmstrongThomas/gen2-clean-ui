@@ -18,6 +18,32 @@ local function textWidth(font, value)
   return #text * math.max(1, (font:getHeight() or 15) * 0.6)
 end
 
+local function fontPixelHeight(font)
+  if font and type(font.getHeight) == "function" then
+    local ok, height = pcall(font.getHeight, font)
+    if ok and type(height) == "number" and height > 0 then
+      return math.max(1, math.floor(height + 0.5))
+    end
+  end
+  return 1
+end
+
+local function fixedBadgeWidth(font, scale, exemplar, minimum)
+  local pad = math.max(4, math.floor(6 * scale))
+  return math.max(tonumber(minimum) or 0,
+    textWidth(font, exemplar) + pad * 2)
+end
+
+local function knownGender(value)
+  value = tostring(value or ""):lower()
+  return value == "female" or value == "f"
+    or value == "male" or value == "m"
+    or value == "none" or value == "genderless"
+    or value == "no_gender" or value == "no-gender"
+    or value == "nogender" or value == "no gender"
+    or value == "unknown"
+end
+
 local function mapMarkers(region, model, scale)
   local map = type(model) == "table"
     and (model.mapCanvas or model.map) or nil
@@ -45,6 +71,7 @@ local function mapMarkers(region, model, scale)
       out[#out + 1] = {
         index=index, landmarkIndex=tonumber(row.index) or index,
         name=row.name, selected=row.selected == true,
+        nest=row.nest == true,
         player=type(map.player) == "table"
           and tonumber(map.player.index) == tonumber(row.index),
         current=type(map.current) == "table"
@@ -152,9 +179,276 @@ local function namingGeometry(region, model, font, scale, pad)
     rowHeight = rowHeight, gap = gap, columns = columns,
     maxLength = tonumber(naming.entry and naming.entry.maxLength) or 10,
     text = tostring(naming.entry and naming.entry.text or ""),
+    glyphs = type(naming.entry and naming.entry.glyphs) == "table"
+      and naming.entry.glyphs or nil,
     sourceLength = tonumber(naming.entry and naming.entry.sourceLength),
     cursor = naming.cursor or {},
   }
+end
+
+local function partyListGeometry(region, rows, model, font, scale, pad,
+    fontStep)
+  local visible = {}
+  for index, row in ipairs(rows or {}) do
+    -- Native adapters may expose a trailing CANCEL/BACK source boundary, but
+    -- the Clean party surface uses the fixed six-slot list and B for
+    -- returning. Keep this defensive filter for older snapshots.
+    if type(row) == "table" and row.kind ~= "back" then
+      visible[#visible + 1] = { index=index, row=row }
+    end
+  end
+  -- Keep the party surface a six-slot composition even when the source party
+  -- is only partially filled.  A variable row count makes a four-Pokemon
+  -- party stretch across the entire envelope and leaves the 1x pixel font
+  -- floating in excessive whitespace.
+  local slotCount = math.max(6, #visible)
+  local gap = math.max(1, math.floor(2 * scale))
+  local rowHeight = math.max(1, math.floor((region.h
+    - math.max(0, slotCount - 1) * gap) / math.max(1, slotCount)))
+  local innerGap = math.max(5, math.floor(8 * scale))
+  -- The authored gender sheet is 16px tall, but OpenTTD Mono is 10px at 1x.
+  -- Match the selected font's actual pixel height so the asset does not read
+  -- as a larger glyph, while still growing with the selected font step.
+  local genderIconSize = fontPixelHeight(font)
+  local badgeGap = math.max(2, math.floor(4 * scale))
+  local typeBadgeWidth = fixedBadgeWidth(font, scale, "ELECTRIC",
+    math.floor(30 * scale))
+  local statusWidth = fixedBadgeWidth(font, scale, "FNT",
+    math.floor(52 * scale))
+  local typeWidth = typeBadgeWidth * 2 + badgeGap
+  local levelWidth = math.max(math.floor(42 * scale),
+    textWidth(font, "Lv.99") + innerGap)
+  local maxNameWidth, maxHpWidth = 0, 0
+  for _, item in ipairs(visible) do
+    local row = item.row or {}
+    if row.kind ~= "empty" then
+      local label = tostring(row.label or (row.isEgg and "EGG" or "POKEMON"))
+      local genderWidth = knownGender(row.gender) and genderIconSize or 0
+      maxNameWidth = math.max(maxNameWidth, textWidth(font, label)
+        + genderWidth + (genderWidth > 0 and 4 or 0))
+      levelWidth = math.max(levelWidth,
+        textWidth(font, ("Lv.%s"):format(tostring(row.level or "--")))
+          + innerGap)
+      if not row.isEgg and row.hp ~= nil and row.maxHp ~= nil then
+        local hpLabel = ("%d / %d"):format(tonumber(row.hp) or 0,
+          tonumber(row.maxHp) or 0)
+        maxHpWidth = math.max(maxHpWidth, textWidth(font, "hp ")
+          + math.floor(3 * scale) + 14 + textWidth(font, hpLabel)
+          + math.floor(4 * scale))
+      end
+    end
+  end
+  local hpWidth = math.max(math.floor(128 * scale), maxHpWidth,
+    math.floor(76 * scale))
+  local measured, hitRegions = {}, {}
+  for slot = 1, slotCount do
+    local item = visible[slot]
+    local y = region.y + (slot - 1) * (rowHeight + gap)
+    local rect = Rect.new(region.x, y, region.w,
+      math.min(rowHeight, region.y + region.h - y))
+    local row = item and item.row or {
+      kind="empty", disabled=true, slot=slot,
+    }
+    measured[#measured + 1] = {
+      index=item and item.index or nil, row=row, rect=rect,
+    }
+    if item and row.disabled ~= true then
+      hitRegions[#hitRegions + 1] = {
+        id=tostring(row.id or item.index), index=item.index,
+        sourceIndex=row.sourceIndex or item.index,
+        rect=Rect.copy(rect), role="menu_row",
+      }
+    end
+  end
+  local identityX = region.x + innerGap + math.min(
+    math.max(1, rowHeight - innerGap * 2), math.floor(34 * scale)) + innerGap
+  local rightX = region.x + region.w - innerGap - typeWidth
+  local statusX = rightX - innerGap - statusWidth
+  local hpX = statusX - innerGap - hpWidth
+  local levelX = hpX - innerGap - levelWidth
+  local nameWidth = math.max(1, levelX - identityX - innerGap)
+  local textFits = rowHeight >= genderIconSize + innerGap * 2
+    and maxNameWidth <= nameWidth and maxHpWidth <= hpWidth
+  return {
+    region=Rect.copy(region), rows=measured, hitRegions=hitRegions,
+    rowHeight=rowHeight, visible=slotCount, gap=gap,
+    columns={
+      gap=innerGap, pokemonIconSize=math.min(
+        math.max(1, rowHeight - innerGap * 2), math.floor(34 * scale)),
+      genderIconSize=genderIconSize, statusWidth=statusWidth,
+      typeWidth=typeWidth, typeBadgeWidth=typeBadgeWidth,
+      hpWidth=hpWidth, levelWidth=levelWidth, nameWidth=nameWidth,
+      textFits=textFits,
+    },
+    textFits=textFits,
+  }
+end
+
+local function tabGeometry(header, model, font, scale, pad)
+  local tabs = model.pageTabs or {}
+  local gap = math.max(2, math.floor(5 * scale))
+  local tabPad = math.max(5, math.floor(8 * scale))
+  local height = math.max(font:getHeight() + math.floor(8 * scale),
+    math.floor(28 * scale))
+  local widths, total = {}, 0
+  for index, tab in ipairs(tabs) do
+    local width = math.max(math.floor(36 * scale),
+      font:getWidth(tab.label or tab.id or "TAB") + tabPad * 2)
+    widths[index] = width
+    total = total + width + (index > 1 and gap or 0)
+  end
+  local x = header.x + header.w - total
+  local y = header.y + math.max(0, (header.h - height) / 2)
+  local measured, hitRegions = {}, {}
+  for index, tab in ipairs(tabs) do
+    local rect = Rect.new(x, y, widths[index], height)
+    measured[#measured + 1] = { index=index, tab=tab, rect=rect }
+    hitRegions[#hitRegions + 1] = {
+      id=tostring(tab.id or index), index=index,
+      sourcePage=tab.sourcePage, tabId=tab.id,
+      rect=Rect.copy(rect), role="party_tab",
+    }
+    x = x + widths[index] + gap
+  end
+  return measured, hitRegions
+end
+
+local function summaryGeometry(region, model, font, scale, pad, fontStep)
+  local gap = math.max(6, math.floor(10 * scale))
+  local inner = Rect.inset(region, { x=pad, y=pad })
+  -- The identity rail can show a nickname, species caption, type chips, and
+  -- two independent progress bars. Keep enough vertical room for all of
+  -- those runs without letting the lower page content collapse.
+  local identityMinimum = font:getHeight() * 4 + gap * 3
+  local identityHeight = math.max(identityMinimum,
+    math.min(math.floor(inner.h * 0.31), math.floor(210 * scale)))
+  identityHeight = math.min(inner.h, identityHeight)
+  local portraitWidth = math.min(math.floor(inner.w * 0.30),
+    math.max(font:getHeight() * 4, identityHeight))
+  local portrait = Rect.new(inner.x, inner.y, portraitWidth,
+    math.max(1, identityHeight))
+  local info = Rect.new(portrait.x + portrait.w + gap, inner.y,
+    math.max(1, inner.x + inner.w - (portrait.x + portrait.w + gap)),
+    identityHeight)
+  local output = {
+    region=Rect.copy(region), inner=inner, portrait=portrait, info=info,
+    identity=Rect.copy(inner), moveRows={}, moveInfo=nil,
+    genderIconSize=fontPixelHeight(font),
+    typeBadgeWidth=fixedBadgeWidth(font, scale, "ELECTRIC",
+      math.floor(30 * scale)),
+    statusBadgeWidth=fixedBadgeWidth(font, scale, "FNT",
+      math.floor(52 * scale)),
+  }
+  local genderWidth = knownGender(model.summary and model.summary.pokemon
+    and model.summary.pokemon.gender) and output.genderIconSize or 0
+  local name = tostring(model.summary and model.summary.pokemon
+    and model.summary.pokemon.name or "POKEMON")
+  local level = ("Lv.%s"):format(tostring(model.summary
+    and model.summary.pokemon and model.summary.pokemon.level or "--"))
+  local identityGap = math.max(3, math.floor(4 * scale))
+  local nameAvailable = math.max(1, info.w - math.floor(16 * scale)
+    - textWidth(font, level) - gap)
+  local typeCount = model.summary and model.summary.status
+    and #(model.summary.status.types or {}) or 0
+  local typeX = info.x + math.floor(8 * scale) + genderWidth
+    + (genderWidth > 0 and math.max(3, math.floor(8 * scale)) or 0)
+  local typeRequired = typeCount > 0
+    and typeCount * output.typeBadgeWidth
+      + math.max(0, typeCount - 1) * math.max(2, math.floor(4 * scale)) or 0
+  output.textFits = textWidth(font, name) + genderWidth
+      + (genderWidth > 0 and identityGap or 0) <= nameAvailable
+    and typeX + typeRequired <= info.x + info.w - math.floor(8 * scale)
+    and textWidth(font, "HEALTHY") <= info.w - math.floor(16 * scale)
+  if model.purpose == "moves" or model.mode == "move_reorder" then
+    local moveY = inner.y + identityHeight + gap
+    local remaining = math.max(1, inner.y + inner.h - moveY)
+    local moveInfoHeight = math.min(math.max(font:getHeight() * 3 + gap,
+      math.floor(remaining * 0.34)), remaining)
+    local moveListHeight = math.max(1, remaining - moveInfoHeight - gap)
+    local moveList = Rect.new(inner.x, moveY, inner.w, moveListHeight)
+    local moveInfo = Rect.new(inner.x, moveList.y + moveList.h + gap,
+      inner.w, moveInfoHeight)
+    local rowGap = math.max(1, math.floor(2 * scale))
+    local rows = model.rows or {}
+    local rowHeight = math.max(1, math.floor((moveList.h
+      - math.max(0, #rows - 1) * rowGap) / math.max(1, #rows)))
+    for index, row in ipairs(rows) do
+      local y = moveList.y + (index - 1) * (rowHeight + rowGap)
+      output.moveRows[#output.moveRows + 1] = {
+        index=index, row=row,
+        rect=Rect.new(moveList.x, y, moveList.w,
+          math.min(rowHeight, moveList.y + moveList.h - y)),
+      }
+    end
+    output.moveList, output.moveInfo = moveList, moveInfo
+  else
+    output.content = Rect.new(inner.x, inner.y + identityHeight + gap,
+      inner.w, math.max(1, inner.y + inner.h
+        - (inner.y + identityHeight + gap)))
+  end
+  return output
+end
+
+local function modalGeometry(bounds, model, font, scale, pad, rowHeight)
+  if not model.modal then return nil, {} end
+  local frame = math.max(2, math.floor(2 * scale + 0.5))
+  local optionCount = #(model.modal.options or {})
+  local compact = model.modal.compact == true
+  local title = model.modal.title or model.modal.message or "CHOOSE"
+  local mw
+  if compact then
+    -- Action menus are short, single-purpose overlays. Size them from the
+    -- actual labels instead of borrowing the wide-screen modal width used by
+    -- long descriptions and child panels.
+    local required = textWidth(font, title) * 1.5
+    for _, option in ipairs(model.modal.options or {}) do
+      required = math.max(required, textWidth(font,
+        type(option) == "table" and option.label or option))
+    end
+    required = required + pad * 4 + math.floor(20 * scale)
+    mw = math.min(bounds.w, math.max(math.floor(260 * scale),
+      math.ceil(required)))
+  else
+    mw = math.min(bounds.w, math.max(math.floor(280 * scale),
+      math.floor(bounds.w * 0.82)))
+  end
+  local modalRowHeight = compact
+    and math.max(font:getHeight() + math.floor(4 * scale),
+      math.floor(36 * scale)) or rowHeight
+  local minimumHeight = compact and math.floor(96 * scale)
+    or math.floor(190 * scale)
+  local contentHeight = (compact and font:getHeight() * 2
+      or font:getHeight() * 3)
+    + (compact and pad * 3 or pad * 4)
+    + optionCount * modalRowHeight
+  local mh = math.min(bounds.h, math.max(minimumHeight, contentHeight))
+  local rect = Rect.new(bounds.x + (bounds.w - mw) / 2,
+    bounds.y + (bounds.h - mh) / 2, mw, mh)
+  local modalInner = inset(rect, frame + pad)
+  local top = math.max(font:getHeight() + math.floor(pad * 0.5),
+    math.floor((compact and 32 or 48) * scale))
+  local optionsRegion = Rect.new(modalInner.x, modalInner.y + top,
+    modalInner.w, math.max(0, modalInner.h - top))
+  local optionList = List.measure(optionsRegion, optionCount, modalRowHeight,
+    model.modal.selected, model.modal.scroll)
+  local optionRows, hitRegions = {}, {}
+  for _, optionRow in ipairs(optionList.rows) do
+    local option = model.modal.options[optionRow.index]
+    optionRows[#optionRows + 1] = {
+      index=optionRow.index, option=option, rect=optionRow.rect,
+    }
+    if option and not option.disabled then
+      hitRegions[#hitRegions + 1] = {
+        id=tostring(option.id or optionRow.index), index=optionRow.index,
+        rect=Rect.copy(optionRow.rect), role="modal_option",
+      }
+    end
+  end
+  return {
+    rect=rect, inner=modalInner, options=optionRows,
+    selected=model.modal.selected, titleHeight=top,
+    scroll=optionList.offset, visible=optionList.visible,
+  }, hitRegions
 end
 
 function MenuLayout.contentWidth(base, model, font, density)
@@ -229,6 +523,50 @@ function MenuLayout.measure(base, model, font, density)
     inner.w, footerHeight)
   local body = Rect.new(inner.x, header.y + header.h, inner.w,
     math.max(0, footer.y - header.y - header.h))
+  local fontStep = base.font and tonumber(base.font.step) or 1
+  local partyList = model.partyLayout == "list"
+    and partyListGeometry(body, model.rows or {}, model, font, scale, pad,
+      fontStep)
+    or nil
+  local partySummary = model.partyLayout == "summary"
+    and summaryGeometry(body, model, font, scale, pad, fontStep) or nil
+  local tabs, tabHitRegions
+  if partySummary then
+    tabs, tabHitRegions = tabGeometry(header, model, font, scale, pad)
+  end
+  if partyList or partySummary then
+    base.inner, base.header, base.body, base.footer = inner, header, body, footer
+    base.shell = nil
+    base.listRegion = body
+    base.detailRegion = nil
+    base.naming = nil
+    base.mapView, base.mapRegion, base.mapMarkers = false, body, nil
+    base.details = nil
+    base.partyList = partyList
+    base.summary = partySummary
+    base.tabs = tabs
+    base.rows = partyList and partyList.rows or {}
+    base.rowHeight = partyList and partyList.rowHeight or nil
+    base.scroll = 0
+    base.visibleRows = partyList and partyList.visible or 0
+    base.hitRegions = {}
+    if partyList then
+      for _, region in ipairs(partyList.hitRegions) do
+        base.hitRegions[#base.hitRegions + 1] = region
+      end
+    end
+    for _, region in ipairs(tabHitRegions or {}) do
+      base.hitRegions[#base.hitRegions + 1] = region
+    end
+    local modal, modalHitRegions = modalGeometry(inner, model, font, scale,
+      pad, partyList and partyList.rowHeight
+        or math.max(font:getHeight() + pad, math.floor(48 * scale)))
+    for _, region in ipairs(modalHitRegions) do
+      base.hitRegions[#base.hitRegions + 1] = region
+    end
+    base.modal = modal
+    return base
+  end
   local shell = (model.appShell or model.kind == "device")
     and shellGeometry(body, font, scale) or nil
   local namingScreen = type(model.naming) == "table"
@@ -360,6 +698,17 @@ function MenuLayout.measure(base, model, font, density)
   base.scroll, base.visibleRows = list.offset, list.visible
   base.hitRegions, base.modal = hitRegions, modal
   return base
+end
+
+-- The shared solver chooses a base policy for the frame.  Horizontal text is
+-- intentionally not part of this predicate: each renderer resolves its own
+-- constrained text run through layout.textRun, so one long translation or
+-- footer cannot shrink unrelated text on the same screen.
+function MenuLayout.fits(base, model, font, density)
+  if type(base) ~= "table" or type(model) ~= "table" then return false end
+  local measured = MenuLayout.measure(base, model, font, density)
+  if type(measured) ~= "table" then return false end
+  return true
 end
 
 return MenuLayout

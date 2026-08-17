@@ -1,6 +1,6 @@
 # Gen2 Clean UI release status
 
-Current line: `0.2.0` (release candidate pending merge to `main`).
+Current line: `0.3.0` (development). The `0.2.0` release is complete.
 
 ## Battle UI deferment — 2026-08-15
 
@@ -33,6 +33,12 @@ walkthrough confirms Clean UI ownership after sync; minor Mart bugs remain.
 
 ## Current state
 
+- Shared font policy: OpenTTD Mono is the default 10px 1x face; Plain Pixel
+  and System remain 15px 1x alternatives. Public choices are AUTO/1x/2x/3x,
+  while explicit 4x is reserved for internal authored styles. The shared
+  solver probes required text across the shell and detached V3 presentation
+  families and steps down before truncation; this is deterministic coverage,
+  not live-launcher proof.
 - Current milestone: continue non-battle Clean UI polish and verification.
   Battle is deferred and is not a release milestone for this worktree.
 - Runtime status: battle remains official-host/native by design. The previous
@@ -52,10 +58,11 @@ walkthrough confirms Clean UI ownership after sync; minor Mart bugs remain.
   battle reference changes; it includes no screenshots or host-repository
   changes. The GitHub release archive remains workflow-generated after merge.
 
-- Manifest version: `0.2.0`.
+- Manifest version: `0.3.0`.
 - Host floor: `>=0.1.87 <2.0.0`.
-- Core lock: pinned to the `0.1.0-alpha.12-dev` development snapshot recorded
-  in `clean-ui-core.lock.json`.
+- Core lock: pinned to the `0.1.0-alpha.12-local` development snapshot recorded
+  in `clean-ui-core.lock.json`; the shared settings compatibility fallback now
+  persists through public `mod.storage` on hosts without `mod.options:set`.
 - GitHub Actions validate the product and build logic. The `v0.1.0` release is
   published and its updater-ready archive is attached.
 - The release workflow's `GH_TOKEN` binding is covered by commit `115e1bb`;
@@ -208,8 +215,9 @@ at `docs/archive/battle-ui-deferred-2026-08-15/`.
   Clean UI message while preserving intentional page boundaries.
 - The production Start Menu responsive matrix passes 23,404 checks in both
   normal and headless runs across all required viewport/font/density settings.
-- The combined NAV/M responsive matrix passes 34,325 checks across the same
-  viewport, UI-size, text-size, font, density, and safe-area combinations.
+- The combined NAV/M responsive matrix passes 40,567 checks across the same
+  viewport, UI-size, text-size, font, density, and safe-area combinations,
+  including the shared largest-fitting font-step fallback regression.
 - The product now exports the Modern UI v1/v2 compatibility facade alongside
   `cleanUiHost` V3; its compatibility suite passes 33 checks with a graphics
   window and 30 in headless mode, and v2 surface failures retain native UI.

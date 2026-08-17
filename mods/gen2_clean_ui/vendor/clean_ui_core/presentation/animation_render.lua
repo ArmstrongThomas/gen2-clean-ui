@@ -20,20 +20,23 @@ local function printAt(G, font, color, value, x, y)
   G.print(tostring(value or ""), math.floor(x), math.floor(y))
 end
 
-local function drawLabels(G, font, theme, stage, labels)
+local function drawLabels(G, layout, font, theme, stage, labels)
   for _, label in ipairs(labels or {}) do
     if type(label) == "table" and type(label.text) == "string" then
       local width = stage.w * (tonumber(label.maxWidth) or 1)
-      local text = textFit(font, label.text, math.max(1, width))
+      local run = MenuRender.resolveTextRun(layout, font, label.text,
+        math.max(1, width))
+      local text = run.text
       local x = stage.x + stage.w * (tonumber(label.x) or 0)
-      local textWidth = font:getWidth(text)
+      local textWidth = run.width
       if label.align == "center" then
         x = x - textWidth * 0.5
       elseif label.align == "right" then
         x = x - textWidth
       end
       local y = stage.y + stage.h * (tonumber(label.y) or 0)
-      printAt(G, font, label.color or theme.colors.ink, text, x, y)
+      printAt(G, run.font, label.color or theme.colors.ink, text, x,
+        y + math.floor((font:getHeight() - run.height) / 2))
     end
   end
 end
@@ -229,21 +232,23 @@ function AnimationRender.draw(graphics, model, layout, font, theme)
   ok, code, message = drawSprites(G, layout.stage, animation.sprites)
   if ok ~= true then return nil, code, message end
 
-  drawLabels(G, font, theme, layout.stage, animation.labels)
+  drawLabels(G, layout, font, theme, layout.stage, animation.labels)
 
   if not overlay then
     local label = animation.label or model.title or animation.id
     local message = animation.message or model.message
     if label and label ~= "" then
+      local labelRun = MenuRender.resolveTextRun(layout, font, label,
+        layout.stage.w - layout.gap * 2)
       local labelY = layout.stage.y + layout.stage.h * 0.5
         - font:getHeight() * (message and 0.9 or 0.5)
-      printAt(G, font, theme.colors.ink,
-        textFit(font, label, layout.stage.w - layout.gap * 2),
+      printAt(G, labelRun.font, theme.colors.ink, labelRun.text,
         layout.stage.x + layout.gap, labelY)
     end
     if message and message ~= "" then
-      printAt(G, font, theme.colors.muted,
-        textFit(font, message, layout.stage.w - layout.gap * 2),
+      local messageRun = MenuRender.resolveTextRun(layout, font, message,
+        layout.stage.w - layout.gap * 2)
+      printAt(G, messageRun.font, theme.colors.muted, messageRun.text,
         layout.stage.x + layout.gap,
         layout.stage.y + layout.stage.h * 0.5 + math.max(2, font:getHeight()))
     end
@@ -253,11 +258,12 @@ function AnimationRender.draw(graphics, model, layout, font, theme)
     Color.set(G, theme.colors.raised)
     G.rectangle("fill", layout.caption.x, layout.caption.y,
       layout.caption.w, layout.caption.h)
-    printAt(G, font, theme.colors.ink,
-      textFit(font, model.title or animation.id,
-        layout.caption.w - layout.gap * 2),
+    local captionRun = MenuRender.resolveTextRun(layout, font,
+      model.title or animation.id, layout.caption.w - layout.gap * 2)
+    printAt(G, captionRun.font, theme.colors.ink, captionRun.text,
       layout.caption.x + layout.gap,
-      layout.caption.y + layout.gap)
+      layout.caption.y + layout.gap
+        + math.floor((font:getHeight() - captionRun.height) / 2))
     local progress = progressOf(animation)
     if progress ~= nil then
       Color.set(G, theme.colors.muted)

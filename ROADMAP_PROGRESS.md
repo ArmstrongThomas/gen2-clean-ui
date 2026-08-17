@@ -1,10 +1,36 @@
 # Gen2 Clean UI roadmap progress
 
-Last verified: 2026-08-15
+Last verified: 2026-08-17
 Release floor: `0.1.87`  
-Current manifest: `0.2.0`  
-Release policy: the 0.2.0 release PR includes the accumulated worktree; no
-host-repository changes or screenshots are checked in.
+Current manifest: `0.3.0`
+Release policy: 0.2.0 is released; the current 0.3.0 development line carries
+follow-up work only. No host-repository changes or screenshots are checked in.
+
+## Shared font choices — 2026-08-16
+
+- [x] Made OpenTTD Mono the default bundled font and retained Plain Pixel and
+  System as alternatives in the shared Core settings and both products.
+- [x] Kept the public size control discrete at AUTO/1×/2×/3×. Explicit 4× is
+  retained only for internal authored display styles; AUTO never selects it.
+- [x] Added general largest-fitting font-step fallback so required text steps
+  down before the renderer can truncate a line. Live launcher proof remains
+  user-test work.
+- [x] Added deterministic choice-order, physical-size, invalid-size, vendor
+  lock, asset-hash, and sandbox coverage. Visual font preference and live
+  launcher proof remain user-test work.
+
+## Pixel-perfect image presentation — 2026-08-17
+
+- [x] Centralized Core-owned image drawing so party icons, gender assets, map
+  tiles, sprite-sheet crops, and other detached raster layers use nearest
+  filtering, integer-aligned destinations, and whole-pixel/reciprocal scaling
+  to avoid mixed-size raster pixels.
+- [x] Sized gender assets from the selected font's measured pixel height so
+  the 16px authored sheet does not overpower OpenTTD Mono at 1× while still
+  growing with 2×/3× font selections.
+- [x] Added deterministic crop/filter/coordinate regression coverage and
+  refreshed the vendored Core snapshot in both products. Live visual proof at
+  multiple window sizes remains user-test work.
 
 ## Battle UI deferment — 2026-08-15
 
@@ -56,6 +82,32 @@ host-repository changes or screenshots are checked in.
   Mart owns the visible surface instead of the native Mart. Minor purchase,
   sale, or layout bugs remain for a later patch pass; this is not a claim of
   complete Mart polish.
+
+## Gen2 Party/Summary visual redesign — 2026-08-16
+
+- [x] Added a Gen2-first detached party list composition with six stable
+  visible slots, source-owned row indices, animated icon-sheet descriptors,
+  the supplied gender sheet, HP/current-max values, and independent
+  type/status regions.
+- [x] Added beveled type badges for one or two distinct types. Healthy rows
+  leave the status region empty; abnormal rows expose `PSN`, `PAR`, `SLP`,
+  `BRN`, `FRZ`, or `FNT` without replacing the condition with prose.
+- [x] Aligned the summary tab strip to the host-owned navigation order
+  `JOURNAL`, `MOVES`, `DETAILS`, so LEFT/RIGHT cannot land on the opposite
+  visual tab; the independent move list/detail panel and fixed envelope remain
+  intact.
+- [x] Added reusable Core text styles for labels, values, strong headings,
+  and accent text. Strong text uses an integer-pixel second pass instead of
+  stretching or squishing the authored PlainPixel font, and summary fields now
+  occupy structured two-column cards rather than floating at the top of a
+  mostly empty panel.
+- [x] Added deterministic Gen2 presenter assertions and shared-core geometry
+  assertions for row count, source indices, icon crops, healthy/abnormal
+  status, dual types, tab order, move slots, and envelope containment.
+- [ ] Live-verify Party/Summary controller behavior and icon motion in the
+  official launcher. The page strip now follows the host's source order, but
+  this deterministic work does not replace the required user walkthrough;
+  move control and child-stack behavior remain source-owned until tested.
 
 Future design ideas only — not an architecture decision:
 
@@ -210,10 +262,11 @@ release claims.
 - [x] Shared `clean-ui-core` and product suites pass after the battle removal;
   prior battle-renderer counts are historical archive results only.
 - [x] `tests/run_lua_tests.ps1`
--  - Lua syntax: 196 files passed
+-  - Lua syntax: 198 files passed
   - Contract/foundation/shared/product checks: all passed
-  - Non-battle Gallery/production checks: 779 and 174 checks passed
-  - Responsive NAV/M matrix: 34,325 checks passed
+  - Non-battle Gallery/production checks: 779 and 180 checks passed
+  - Responsive NAV/M matrix: 40,567 checks passed, including the shared
+    largest-fitting font-step fallback regression
   - Battle-specific adapter/renderer tests are no longer in the active suite;
     the source and tests are preserved under the deferment archive.
 - [x] `scripts/verify_core_lock.ps1` and `scripts/verify_sandbox.ps1` pass.

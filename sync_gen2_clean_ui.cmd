@@ -7,6 +7,8 @@ if not exist "%POWERSHELL_EXE%" set "POWERSHELL_EXE=powershell.exe"
 set "GEN2_CLEAN_UI_SOURCE=%~dp0mods\gen2_clean_ui"
 set "GEN2_CLEAN_UI_TARGET=%APPDATA%\pokemon-love2d\mods\gen2_clean_ui"
 set "GEN2_CLEAN_UI_PROJECT=%~dp0"
+set "GEN2_CLEAN_UI_CORE_SOURCE=%GEN2_CLEAN_UI_PROJECT%..\clean-ui-core"
+set "GEN2_CLEAN_UI_CORE_TAG=0.1.0-alpha.12-local"
 set "GEN2_CLEAN_UI_DEV_ROOT=%~dp0..\gen1recomp-grandmas-kitchen"
 set "GEN2_CLEAN_UI_DEV_TARGET=%GEN2_CLEAN_UI_DEV_ROOT%\mods\gen2_clean_ui"
 
@@ -14,6 +16,26 @@ if not exist "%GEN2_CLEAN_UI_SOURCE%\manifest.json" (
   echo ERROR: Could not find the mod source at:
   echo        "%GEN2_CLEAN_UI_SOURCE%"
   echo Run this script from the Gen2 Clean UI repository.
+  pause
+  exit /b 1
+)
+
+if not exist "%GEN2_CLEAN_UI_CORE_SOURCE%\src\clean_ui\bootstrap.lua" (
+  echo ERROR: Could not find the shared clean-ui-core checkout at:
+  echo        "%GEN2_CLEAN_UI_CORE_SOURCE%"
+  echo Refresh or clone the sibling clean-ui-core repository before syncing.
+  pause
+  exit /b 1
+)
+
+echo Refreshing shared Clean UI core...
+echo   Core: "%GEN2_CLEAN_UI_CORE_SOURCE%"
+
+"%POWERSHELL_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%GEN2_CLEAN_UI_PROJECT%scripts\sync_core.ps1" -Source "%GEN2_CLEAN_UI_CORE_SOURCE%" -Tag "%GEN2_CLEAN_UI_CORE_TAG%"
+
+if errorlevel 1 (
+  echo.
+  echo ERROR: The shared Clean UI core could not be refreshed.
   pause
   exit /b 1
 )
@@ -43,6 +65,7 @@ if errorlevel 1 (
 
 echo.
 echo Gen2 Clean UI synced successfully.
+echo The shared Clean UI core was refreshed before the mod sync.
 echo A launcher-ready ZIP was created in the project root.
 echo Restart the game to reload the mod.
 pause

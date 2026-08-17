@@ -201,4 +201,13 @@ function DialogueLayout.measure(base, model, font, density, priorEntries)
   return base
 end
 
+-- Horizontal text is resolved per run by the renderer.  Only layout-owned
+-- overflow remains a frame-level reason to try another base size.
+function DialogueLayout.fits(base, model, font, density, priorEntries)
+  local measured = DialogueLayout.measure(base, model, font, density,
+    priorEntries)
+  if measured.textOverflow then return false end
+  return true
+end
+
 return DialogueLayout

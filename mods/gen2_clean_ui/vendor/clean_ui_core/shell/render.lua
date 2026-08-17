@@ -1,6 +1,7 @@
 local requireCore = ...
 local Color = requireCore("design.color")
 local Frame = requireCore("design.frame")
+local MenuRender = requireCore("presentation.menu_render")
 
 local Render = {}
 
@@ -37,18 +38,21 @@ local function drawRows(shell, state, layout, rows, font, theme)
     end
     local baseline = rect.y + math.floor((rect.h - font:getHeight()) / 2)
     local right = tostring(row.right or "")
-    local rightWidth = right ~= "" and font:getWidth(right) or 0
+    local rightRun = right ~= "" and MenuRender.resolveTextRun(layout, font,
+      right, rect.w * 0.42) or nil
+    local rightWidth = rightRun and rightRun.width or 0
     local gap = math.max(8, math.floor(10 * layout.scale))
     local pinReserve = state.view == "mod_menus" and row.pinnable
       and layout.pinWidth or 0
     local labelMax = math.max(1, rect.w - rightWidth - pinReserve - gap * 3)
-    printAt(G, font, theme.colors.ink, textFit(font, row.label, labelMax),
-      rect.x + gap, baseline)
-    if right ~= "" then
+    MenuRender.printFitted(G, layout, font, theme.colors.ink, row.label,
+      rect.x + gap, baseline, labelMax)
+    if rightRun then
       local color = row.pinnable == false and theme.colors.muted
         or theme.colors.ink
-      printAt(G, font, color, textFit(font, right, rect.w * 0.42),
-        rect.x + rect.w - gap - math.min(rightWidth, rect.w * 0.42), baseline)
+      printAt(G, rightRun.font, color, rightRun.text,
+        rect.x + rect.w - gap - rightRun.width,
+        baseline + math.floor((font:getHeight() - rightRun.height) / 2))
     end
     if state.view == "mod_menus" and row.pinnable then
       local marker = row.pinned and "[P]" or "[ ]"
@@ -98,24 +102,23 @@ local function drawDropdown(shell, font, theme)
       local x = measured.rect.x + 10
       if not option.heading and option.icon ~= nil then
         local icon = tostring(option.icon)
-        printAt(G, font, color, textFit(font, icon,
-          math.max(1, layout.iconWidth - 10)), x,
+        MenuRender.printFitted(G, layout, font, color, icon, x,
           y + math.floor(((layout.rowHeight or measured.rect.h)
-            - font:getHeight()) / 2))
+            - font:getHeight()) / 2), math.max(1, layout.iconWidth - 10))
         x = x + layout.iconWidth
       end
       local labelY = y + math.floor(((layout.rowHeight or measured.rect.h)
         - font:getHeight()) / 2)
-      printAt(G, font, color, prefix .. tostring(option.label or ""), x,
-        labelY)
+      MenuRender.printFitted(G, layout, font, color,
+        prefix .. tostring(option.label or ""), x, labelY,
+        measured.rect.x + measured.rect.w - x - 10)
       if type(option.description) == "string"
           and option.description ~= "" and not option.heading then
-        printAt(G, font, theme.colors.muted,
-          textFit(font, option.description,
-            measured.rect.x + measured.rect.w - x - 10),
-          x, y + (layout.rowHeight or measured.rect.h)
+        MenuRender.printFitted(G, layout, font, theme.colors.muted,
+          option.description, x, y + (layout.rowHeight or measured.rect.h)
             + math.floor(((layout.descriptionHeight or 0)
-              - font:getHeight()) / 2))
+              - font:getHeight()) / 2),
+          measured.rect.x + measured.rect.w - x - 10)
       end
     end
   end
@@ -134,8 +137,8 @@ local function drawModal(state, font, theme)
   end
   Frame.draw(G, layout.rect, theme, layout.scale)
   local title = descriptor.title or "CHOOSE"
-  printAt(G, font, theme.colors.ink, textFit(font, title, layout.inner.w),
-    layout.inner.x, layout.inner.y)
+  MenuRender.printFitted(G, layout, font, theme.colors.ink, title,
+    layout.inner.x, layout.inner.y, layout.inner.w)
   if descriptor.message then
     Color.set(G, theme.colors.muted)
     G.setFont(font)
@@ -158,9 +161,10 @@ local function drawModal(state, font, theme)
           math.max(2, math.floor(3 * layout.scale)), measured.rect.h)
       end
       local color = option.disabled and theme.colors.muted or theme.colors.ink
-      printAt(G, font, color, textFit(font, option.label,
-        measured.rect.w - 20), measured.rect.x + 10,
-        y + math.floor((measured.rect.h - font:getHeight()) / 2))
+      MenuRender.printFitted(G, layout, font, color, option.label,
+        measured.rect.x + 10,
+        y + math.floor((measured.rect.h - font:getHeight()) / 2),
+        measured.rect.w - 20)
     end
   end
   G.setScissor()
@@ -173,8 +177,8 @@ function Render.draw(shell, state, layout, rows, font, theme)
   Frame.draw(G, layout.outer, theme, layout.scale)
   local titleY = layout.header.y
     + math.floor((layout.header.h - font:getHeight()) / 2)
-  printAt(G, font, theme.colors.ink, shell.content.title(state.view),
-    layout.header.x, titleY)
+  MenuRender.printFitted(G, layout, font, theme.colors.ink,
+    shell.content.title(state.view), layout.header.x, titleY, layout.header.w)
   Color.set(G, theme.colors.muted, 0.6)
   G.line(layout.header.x, layout.header.y + layout.header.h - 1,
     layout.header.x + layout.header.w, layout.header.y + layout.header.h - 1)
@@ -195,9 +199,10 @@ function Render.draw(shell, state, layout, rows, font, theme)
     controls = "A CHOOSE   B BACK"
   end
   if state.notice then controls = state.notice end
-  printAt(G, font, theme.colors.muted,
-    textFit(font, controls, layout.footer.w), layout.footer.x,
-    layout.footer.y + math.floor((layout.footer.h - font:getHeight()) / 2))
+  MenuRender.printFitted(G, layout, font, theme.colors.muted, controls,
+    layout.footer.x,
+    layout.footer.y + math.floor((layout.footer.h - font:getHeight()) / 2),
+    layout.footer.w)
   drawModal(state, font, theme)
   drawDropdown(shell, font, theme)
   G.setColor(1, 1, 1, 1)

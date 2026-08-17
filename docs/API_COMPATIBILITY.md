@@ -36,10 +36,11 @@ source-safe `mod.input:tap` helper. Clean UI retains the V3 pointer/touch
 provider and hit-testing groundwork, but it is intentionally disabled and
 hidden from the settings menu because screen-family pointer behavior is not
 yet reliable. This is low priority until keyboard/controller and screen
-replacement coverage are stable. The options facade is read-only, so the
-settings shell uses an in-memory V3 fallback for the remaining toggles and
-reset actions; those changes are session-local until the host exposes
-`mod.options:set`.
+replacement coverage are stable. The options facade is read-only on that host,
+so the settings shell uses the public `mod.storage` facade as a persistent V3
+fallback for the remaining toggles and reset actions. The fallback is scoped
+to the active playthrough and is session-local only before a storage context
+exists; a future `mod.options:set` writer remains preferred.
 
 ## Discovering the product
 
@@ -164,12 +165,13 @@ for direct `menu`, `dialogue`, `choice`, `battle`, `animation`, `device`, and
 screens fail registration or action-result replacement without displacing the
 previous valid screen.
 
-The product itself is migrating its presentation families through this same
-model vocabulary. The first production slices are the Main Menu, Start Menu,
-Options, TextBox, ChoiceBox, Party, Summary, Pack, Pokegear, Map Radio,
-Pokedex, Trainer Card, Save, Battle, and the transparent Battle Transition:
-all fifteen emit
-`clean_ui.v3.presentation.v1` models, and the product registers
+The product itself is migrating its active presentation families through this
+same model vocabulary. The current active slices include the Main Menu, Start
+Menu, Options, TextBox, ChoiceBox, Party, Summary, Pack, Pokedex, Trainer
+Card, Save, and supported service/commerce screens. Battle and the complete
+Pokegear family are explicitly native/deferred in the current product; their
+historical models and fixtures are not live replacement claims. Active slices
+emit `clean_ui.v3.presentation.v1` models, and the product registers
 callback-free `gen2_foundation_menus`, `gen2_shared_dialogue`,
 `gen2_party_menus`, `gen2_inventory_device`, `gen2_progress_menus`,
 `gen2_battle_preview`, `gen2_battle_animations`, and `gen2_extended_menus` contracts so the standalone
@@ -188,3 +190,33 @@ surfaces. Native/deferred IDs remain explicit only where complete-stack
 suppression, timing, or world-capture seams are not yet proven; any must-have
 capability found while closing those gaps should become a V3 fixture and API
 regression before adding a compatibility-only path.
+
+### Gen2 Party/Summary control boundary
+
+The current development slice presents Gen2 Party and Summary through a
+detached Clean layout. Party rows carry animated icon-sheet crops, the supplied
+gender-sheet descriptor, HP, status codes, and one/two-type data; Summary
+presents source-ordered `JOURNAL`, `MOVES`, and `DETAILS` tabs without resizing
+the content envelope. Core also exposes reusable non-stretched text styles for
+future panels. Presenters expose a plain-data `controlScheme` descriptor for
+the intended Clean navigation.
+
+Gender presentation uses the Gen2 species `genderRatio` when that V3 field is
+available: `0x00` is male-only, `0xFE` is female-only, and `0xFF` is
+genderless. The host uses `unknown` as its genderless runtime sentinel, which
+the Clean adapter maps to the authored none icon. Ordinary ratios continue to
+use the host's runtime gender so the mod does not reimplement battle
+semantics. The current host `Mon.gender` implementation is known to derive
+some ordinary and forced-gender results from DVs incorrectly; the adapter can
+correct the forced endpoint species only when `genderRatio` is present in the
+V3 species definition. If that field is absent from a payload, the adapter
+falls back to the raw host value and records a remaining V3-data limitation.
+
+That descriptor is not a controller implementation. The released V3 host
+keeps update/navigation and action dispatch source-owned and does not expose a
+safe edge-interception/remapping seam for these replacement screens. The
+summary strip therefore follows the official source page order rather than
+inventing a controller remap; this removes the visual tab inversion without
+altering source input. The current product still does not claim live tab,
+move-control, or icon-cadence proof, and does not synthesize held-input
+behavior from `mod.input:tap`.

@@ -1,7 +1,7 @@
-# Gen2 Clean UI 0.2.0
+# Gen2 Clean UI 0.3.0
 
 This is the modular Pokémon Gold product for the Clean UI rebuild. Version
-0.2.0 is an early public follow-up release.
+0.3.0 is the current development line following the 0.2.0 release.
 
 Battle UI is deliberately deferred as of 2026-08-15. The previous Clean UI
 battle adapters, presenters, detached renderer, ownership latch, and battle
@@ -16,6 +16,14 @@ The Pokegear family is likewise native for now: `Gen2Pokegear` and
 `Gen2MapRadio`, including phone, clock, map/Fly, and radio child surfaces, are
 not registered as active replacements. Their adapters and presenters remain
 inactive reference code for a later redesign.
+
+Gen2 Party and Summary are the first active 0.3.0 visual redesign slice. The
+detached presentation uses a six-slot party list, animated icon sheets, the
+supplied male/female sprite sheet, HP/status/type data, and source-ordered
+JOURNAL / MOVES / DETAILS tabs. Core provides reusable PlainPixel hierarchy
+styles without stretching the authored font. The presenter exposes Clean
+control metadata, while the released V3 host retains controller dispatch; live
+icon cadence and full tab/move walkthrough proof still require user testing.
 
 The current source package requires host release `0.1.87` or newer and contains
 the complete audited `v0.1.87` Gen2 screen registry, native-safety provider, and
