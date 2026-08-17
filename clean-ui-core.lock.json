@@ -3,7 +3,7 @@
     "status": "ready",
     "core": {
         "tag": "0.1.0-alpha.13-local",
-        "commit": "990c55bbb84e9011826b48bc34a34bd51fc78596"
+        "commit": "57aeeebad8ac9a515bbea29e11fec00480303faf"
     },
     "files": [
         {
@@ -233,8 +233,8 @@
         },
         {
             "path": "presentation/document_render.lua",
-            "sha256": "c437a1695f257be508d77f9c56ad2d9d302c98dedc3b9b43fef84ef2fcf396a4",
-            "size": 4937
+            "sha256": "03e07b731e4638c4086af3714efc637e2b9b884747ad7a3963447f5ef13216b0",
+            "size": 5206
         },
         {
             "path": "presentation/menu_layout.lua",
@@ -288,8 +288,8 @@
         },
         {
             "path": "surfaces/transaction.lua",
-            "sha256": "587baa67f7ba497678311e9d00dccd2a0b6e6e43a7648e168af50024bdeab048",
-            "size": 31907
+            "sha256": "6a73385b19e4aa1de92a47cc424da5f3a8da5dd5a26659a219fd0e9790de7bd4",
+            "size": 3932
         },
         {
             "path": "text/font_catalog.lua",

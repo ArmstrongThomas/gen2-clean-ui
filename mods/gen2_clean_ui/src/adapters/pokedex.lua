@@ -222,6 +222,11 @@ return function(ctx)
     return output
   end
 
+  local function displayType(value)
+    value = Data.text(value, "")
+    return value == "PSYCHIC_TYPE" and "PSYCHIC" or value
+  end
+
   local function currentSnapshot(state, current)
     if type(current) ~= "table" then return nil end
     local species = Data.id(rawget(current, "species"))
@@ -232,7 +237,7 @@ return function(ctx)
     local types, seenTypes = {}, {}
     for index = 1, 2 do
       local typeName = type(rawTypes) == "table"
-        and Data.text(rawget(rawTypes, index), "") or ""
+        and displayType(rawget(rawTypes, index)) or ""
       if typeName ~= "" and not seenTypes[typeName] then
         types[#types + 1] = typeName
         seenTypes[typeName] = true

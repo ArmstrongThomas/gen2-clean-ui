@@ -128,6 +128,30 @@ return function(ctx)
       rows[index] = row(source, marker, label)
     end
     local current = model.current or {}
+    local listItems = {}
+    for index, item in ipairs(rows) do
+      listItems[index] = {
+        label = item.label,
+        value = item.right,
+        selected = index == model.navigation.selectedIndex,
+      }
+    end
+    local previewComponents = {
+      { type = "heading", text = current.name or "-----" },
+      { type = "label", text = dexNumber(current.dex) },
+    }
+    local currentArt = sprite(current.art)
+    if currentArt then
+      previewComponents[#previewComponents + 1] = {
+        type = "image", asset = currentArt.path,
+      }
+    end
+    previewComponents[#previewComponents + 1] = {
+      type = "badges", values = Data.copy(current.types or {}),
+    }
+    previewComponents[#previewComponents + 1] = {
+      type = "label", text = status(current),
+    }
     return {
       rows = rows,
       selected = model.navigation.selectedIndex,
@@ -139,6 +163,39 @@ return function(ctx)
       description = ("SEEN %d  OWNED %d   A DATA   A OPTIONS   B BACK")
         :format(model.totals.seen or 0, model.totals.caught or 0),
       art = Data.copy(current.art),
+      document = {
+        regions = {
+          {
+            id = "index-header", role = "header",
+            components = {
+              { type = "label",
+                text = "MODE: " .. tostring(model.sortMode)
+                  .. "  ·  001–251" },
+            },
+          },
+          {
+            id = "species-list", role = "content",
+            components = { { type = "list", items = listItems } },
+          },
+          {
+            id = "preview", role = "content",
+            components = previewComponents,
+          },
+          {
+            id = "progress", role = "footer",
+            components = {
+              {
+                type = "metadata",
+                items = {
+                  { label = "SEEN", value = model.totals.seen or 0 },
+                  { label = "OWNED", value = model.totals.caught or 0 },
+                },
+              },
+            },
+          },
+        },
+        controls = "UP/DOWN SPECIES   A DATA   SELECT OPTIONS   B BACK",
+      },
     }
   end
 

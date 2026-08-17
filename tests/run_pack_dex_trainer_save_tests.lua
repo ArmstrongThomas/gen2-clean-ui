@@ -236,9 +236,9 @@ local dexListView = assert(PokedexPresenter.convert(dexList.model))
 check(dexListView.schema == "clean_ui.v3.presentation.v1"
   and dexListView.apiVersion == 3,
   "Pokedex presenter emits the canonical V3 model")
-check(dexListView.kind == "menu" and dexListView.preset == "L"
+check(dexListView.kind == "document" and dexListView.preset == "L"
   and dexListView.selected == 1,
-  "Pokedex list uses stable L presentation")
+  "Pokedex list uses the document index presentation")
 check(dexListView.details.sprite.path == "pokemon/chikorita/front.png"
   and dexListView.details.sprite.palette[2][1] == 120,
   "Pokedex presentation carries its full-color sprite descriptor")

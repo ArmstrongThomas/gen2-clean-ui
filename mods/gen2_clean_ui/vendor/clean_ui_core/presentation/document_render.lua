@@ -59,11 +59,17 @@ local function drawComponent(G, component, rect, layout, font, theme)
   elseif kind == "metadata" or kind == "list" then
     for index, item in ipairs(component.items or {}) do
       local rowY = y + (index - 1) * (font:getHeight() + pad * 0.35)
+      if item.selected then
+        Color.set(G, theme.colors.selection)
+        G.rectangle("fill", rect.x, rowY - math.floor(pad * 0.35),
+          rect.w, font:getHeight() + math.floor(pad * 0.7))
+      end
       printText(G, layout, font, theme, item.label, x, rowY, width * 0.55,
-        "label")
+        item.selected and "strong" or "label")
       local value = item.value == nil and "" or tostring(item.value)
       printText(G, layout, font, theme, value, x + width * 0.55, rowY,
-        width * 0.45, item.tone == "accent" and "accent" or "value")
+        width * 0.45, (item.selected or item.tone == "accent")
+          and "accent" or "value")
     end
   elseif kind == "image" then
     local ok, code, message = MenuRender.drawSprite(G, {
