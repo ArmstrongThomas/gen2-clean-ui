@@ -152,14 +152,6 @@ return function(ctx)
     previewComponents[#previewComponents + 1] = {
       type = "label", text = status(current),
     }
-    previewComponents[#previewComponents + 1] = { type = "divider" }
-    previewComponents[#previewComponents + 1] = {
-      type = "metadata",
-      items = {
-        { label = "SEEN", value = model.totals.seen or 0 },
-        { label = "OWNED", value = model.totals.caught or 0 },
-      },
-    }
     return {
       rows = rows,
       selected = model.navigation.selectedIndex,
@@ -183,24 +175,23 @@ return function(ctx)
           },
           {
             id = "species-list", role = "content",
-            overflow = "clip",
-            components = {
-              {
-                type = "list", items = listItems, visible = 12,
-                scroll = model.navigation.scroll or 0,
-              },
-              {
-                type = "scrollbar",
-                anchor = "right",
-                index = model.navigation.scroll or 0,
-                visible = 12,
-                total = #listItems,
-              },
-            },
+            components = { { type = "list", items = listItems } },
           },
           {
             id = "preview", role = "content",
             components = previewComponents,
+          },
+          {
+            id = "progress", role = "footer",
+            components = {
+              {
+                type = "metadata",
+                items = {
+                  { label = "SEEN", value = model.totals.seen or 0 },
+                  { label = "OWNED", value = model.totals.caught or 0 },
+                },
+              },
+            },
           },
         },
         controls = "UP/DOWN SPECIES   A DATA   SELECT OPTIONS   B BACK",
