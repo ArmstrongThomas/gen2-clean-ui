@@ -20,6 +20,8 @@ introduced.
   lightweight leaders, and footer-safe composition.
 - Connected the document list viewport to the host Pokédex scroll offset so
   controller selection stays inside the visible rows.
+- Moved Pokédex seen/owned progress into the species preview composition,
+  keeping the persistent controller footer clear.
 - Redesigned the reachable Habitat presentation with map-backed landmark
   markers, region metadata, and safe route-list fallback behavior.
 - Added Linux fixture coverage for the new Pokédex reference data and habitat
