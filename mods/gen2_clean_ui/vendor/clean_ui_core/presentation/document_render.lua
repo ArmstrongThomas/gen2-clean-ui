@@ -10,6 +10,19 @@ local function printText(G, layout, font, theme, text, x, y, width, style)
     width, style or "body")
 end
 
+local function componentHeight(component, font, pad, regionHeight)
+  local kind = component.type
+  local line = font:getHeight() + math.floor(pad * 0.35)
+  if kind == "image" then
+    return math.max(line, math.min(regionHeight, math.floor(regionHeight * 0.58)))
+  elseif kind == "text" then
+    return math.max(line, #component.lines * line + pad)
+  elseif kind == "metadata" or kind == "list" then
+    return math.max(line, #component.items * line + pad)
+  end
+  return line + pad
+end
+
 local function drawComponent(G, component, rect, layout, font, theme)
   local pad = math.max(8, math.floor(10 * layout.scale))
   local x, y, width = rect.x + pad, rect.y + pad, math.max(1, rect.w - pad * 2)
@@ -65,10 +78,20 @@ function DocumentRender.draw(G, model, layout, font, theme)
     Color.set(G, theme.colors.raised)
     G.rectangle("fill", region.rect.x, region.rect.y,
       region.rect.w, region.rect.h)
+    local pad = math.max(8, math.floor(10 * layout.scale))
+    local cursor = region.rect.y
     for _, component in ipairs(region.source.components or {}) do
-      local ok, code, message = drawComponent(G, component, region.rect,
+      local remaining = math.max(1, region.rect.y + region.rect.h - cursor)
+      local height = math.min(remaining,
+        componentHeight(component, font, pad, region.rect.h))
+      local componentRect = {
+        x = region.rect.x, y = cursor, w = region.rect.w, h = height,
+      }
+      local ok, code, message = drawComponent(G, component, componentRect,
         layout, font, theme)
       if ok ~= true then return nil, code, message end
+      cursor = cursor + height
+      if cursor >= region.rect.y + region.rect.h then break end
     end
   end
   local controls = model.controls or (model.document and model.document.controls)
