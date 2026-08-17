@@ -14,7 +14,11 @@ local function componentHeight(component, font, pad, regionHeight)
   local kind = component.type
   local line = font:getHeight() + math.floor(pad * 0.35)
   if kind == "image" then
-    return math.max(line, math.min(regionHeight, math.floor(regionHeight * 0.58)))
+    local height = math.min(regionHeight, math.floor(regionHeight * 0.58))
+    if component.maxHeight then
+      height = math.min(height, math.floor(component.maxHeight))
+    end
+    return math.max(line, height)
   elseif kind == "text" then
     return math.max(line, #component.lines * line + pad)
   elseif kind == "metadata" or kind == "list" then
@@ -37,8 +41,15 @@ local function drawScrollbar(G, component, rect, layout, theme, pad)
   G.rectangle("fill", railX - math.floor(railWidth / 2), top + arrow,
     railWidth, math.max(1, bottom - top - arrow * 2))
   Color.set(G, theme.colors.ink)
-  G.rectangle("fill", railX - arrow, top, arrow * 2, arrow)
-  G.rectangle("fill", railX - arrow, bottom - arrow, arrow * 2, arrow)
+  if type(G.polygon) == "function" then
+    G.polygon("fill", railX, top, railX - arrow, top + arrow * 1.4,
+      railX + arrow, top + arrow * 1.4)
+    G.polygon("fill", railX, bottom, railX - arrow, bottom - arrow * 1.4,
+      railX + arrow, bottom - arrow * 1.4)
+  else
+    G.rectangle("fill", railX - arrow, top, arrow * 2, arrow)
+    G.rectangle("fill", railX - arrow, bottom - arrow, arrow * 2, arrow)
+  end
   local total = math.max(1, component.total or 1)
   local visible = math.max(1, math.min(total, component.visible or 1))
   local track = math.max(1, bottom - top - arrow * 2)
@@ -99,12 +110,35 @@ local function drawComponent(G, component, rect, layout, font, theme)
         G.rectangle("fill", rect.x, rowY - math.floor(pad * 0.35),
           rect.w, font:getHeight() + math.floor(pad * 0.7))
       end
-      printText(G, layout, font, theme, item.label, x, rowY, width * 0.55,
-        item.selected and "strong" or "label")
-      local value = item.value == nil and "" or tostring(item.value)
-      printText(G, layout, font, theme, value, x + width * 0.55, rowY,
-        width * 0.45, (item.selected or item.tone == "accent")
-          and "accent" or "value")
+      if type(item.columns) == "table" then
+        local numberWidth = width * 0.18
+        local statusWidth = width * 0.24
+        local nameX = x + numberWidth
+        local statusX = x + width - statusWidth
+        printText(G, layout, font, theme, item.columns.number or "",
+          x, rowY, numberWidth, item.selected and "strong" or "label")
+        local nameRun = printText(G, layout, font, theme,
+          item.columns.name or item.label, nameX, rowY,
+          statusX - nameX, item.selected and "strong" or "label")
+        local leaderStart = nameX + (nameRun.width or 0) + pad * 0.35
+        local leaderWidth = statusX - leaderStart - pad * 0.35
+        if leaderWidth > font:getWidth(".") then
+          local count = math.max(1, math.floor(leaderWidth
+            / math.max(1, font:getWidth(". "))))
+          printText(G, layout, font, theme, string.rep(". ", count),
+            leaderStart, rowY, leaderWidth, "caption")
+        end
+        printText(G, layout, font, theme, item.columns.status or "",
+          statusX, rowY, statusWidth,
+          item.selected and "accent" or "value")
+      else
+        printText(G, layout, font, theme, item.label, x, rowY, width * 0.55,
+          item.selected and "strong" or "label")
+        local value = item.value == nil and "" or tostring(item.value)
+        printText(G, layout, font, theme, value, x + width * 0.55, rowY,
+          width * 0.45, (item.selected or item.tone == "accent")
+            and "accent" or "value")
+      end
     end
     if kind == "list" and type(component.scrollbar) == "table" then
       drawScrollbar(G, component.scrollbar, rect, layout, theme, pad)
@@ -112,9 +146,17 @@ local function drawComponent(G, component, rect, layout, font, theme)
   elseif kind == "scrollbar" then
     drawScrollbar(G, component, rect, layout, theme, pad)
   elseif kind == "image" then
+    local imageRect = rect
+    if component.maxHeight then
+      local height = math.min(rect.h, math.floor(component.maxHeight))
+      imageRect = {
+        x = rect.x, y = rect.y + math.floor((rect.h - height) * 0.5),
+        w = rect.w, h = height,
+      }
+    end
     local ok, code, message = MenuRender.drawSprite(G, {
       path = component.asset or component.path,
-    }, rect)
+    }, imageRect)
     if ok ~= true then return nil, code, message end
   end
   return true

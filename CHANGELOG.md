@@ -16,6 +16,9 @@ introduced.
   requirements, level-up moves, and TM/HM compatibility.
 - Redesigned the reachable Pokédex Info presentation with clearer INFO
   labeling, species metadata hierarchy, type badges, and entry-page titles.
+- Redesigned the reachable Pokédex index with a bounded twelve-row species
+  list, number/name/status leaders, reusable in-place scrollbar, capped
+  preview art, and a separate seen/owned progress panel.
 - Redesigned the reachable Habitat presentation with map-backed landmark
   markers, region metadata, and safe route-list fallback behavior.
 - Added Linux fixture coverage for the new Pokédex reference data and habitat

@@ -253,9 +253,13 @@ check(dexListView.details.title == "CHIKORITA"
   and dexListView.details.fields[1].value == "No.152"
   and dexListView.details.fields[2].value == "OWNED"
   and dexListView.details.typeBadges[1] == "GRASS"
-  and dexListView.rows[1].label == "No.152 CHIKORITA"
-  and dexListView.rows[1].right == "OWNED",
-  "Pokedex list uses a Gen1 Modern-inspired number/status preview rail")
+  and dexListView.rows[1].label == "152 CHIKORITA"
+  and dexListView.rows[1].right == "OWNED"
+  and dexListView.document.regions[2].components[1].visible == 12
+  and dexListView.document.regions[2].components[1].scrollbar.visible == 12
+  and dexListView.document.regions[2].components[1].items[1].columns.status
+    == "OWNED",
+  "Pokedex list uses a bounded three-column scrollbar composition")
 check(dexListView.description:find("SEEN 2", 1, true)
   and dexListView.description:find("OWNED 1", 1, true),
   "Pokedex footer keeps totals and clean navigation hints")
