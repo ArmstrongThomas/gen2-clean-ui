@@ -81,7 +81,8 @@ local function drawComponent(G, component, rect, layout, font, theme)
           and "accent" or "value")
     end
   elseif kind == "scrollbar" then
-    local railX = rect.x + math.floor(rect.w * 0.5)
+    local railX = component.anchor == "right"
+      and rect.x + rect.w - pad or rect.x + math.floor(rect.w * 0.5)
     local top = rect.y + pad
     local bottom = rect.y + rect.h - pad
     local railWidth = math.max(2, math.floor(layout.scale * 2))
@@ -143,17 +144,23 @@ function DocumentRender.draw(G, model, layout, font, theme)
     end
     local cursor = region.rect.y
     for _, component in ipairs(region.source.components or {}) do
-      local remaining = math.max(1, region.rect.y + region.rect.h - cursor)
-      local height = math.min(remaining,
-        componentHeight(component, font, pad, region.rect.h))
-      local componentRect = {
-        x = region.rect.x, y = cursor, w = region.rect.w, h = height,
-      }
-      local ok, code, message = drawComponent(G, component, componentRect,
-        layout, font, theme)
-      if ok ~= true then return nil, code, message end
-      cursor = cursor + height
-      if cursor >= region.rect.y + region.rect.h then break end
+      if component.type == "scrollbar" and component.anchor then
+        local ok, code, message = drawComponent(G, component, region.rect,
+          layout, font, theme)
+        if ok ~= true then return nil, code, message end
+      else
+        local remaining = math.max(1, region.rect.y + region.rect.h - cursor)
+        local height = math.min(remaining,
+          componentHeight(component, font, pad, region.rect.h))
+        local componentRect = {
+          x = region.rect.x, y = cursor, w = region.rect.w, h = height,
+        }
+        local ok, code, message = drawComponent(G, component, componentRect,
+          layout, font, theme)
+        if ok ~= true then return nil, code, message end
+        cursor = cursor + height
+        if cursor >= region.rect.y + region.rect.h then break end
+      end
     end
     if clipped then G.setScissor() end
   end
