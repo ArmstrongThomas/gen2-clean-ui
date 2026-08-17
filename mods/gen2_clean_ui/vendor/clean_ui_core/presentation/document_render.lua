@@ -46,7 +46,7 @@ local function drawComponent(G, component, rect, layout, font, theme)
       local style = index == component.active and "accent" or "label"
       printText(G, layout, font, theme, value, tabX, y, tabWidth, style)
       if index == component.active then
-        Color.set(G, theme.colors.accent)
+        Color.set(G, theme.colors.gen2Accent or theme.colors.focus)
         G.rectangle("fill", tabX, y + font:getHeight() + 2,
           math.max(1, tabWidth - pad), math.max(1, math.floor(layout.scale)))
       end
@@ -89,7 +89,7 @@ local function drawComponent(G, component, rect, layout, font, theme)
     Color.set(G, theme.colors.muted)
     G.rectangle("fill", railX - math.floor(railWidth / 2), top + arrow,
       railWidth, math.max(1, bottom - top - arrow * 2))
-    Color.set(G, theme.colors.text)
+    Color.set(G, theme.colors.ink)
     G.polygon("fill", railX, top, railX - arrow, top + arrow * 1.4,
       railX + arrow, top + arrow * 1.4)
     G.polygon("fill", railX, bottom, railX - arrow, bottom - arrow * 1.4,
@@ -102,7 +102,7 @@ local function drawComponent(G, component, rect, layout, font, theme)
     local index = math.max(0, math.min(total - visible, component.index or 0))
     local thumbY = top + arrow + (total > visible
       and range * index / (total - visible) or 0)
-    Color.set(G, theme.colors.accent)
+    Color.set(G, theme.colors.gen2Accent or theme.colors.focus)
     G.rectangle("fill", railX - math.floor(5 * layout.scale),
       thumbY, math.max(2, math.floor(10 * layout.scale)), thumbHeight)
   elseif kind == "image" then

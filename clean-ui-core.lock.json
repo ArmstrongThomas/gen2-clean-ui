@@ -3,7 +3,7 @@
     "status": "ready",
     "core": {
         "tag": "0.1.0-alpha.13-local",
-        "commit": "dee9a6b9663c1acb43a342fdf879f8a4d9d00f6f"
+        "commit": "ea9c7524f0e14672ac789213dce1cbe1dd946655"
     },
     "files": [
         {
@@ -233,8 +233,8 @@
         },
         {
             "path": "presentation/document_render.lua",
-            "sha256": "cdfd35d8fb7137159024aec9257fcb49204aba93f8d6b65ba34e26b8d760bf38",
-            "size": 7180
+            "sha256": "40b5d96519437f58d7e767e3ba5250ba7ba9b01e51fccb312ed2100d275ff5d6",
+            "size": 7231
         },
         {
             "path": "presentation/menu_layout.lua",
