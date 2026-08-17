@@ -9,6 +9,7 @@ Model.KINDS = {
   animation = true,
   device = true,
   map = true,
+  document = true,
 }
 
 -- Presentation collections are ordered data, not arbitrary JSON objects. A
@@ -366,6 +367,132 @@ local function mapShape(value, name)
   return true
 end
 
+local DOCUMENT_COMPONENTS = {
+  heading = true, label = true, text = true, image = true, badges = true,
+  metadata = true, list = true, map = true, divider = true,
+}
+
+local function documentControls(value, name)
+  if value == nil or type(value) == "string" then return true end
+  local count, collectionError = collection(value, name, "table")
+  if not count then return nil, collectionError end
+  for index, control in ipairs(value) do
+    local path = name .. "[" .. tostring(index) .. "]"
+    if not nonEmptyString(control.input) or not nonEmptyString(control.label) then
+      return nil, path .. " requires input and label strings"
+    end
+    if control.action ~= nil and not nonEmptyString(control.action) then
+      return nil, path .. ".action must be a non-empty string when present"
+    end
+  end
+  return true
+end
+
+local function documentComponentShape(value, name)
+  if type(value) ~= "table" then
+    return nil, name .. " must be a component table"
+  end
+  if not nonEmptyString(value.type)
+      or not DOCUMENT_COMPONENTS[value.type] then
+    return nil, name .. ".type is not a supported document component"
+  end
+  if value.id ~= nil and not nonEmptyString(value.id) then
+    return nil, name .. ".id must be a non-empty string when present"
+  end
+  local componentType = value.type
+  if componentType == "heading" or componentType == "label" then
+    if not nonEmptyString(value.text) then
+      return nil, name .. ".text must be a non-empty string"
+    end
+  elseif componentType == "text" then
+    local count, collectionError = collection(value.lines, name .. ".lines",
+      "string")
+    if not count then return nil, collectionError end
+  elseif componentType == "image" then
+    if not nonEmptyString(value.asset or value.path) then
+      return nil, name .. " requires a non-empty asset or path"
+    end
+  elseif componentType == "badges" then
+    local count, collectionError = collection(value.values, name .. ".values",
+      "string")
+    if not count then return nil, collectionError end
+  elseif componentType == "metadata" or componentType == "list" then
+    local count, collectionError = collection(value.items, name .. ".items",
+      "table")
+    if not count then return nil, collectionError end
+    for index, item in ipairs(value.items) do
+      local path = name .. ".items[" .. tostring(index) .. "]"
+      if not nonEmptyString(item.label) then
+        return nil, path .. ".label must be a non-empty string"
+      end
+      if item.value ~= nil and type(item.value) ~= "string"
+          and type(item.value) ~= "number" then
+        return nil, path .. ".value must be a string or number"
+      end
+    end
+  elseif componentType == "map" then
+    local valid, mapError = mapShape(value.map, name .. ".map")
+    if not valid then return nil, mapError end
+  end
+  return true
+end
+
+local function documentShape(value, name)
+  if type(value) ~= "table" then
+    return nil, name .. " must be a document descriptor"
+  end
+  local count, collectionError = collection(value.regions, name .. ".regions",
+    "table")
+  if not count then return nil, collectionError end
+  for index, region in ipairs(value.regions) do
+    local path = name .. ".regions[" .. tostring(index) .. "]"
+    if not nonEmptyString(region.id) or not nonEmptyString(region.role) then
+      return nil, path .. " requires id and role strings"
+    end
+    local components, componentsError = collection(region.components,
+      path .. ".components", "table")
+    if not components then return nil, componentsError end
+    for componentIndex, component in ipairs(region.components) do
+      local valid, componentError = documentComponentShape(component,
+        path .. ".components[" .. tostring(componentIndex) .. "]")
+      if not valid then return nil, componentError end
+    end
+    for _, field in ipairs({ "priority", "minWidth", "preferredWidth" }) do
+      if region[field] ~= nil
+          and (type(region[field]) ~= "number" or region[field] ~= region[field]
+            or region[field] < 0) then
+        return nil, path .. "." .. field
+          .. " must be a finite non-negative number"
+      end
+    end
+    if region.collapse ~= nil and region.collapse ~= "stack"
+        and region.collapse ~= "hide_optional" then
+      return nil, path .. ".collapse must be stack or hide_optional"
+    end
+    if region.overflow ~= nil and region.overflow ~= "clip"
+        and region.overflow ~= "scroll" then
+      return nil, path .. ".overflow must be clip or scroll"
+    end
+  end
+  local controlsOk, controlsError = documentControls(value.controls,
+    name .. ".controls")
+  if not controlsOk then return nil, controlsError end
+  if value.focus ~= nil then
+    if type(value.focus) ~= "table" then
+      return nil, name .. ".focus must be a table"
+    end
+    if value.focus.initial ~= nil and not nonEmptyString(value.focus.initial) then
+      return nil, name .. ".focus.initial must be a non-empty string"
+    end
+    if value.focus.order ~= nil then
+      local focusCount, focusError = collection(value.focus.order,
+        name .. ".focus.order", "string")
+      if not focusCount then return nil, focusError end
+    end
+  end
+  return true
+end
+
 local function finiteNumber(value)
   return type(value) == "number" and value == value
     and value ~= math.huge and value ~= -math.huge
@@ -702,6 +829,9 @@ function Model.validate(value)
   elseif value.kind == "map" then
     local valid, mapError = mapShape(value.map, "map")
     if not valid then return nil, "invalid_model", mapError end
+  elseif value.kind == "document" then
+    local valid, documentError = documentShape(value.document, "document")
+    if not valid then return nil, "invalid_model", documentError end
   end
   if value.kind == "animation" then
     if type(value.animation) ~= "table"

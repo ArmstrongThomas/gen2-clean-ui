@@ -1699,6 +1699,7 @@ end
 MenuRender.drawSprite = drawSprite
 MenuRender.drawTypeBadges = drawTypeBadges
 MenuRender.drawStatusBadge = drawStatusBadge
+MenuRender.drawSprite = drawSprite
 MenuRender.resolveGenderIcon = resolveGenderIcon
 MenuRender.textStyles = TEXT_STYLES
 MenuRender.textStyleOptions = textStyleOptions

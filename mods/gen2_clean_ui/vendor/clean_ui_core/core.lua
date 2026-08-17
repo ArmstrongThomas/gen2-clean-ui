@@ -31,6 +31,9 @@ local CAPABILITIES = {
   gallery = "0.1.0", start_menu_pinning = "0.1.0",
   contract_catalog = "0.1.0",
   presentation_models = "0.1.0",
+  document_pages = "0.1.0",
+  semantic_focus = "0.1.0",
+  structured_controls = "0.1.0",
 }
 
 local function modAssetPath(mod, relative)

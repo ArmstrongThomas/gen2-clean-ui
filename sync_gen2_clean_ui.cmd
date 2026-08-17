@@ -8,7 +8,7 @@ set "GEN2_CLEAN_UI_SOURCE=%~dp0mods\gen2_clean_ui"
 set "GEN2_CLEAN_UI_TARGET=%APPDATA%\pokemon-love2d\mods\gen2_clean_ui"
 set "GEN2_CLEAN_UI_PROJECT=%~dp0"
 set "GEN2_CLEAN_UI_CORE_SOURCE=%GEN2_CLEAN_UI_PROJECT%..\clean-ui-core"
-set "GEN2_CLEAN_UI_CORE_TAG=0.1.0-alpha.12-local"
+set "GEN2_CLEAN_UI_CORE_TAG=0.1.0-alpha.13-local"
 
 if not exist "%GEN2_CLEAN_UI_SOURCE%\manifest.json" (
   echo ERROR: Could not find the mod source at:
