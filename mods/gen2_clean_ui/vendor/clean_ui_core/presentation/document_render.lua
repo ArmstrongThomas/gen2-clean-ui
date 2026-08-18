@@ -16,7 +16,7 @@ local function componentHeight(component, font, pad, regionHeight)
   local kind = component.type
   local line = font:getHeight() + math.floor(pad * 0.35)
   if kind == "image" then
-    return math.max(line, math.min(regionHeight, math.floor(regionHeight * 0.58)))
+    return math.max(line, regionHeight)
   elseif kind == "text" then
     local lines = component.renderLines or component.lines
     local lineHeight = component.renderLineHeight or line
