@@ -89,7 +89,9 @@ return function(ctx)
     local art = sprite(current.art)
     local activeTab = ({ [1] = 1, [2] = 2, [3] = 5, [4] = 6 })
       [selectedAction]
-    local entryLines = wrapLines(current.pageLines, 54)
+    local entryText = table.concat(current.pageLines or {}, " ")
+    entryText = entryText:gsub("(%a)%- (%a)", "%1%2")
+    local entryLines = wrapLines({ entryText }, 64)
     local identity = {}
     if art then
       identity[#identity + 1] = {
