@@ -201,7 +201,7 @@ return function(ctx)
             },
           },
           {
-            id = "preview", role = "content", preferredWidth = 390,
+            id = "preview", role = "content", preferredWidth = 240,
             frame = true,
             components = previewComponents,
           },
