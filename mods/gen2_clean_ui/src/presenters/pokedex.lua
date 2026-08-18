@@ -116,12 +116,12 @@ return function(ctx)
       regions = {
         {
           id = "identity", role = "content",
-          gridRow = 1, gridColumn = 1, preferredHeight = 300,
+          gridRow = 1, gridColumn = 1, preferredHeight = 240,
           components = identity,
         },
         {
           id = "summary", role = "content",
-          gridRow = 1, gridColumn = 2, preferredHeight = 300,
+          gridRow = 1, gridColumn = 2, preferredHeight = 240,
           transparent = true,
           components = {
             { type = "heading", text = current.name or "ENTRY" },
