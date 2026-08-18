@@ -194,7 +194,6 @@ return function(ctx)
             components = {
               {
                 type = "scrollbar",
-                side = "right",
                 index = model.navigation.scroll or 0,
                 visible = 7,
                 total = #listItems,
