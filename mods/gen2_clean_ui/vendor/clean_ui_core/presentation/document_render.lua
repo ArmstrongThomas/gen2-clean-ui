@@ -189,7 +189,9 @@ local function drawHeaderSlot(G, component, layout, font, theme, side)
 end
 
 local function drawRegionBackground(G, source, region, layout, theme)
-  if source.frame then
+  if source.transparent then
+    return
+  elseif source.frame then
     local panelTheme = {
       colors = {
         ink = theme.colors.muted,

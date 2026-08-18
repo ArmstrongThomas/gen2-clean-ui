@@ -116,6 +116,7 @@ return function(ctx)
         {
           id = "summary", role = "content",
           gridRow = 1, gridColumn = 2, preferredHeight = 175,
+          transparent = true,
           components = {
             { type = "heading", text = current.name or "ENTRY" },
             { type = "label", text = tostring(current.kind or "UNKNOWN") },
