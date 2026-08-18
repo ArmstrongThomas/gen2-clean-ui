@@ -13,12 +13,12 @@ return function(ctx)
   local GENDER_SHEETS = {
     [10] = {
       path="assets/generated/icons/gen2/gender10px.png",
-      assetPath="overrides/icons/gen2/gender10px.png",
+      assetPath="clean_ui_core/assets/icons/gen2/gender10px.png",
       size=10,
     },
     [16] = {
       path="assets/generated/icons/gen2/gender16px.png",
-      assetPath="overrides/icons/gen2/gender16px.png",
+      assetPath="clean_ui_core/assets/icons/gen2/gender16px.png",
       size=16,
     },
   }

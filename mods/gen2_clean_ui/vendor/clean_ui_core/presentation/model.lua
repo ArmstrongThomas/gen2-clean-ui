@@ -614,12 +614,17 @@ local function spriteShape(value, name)
     return nil, name .. ".path must be a non-empty asset path"
   end
   if value.assetPath ~= nil then
-    if type(value.assetPath) ~= "string"
-        or value.assetPath:sub(1, 9) ~= "overrides/"
+    local assetPath = value.assetPath
+    local isOverride = type(assetPath) == "string"
+      and assetPath:sub(1, 9) == "overrides/"
+    local isShared = type(assetPath) == "string"
+      and assetPath:sub(1, 14) == "clean_ui_core/"
+    if type(assetPath) ~= "string"
+        or (not isOverride and not isShared)
         or value.assetPath:find("..", 1, true)
         or value.assetPath:find("\\", 1, true)
         or value.assetPath:find(":", 1, true) then
-      return nil, name .. ".assetPath must be a safe overrides-relative path"
+      return nil, name .. ".assetPath must be a safe override or shared asset path"
     end
   end
   if value.normalized ~= nil and type(value.normalized) ~= "boolean" then

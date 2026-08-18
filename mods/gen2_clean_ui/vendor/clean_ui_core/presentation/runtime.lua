@@ -136,24 +136,29 @@ function Runtime.new(core)
       and not path:find(":", 1, true)
       and path:lower():match("%.png$") ~= nil
   end
+  local function resolveAssetPath(assetPath)
+    if type(assetPath) == "string"
+        and assetPath:sub(1, 14) == "clean_ui_core/" then
+      return "vendor/clean_ui_core/" .. assetPath:sub(15)
+    end
+    return assetPath
+  end
   MenuRender.setSourceImageLoader(function(path, assetPath)
+    local resolvedAssetPath = resolveAssetPath(assetPath)
     if type(sourceImage) == "function" then
-      local ok, image = pcall(sourceImage, path, assetPath)
+      local ok, image = pcall(sourceImage, path, resolvedAssetPath)
       if ok and image ~= nil then return image end
     end
-    -- A product may expose a deliberately narrow, mod-local asset path for
-    -- authored UI art. This is used by the gender sheet so an unavailable
-    -- generated override can never turn into a font glyph fallback.
-    if type(assetPath) == "string" and assetApi
+    if type(resolvedAssetPath) == "string" and assetApi
         and type(assetApi.image) == "function" then
-      local ok, image = pcall(assetApi.image, assetApi, assetPath)
+      local ok, image = pcall(assetApi.image, assetApi, resolvedAssetPath)
       if ok and image ~= nil then return image end
     end
-    if type(assetPath) == "string" and assetApi
+    if type(resolvedAssetPath) == "string" and assetApi
         and type(assetApi.path) == "function"
         and love and love.graphics
         and type(love.graphics.newImage) == "function" then
-      local ok, fullPath = pcall(assetApi.path, assetApi, assetPath)
+      local ok, fullPath = pcall(assetApi.path, assetApi, resolvedAssetPath)
       if ok and type(fullPath) == "string" then
         local imageOk, image = pcall(love.graphics.newImage, fullPath)
         if imageOk and image ~= nil then return image end
