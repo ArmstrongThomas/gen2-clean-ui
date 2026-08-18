@@ -161,8 +161,6 @@ return function(ctx)
           id = "entry", role = "content", frame = true,
           gridRow = 3, gridColumn = 1, gridColumnSpan = 3,
           components = {
-            { type = "label", text = "▣" },
-            { type = "divider", orientation = "vertical" },
             { type = "heading", text = "POKÉDEX ENTRY" },
             { type = "text", lines = entryLines },
           },
