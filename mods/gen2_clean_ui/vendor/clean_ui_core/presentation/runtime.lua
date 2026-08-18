@@ -347,22 +347,27 @@ function Runtime.new(core)
   end
 
   function self:drawModel(model, layout, font, theme)
-    local result
+    local ok, code, message
     if model.kind == "document" then
-      result = DocumentRender.draw(love.graphics, model, layout, font, theme)
+      ok, code, message = DocumentRender.draw(
+        love.graphics, model, layout, font, theme)
     elseif model.kind == "menu" or model.kind == "device"
         or model.kind == "map" then
-      result = MenuRender.draw(love.graphics, model, layout, font, theme)
+      ok, code, message = MenuRender.draw(
+        love.graphics, model, layout, font, theme)
     elseif model.kind == "dialogue" or model.kind == "choice" then
-      result = DialogueRender.draw(love.graphics, model, layout, font, theme)
+      ok, code, message = DialogueRender.draw(
+        love.graphics, model, layout, font, theme)
     elseif model.kind == "battle" then
-      result = BattleRender.draw(love.graphics, model, layout, font, theme)
+      ok, code, message = BattleRender.draw(
+        love.graphics, model, layout, font, theme)
     elseif model.kind == "animation" then
-      result = AnimationRender.draw(love.graphics, model, layout, font, theme)
+      ok, code, message = AnimationRender.draw(
+        love.graphics, model, layout, font, theme)
     else
       return nil, "unsupported_presentation"
     end
-    if result == true then
+    if ok == true then
       if self.debugContainers then
         Bounds.draw(love.graphics, layout, "containers")
       end
@@ -370,7 +375,7 @@ function Runtime.new(core)
         Bounds.draw(love.graphics, layout, "assets")
       end
     end
-    return result
+    return ok, code, message
   end
 
   function self:debugInput()
