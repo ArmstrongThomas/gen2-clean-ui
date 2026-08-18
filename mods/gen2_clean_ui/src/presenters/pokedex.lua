@@ -200,6 +200,18 @@ return function(ctx)
             id = "preview", role = "content",
             components = previewComponents,
           },
+          {
+            id = "progress", role = "content", dock = "bottom-right",
+            preferredHeight = 86,
+            components = {
+              { type = "metadata", items = {
+                { label = "SEEN",
+                  value = (". . . .  %d"):format(model.totals.seen or 0) },
+                { label = "OWNED",
+                  value = (". . . .  %d"):format(model.totals.caught or 0) },
+              } },
+            },
+          },
         },
         controls = "UP/DOWN SPECIES   A DATA   SELECT OPTIONS   B BACK",
       },

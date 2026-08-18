@@ -261,7 +261,10 @@ check(dexListView.details.title == "CHIKORITA"
     == "MODE: NEW  ·  001–251"
   and dexListView.document.regions[1].components[1].text
     == "NO.   NAME                       STATUS"
-  and dexListView.document.regions[1].components[2].scroll == 0,
+  and dexListView.document.regions[1].components[2].scroll == 0
+  and dexListView.document.regions[3].dock == "bottom-right"
+  and dexListView.document.regions[3].components[1].items[1].value
+    == ". . . .  2",
   "Pokedex list uses a Gen1 Modern-inspired number/status preview rail")
 check(dexListView.description:find("SEEN 2", 1, true)
   and dexListView.description:find("OWNED 1", 1, true),
