@@ -286,7 +286,9 @@ local function drawBadge(G, label, rect, palette, font, scale)
     inner.w, borderSize)
   G.rectangle("fill", inner.x + inner.w - borderSize, inner.y,
     borderSize, inner.h)
-  printAt(G, font, text, label, inner.x + math.max(2, math.floor(4 * scale)),
+  local labelWidth = font:getWidth(label)
+  printAt(G, font, text, label,
+    inner.x + math.floor((inner.w - labelWidth) / 2),
     inner.y + math.floor((inner.h - font:getHeight()) / 2))
 end
 
