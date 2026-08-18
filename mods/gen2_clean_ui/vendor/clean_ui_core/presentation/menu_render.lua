@@ -224,6 +224,9 @@ local function printStyledFitted(G, layout, baseFont, theme, value, x, y,
     maximum, style, options)
   local run = resolveTextRun(layout, baseFont, value, maximum,
     textStyleOptions(style, options))
+  if type(options) == "table" and options.align == "center" then
+    x = x + math.max(0, math.floor((maximum - run.width) / 2))
+  end
   local offset = math.floor((fontHeight(baseFont) - run.height) / 2)
   printStyled(G, run.font, theme, run.text, x, y + offset, style)
   return run

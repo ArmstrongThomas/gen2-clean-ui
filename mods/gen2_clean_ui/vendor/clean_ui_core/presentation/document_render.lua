@@ -7,11 +7,8 @@ local DocumentRender = {}
 
 local function printText(G, layout, font, theme, text, x, y, width, style,
     align)
-  if align == "center" then
-    x = x + math.max(0, math.floor((width - font:getWidth(tostring(text))) / 2))
-  end
   return MenuRender.printStyledFitted(G, layout, font, theme, text, x, y,
-    width, style or "body")
+    width, style or "body", align and { align = align } or nil)
 end
 
 local function componentHeight(component, font, pad, regionHeight)
