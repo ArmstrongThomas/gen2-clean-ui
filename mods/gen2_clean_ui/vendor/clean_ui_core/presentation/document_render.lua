@@ -137,6 +137,22 @@ local function drawHeaderSlot(G, component, layout, font, theme, side)
   return true
 end
 
+local function drawRegionBackground(G, region, layout, theme)
+  if region.frame then
+    local panelTheme = {
+      colors = {
+        ink = theme.colors.muted,
+        paper = theme.colors.raised,
+      },
+    }
+    Frame.draw(G, region.rect, panelTheme, layout.scale)
+  else
+    Color.set(G, theme.colors.raised)
+    G.rectangle("fill", region.rect.x, region.rect.y,
+      region.rect.w, region.rect.h)
+  end
+end
+
 function DocumentRender.draw(G, model, layout, font, theme)
   if model.opaque then
     Color.set(G, theme.colors.raised)
@@ -162,9 +178,7 @@ function DocumentRender.draw(G, model, layout, font, theme)
   G.rectangle("fill", layout.header.x,
     layout.header.y + layout.header.h - 1, layout.header.w, 1)
   for _, region in ipairs(layout.document or {}) do
-    Color.set(G, theme.colors.raised)
-    G.rectangle("fill", region.rect.x, region.rect.y,
-      region.rect.w, region.rect.h)
+    drawRegionBackground(G, region.source, region, theme)
     local pad = math.max(8, math.floor(10 * layout.scale))
     local clipped = type(G.setScissor) == "function"
     if clipped then

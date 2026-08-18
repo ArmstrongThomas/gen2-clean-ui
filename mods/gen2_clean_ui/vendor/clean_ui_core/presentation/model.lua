@@ -506,6 +506,9 @@ local function documentShape(value, name)
       return nil, path .. ".preferredHeight"
         .. " must be a finite non-negative number"
     end
+    if region.frame ~= nil and type(region.frame) ~= "boolean" then
+      return nil, path .. ".frame must be boolean when present"
+    end
     if region.dock ~= nil and region.dock ~= "bottom-left"
         and region.dock ~= "bottom-right" then
       return nil, path .. ".dock must be bottom-left or bottom-right"

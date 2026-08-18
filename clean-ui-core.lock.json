@@ -3,7 +3,7 @@
     "status": "ready",
     "core": {
         "tag": "0.1.0-alpha.13-local",
-        "commit": "cf2d75e2a19ff82782e480f3bdd0414b8bcb1f2e"
+        "commit": "70884acbdb9b3d4b1b4cb9d24f405253462906bc"
     },
     "files": [
         {
@@ -233,8 +233,8 @@
         },
         {
             "path": "presentation/document_render.lua",
-            "sha256": "b01e826c17688718244f50545b7cd43fcd8079e993315314e63178097189ea14",
-            "size": 8781
+            "sha256": "3186a0501361edb9d946435b170a2a6d3220df241de4704bc22949099f87df21",
+            "size": 9127
         },
         {
             "path": "presentation/menu_layout.lua",
@@ -248,8 +248,8 @@
         },
         {
             "path": "presentation/model.lua",
-            "sha256": "9cd01f88f34915ae33c2756e6f07108ed2e89f9f989e5d93d5fc9c7572cdb901",
-            "size": 36095
+            "sha256": "1e5723253dbe4fd19d2984413fbb8a7527989a8472bd2b3d15c8c16e0f56f26f",
+            "size": 36235
         },
         {
             "path": "presentation/pipeline.lua",
