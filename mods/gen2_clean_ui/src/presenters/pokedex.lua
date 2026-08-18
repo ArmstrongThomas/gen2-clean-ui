@@ -125,10 +125,7 @@ return function(ctx)
       local marker = source.caught and "OWNED"
         or source.seen and "SEEN" or "UNSEEN"
       local name = tostring(source.label or "-----")
-      local namePadding = string.rep(" ",
-        math.max(1, 10 - #name))
-      local label = number .. "   " .. name .. namePadding
-        .. ". ."
+      local label = number .. "   " .. name
       rows[index] = row(source, marker, label)
     end
     local current = model.current or {}
@@ -136,7 +133,7 @@ return function(ctx)
     for index, item in ipairs(rows) do
       listItems[index] = {
         label = item.label,
-        value = item.right ~= "" and (". . . . " .. string.rep(" ", 2)
+        value = item.right ~= "" and (string.rep(". ", 7) .. " "
           .. item.right)
           or item.right,
         selected = index == model.navigation.selectedIndex,
@@ -177,6 +174,7 @@ return function(ctx)
               .. "  ·  001–251",
           },
         },
+        contentLayout = "columns",
         regions = {
           {
             id = "species-list", role = "content", frame = true,
@@ -187,12 +185,19 @@ return function(ctx)
                 type = "list",
                 items = listItems,
                 scroll = model.navigation.scroll or 0,
-                scrollbar = {
-                  side = "right",
-                  index = model.navigation.scroll or 0,
-                  visible = 7,
-                  total = #listItems,
-                },
+              },
+            },
+          },
+          {
+            id = "scrollbar", role = "content", preferredWidth = 42,
+            frame = true,
+            components = {
+              {
+                type = "scrollbar",
+                side = "right",
+                index = model.navigation.scroll or 0,
+                visible = 7,
+                total = #listItems,
               },
             },
           },

@@ -254,7 +254,7 @@ check(dexListView.details.title == "CHIKORITA"
   and dexListView.details.fields[2].value == "OWNED"
   and dexListView.details.typeBadges[1] == "GRASS"
   and dexListView.title == "POKEDEX  /  NEW"
-  and dexListView.rows[1].label == "152   CHIKORITA . ."
+  and dexListView.rows[1].label == "152   CHIKORITA"
   and dexListView.rows[1].right == "OWNED"
   and dexListView.document.header.right.type == "label"
   and dexListView.document.header.right.text
@@ -263,10 +263,14 @@ check(dexListView.details.title == "CHIKORITA"
     == "NO.   NAME                       STATUS"
   and dexListView.document.regions[1].components[2].scroll == 0
   and dexListView.document.regions[1].frame == true
+  and dexListView.document.regions[2].id == "scrollbar"
   and dexListView.document.regions[2].frame == true
-  and dexListView.document.regions[3].dock == "bottom-right"
+  and dexListView.document.regions[2].components[1].type == "scrollbar"
+  and dexListView.document.regions[3].id == "preview"
   and dexListView.document.regions[3].frame == true
-  and dexListView.document.regions[3].components[1].items[1].value
+  and dexListView.document.regions[4].dock == "bottom-right"
+  and dexListView.document.regions[4].frame == true
+  and dexListView.document.regions[4].components[1].items[1].value
     == ". . . .  2",
   "Pokedex list uses a Gen1 Modern-inspired number/status preview rail")
 check(dexListView.description:find("SEEN 2", 1, true)
