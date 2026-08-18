@@ -90,10 +90,6 @@ return function(ctx)
     local activeTab = ({ [1] = 1, [2] = 2, [3] = 5, [4] = 6 })
       [selectedAction]
     local entryLines = wrapLines(current.pageLines, 54)
-    local summaryLines = {}
-    for index = 1, math.min(#entryLines, 4) do
-      summaryLines[#summaryLines + 1] = entryLines[index]
-    end
     local identity = {}
     if art then
       identity[#identity + 1] = {
@@ -125,14 +121,6 @@ return function(ctx)
             { type = "label", text = tostring(current.kind or "UNKNOWN") },
             { type = "heading", text = dexNumber(current.dex) },
             { type = "badges", values = Data.copy(current.types or {}) },
-          },
-        },
-        {
-          id = "description", role = "content",
-          gridRow = 1, gridColumn = 3, preferredHeight = 175,
-          components = {
-            { type = "heading", text = "FIELD NOTES" },
-            { type = "text", lines = summaryLines },
           },
         },
         {
