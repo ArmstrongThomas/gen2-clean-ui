@@ -139,16 +139,19 @@ return function(ctx)
         selected = index == model.navigation.selectedIndex,
       }
     end
-    local previewComponents = {
-      { type = "heading", text = current.name or "-----" },
-      { type = "label", text = dexNumber(current.dex) },
-    }
+    local previewComponents = {}
     local currentArt = sprite(current.art)
     if currentArt then
       previewComponents[#previewComponents + 1] = {
         type = "image", asset = currentArt.path,
       }
     end
+    previewComponents[#previewComponents + 1] = {
+      type = "heading", text = current.name or "-----",
+    }
+    previewComponents[#previewComponents + 1] = {
+      type = "label", text = dexNumber(current.dex),
+    }
     previewComponents[#previewComponents + 1] = {
       type = "badges", values = Data.copy(current.types or {}),
     }
