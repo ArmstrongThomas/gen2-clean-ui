@@ -93,6 +93,10 @@ return function(ctx)
     entryText = entryText:gsub("(%a)%- (%a)", "%1%2")
     local entryLines = { entryText }
     local identity = {}
+    local kind = tostring(current.kind or "UNKNOWN")
+    if not kind:match("POKÉMON$") then
+      kind = kind .. " POKÉMON"
+    end
     if art then
       identity[#identity + 1] = {
         type = "image", asset = art.path, id = "species-art",
@@ -100,8 +104,8 @@ return function(ctx)
     end
     return {
       contentLayout = "grid",
-      gridColumns = 3,
-      gridRows = 3,
+      gridColumns = 2,
+      gridRows = 2,
       header = {
         right = {
           type = "tabs",
@@ -112,47 +116,38 @@ return function(ctx)
       regions = {
         {
           id = "identity", role = "content",
-          gridRow = 1, gridColumn = 1, preferredHeight = 175,
+          gridRow = 1, gridColumn = 1, preferredHeight = 300,
           components = identity,
         },
         {
           id = "summary", role = "content",
-          gridRow = 1, gridColumn = 2, preferredHeight = 175,
+          gridRow = 1, gridColumn = 2, preferredHeight = 300,
           transparent = true,
           components = {
             { type = "heading", text = current.name or "ENTRY" },
-            { type = "label", text = tostring(current.kind or "UNKNOWN") },
+            { type = "label", text = kind },
             { type = "heading", text = dexNumber(current.dex) },
             { type = "badges", values = Data.copy(current.types or {}) },
-          },
-        },
-        {
-          id = "metadata", role = "content", frame = true,
-          gridRow = 2, gridColumn = 1, gridColumnSpan = 3,
-          preferredHeight = 90,
-          components = {
             {
               type = "metadata",
-              columns = 3,
+              columns = 1,
+              leaders = true,
               items = {
                 { label = "HEIGHT",
                   value = current.caught and displayHeight(current.height) or "?" },
                 { label = "WEIGHT",
                   value = current.caught and displayWeight(current.weight) or "?" },
                 { label = "STATUS", value = status(current), tone = "accent" },
-                { label = "REGION", value = current.region or "JOHTO" },
-                { label = "CAUGHT", value = current.caught and "1" or "0" },
-                { label = "CLASS", value = current.kind or "UNKNOWN" },
               },
             },
           },
         },
         {
           id = "entry", role = "content", frame = true,
-          gridRow = 3, gridColumn = 1, gridColumnSpan = 3,
+          gridRow = 2, gridColumn = 1, gridColumnSpan = 2,
           components = {
             { type = "heading", text = "POKÉDEX ENTRY" },
-            { type = "text", lines = entryLines, style = "heading",
+            { type = "text", lines = entryLines, style = "body",
               wrap = true, truncate = false, marginLeft = 16,
               marginRight = 16 },
           },
@@ -161,7 +156,7 @@ return function(ctx)
       controls = "LEFT/RIGHT PAGE   A SELECT   B BACK",
       focus = {
         initial = tostring(selectedAction or 1),
-        order = { "identity", "metadata", "entry" },
+        order = { "identity", "summary", "entry" },
       },
     }
   end
