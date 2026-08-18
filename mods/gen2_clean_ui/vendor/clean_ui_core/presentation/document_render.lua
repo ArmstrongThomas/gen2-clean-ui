@@ -95,9 +95,11 @@ local function drawComponent(G, component, rect, layout, font, theme)
       local rowIndex = index - first + 1
       local rowY = y + (rowIndex - 1) * (font:getHeight() + pad * 0.35)
       if item.selected then
+        local selectionInset = math.max(2, math.floor(layout.scale * 2))
         Color.set(G, theme.colors.selection)
-        G.rectangle("fill", rect.x, rowY - math.floor(pad * 0.35),
-          rect.w, font:getHeight() + math.floor(pad * 0.7))
+        G.rectangle("fill", rect.x + selectionInset,
+          rowY - math.floor(pad * 0.35), rect.w - selectionInset * 2,
+          font:getHeight() + math.floor(pad * 0.7))
       end
       printText(G, layout, font, theme, item.label, x, rowY, width * 0.55,
         item.selected and "strong" or "label")
