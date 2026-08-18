@@ -164,6 +164,15 @@ function Runtime.new(core)
         if imageOk and image ~= nil then return image end
       end
     end
+    if type(resolvedAssetPath) == "string"
+        and resolvedAssetPath:sub(1, 21) == "vendor/clean_ui_core/"
+        and core.mod and type(core.mod.path) == "string"
+        and love and love.graphics
+        and type(love.graphics.newImage) == "function" then
+      local fullPath = core.mod.path .. "/" .. resolvedAssetPath
+      local imageOk, image = pcall(love.graphics.newImage, fullPath)
+      if imageOk and image ~= nil then return image end
+    end
     if generatedPng(path) and love and love.graphics
         and type(love.graphics.newImage) == "function" then
       return love.graphics.newImage(path)
