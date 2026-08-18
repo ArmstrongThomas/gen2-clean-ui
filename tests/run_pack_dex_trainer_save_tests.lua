@@ -276,6 +276,12 @@ check(dexListView.details.title == "CHIKORITA"
 check(dexListView.description:find("SEEN 2", 1, true)
   and dexListView.description:find("OWNED 1", 1, true),
   "Pokedex footer keeps totals and clean navigation hints")
+local fallbackState = Data.copy(dexState)
+fallbackState.pokemon.CHIKORITA.types = nil
+fallbackState.rows[1].types = { "GRASS" }
+local fallbackDex = assert(Pokedex.extract(fallbackState))
+check(fallbackDex.model.current.types[1] == "GRASS",
+  "Pokedex preserves current-row types during partial source refresh")
 local duplicateTypeState = Data.copy(dexState)
 duplicateTypeState.index = 3
 local duplicateType = assert(Pokedex.extract(duplicateTypeState))

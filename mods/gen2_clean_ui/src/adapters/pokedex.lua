@@ -234,6 +234,9 @@ return function(ctx)
     local page = Data.integer(rawget(state, "page"), 1)
     local definition = pokemonEntry(state, species)
     local rawTypes = definition and rawget(definition, "types") or nil
+    if type(rawTypes) ~= "table" then
+      rawTypes = rawget(current, "types")
+    end
     local types, seenTypes = {}, {}
     for index = 1, 2 do
       local typeName = type(rawTypes) == "table"
