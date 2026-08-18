@@ -25,12 +25,14 @@ function DocumentLayout.measure(base, model, font, _density)
     math.max(1, footer.y - header.y - header.h))
   local regions = model.document.regions or {}
   local regionLayouts = {}
-  local headerRegions, footerRegions, contentRegions = {}, {}, {}
+  local headerRegions, footerRegions, contentRegions, dockRegions = {}, {}, {}, {}
   for _, region in ipairs(regions) do
     if region.role == "header" then
       headerRegions[#headerRegions + 1] = region
     elseif region.role == "footer" then
       footerRegions[#footerRegions + 1] = region
+    elseif region.dock then
+      dockRegions[#dockRegions + 1] = region
     else
       contentRegions[#contentRegions + 1] = region
     end
@@ -78,6 +80,24 @@ function DocumentLayout.measure(base, model, font, _density)
       rect = Rect.new(x, top + row * (cellHeight + pad),
         widths[index] or cellWidth, cellHeight),
     }
+  end
+  local dockBottom = body.y + body.h
+  for _, region in ipairs(dockRegions) do
+    local height = region.preferredHeight
+      and math.max(1, math.floor(region.preferredHeight * scale))
+      or heightFor(font, scale, 2)
+    height = math.min(body.h, height)
+    local column = region.dock == "bottom-left" and 0 or columns - 1
+    local x = body.x
+    for previous = 1, column do
+      x = x + (widths[previous] or cellWidth) + pad
+    end
+    regionLayouts[#regionLayouts + 1] = {
+      source = region,
+      rect = Rect.new(x, dockBottom - height,
+        widths[column + 1] or cellWidth, height),
+    }
+    dockBottom = dockBottom - height - pad
   end
   local footerTop = footer.y
   for _, region in ipairs(footerRegions) do

@@ -499,6 +499,17 @@ local function documentShape(value, name)
           .. " must be a finite non-negative number"
       end
     end
+    if region.preferredHeight ~= nil
+        and (type(region.preferredHeight) ~= "number"
+          or region.preferredHeight ~= region.preferredHeight
+          or region.preferredHeight < 0) then
+      return nil, path .. ".preferredHeight"
+        .. " must be a finite non-negative number"
+    end
+    if region.dock ~= nil and region.dock ~= "bottom-left"
+        and region.dock ~= "bottom-right" then
+      return nil, path .. ".dock must be bottom-left or bottom-right"
+    end
     if region.collapse ~= nil and region.collapse ~= "stack"
         and region.collapse ~= "hide_optional" then
       return nil, path .. ".collapse must be stack or hide_optional"
