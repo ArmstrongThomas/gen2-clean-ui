@@ -53,6 +53,18 @@ return function(ctx)
     return "UNSEEN"
   end
 
+  local function displayHeight(value)
+    value = tonumber(value)
+    if not value then return "?" end
+    return ("%d'00\""):format(math.floor(value / 100))
+  end
+
+  local function displayWeight(value)
+    value = tonumber(value)
+    if not value then return "?" end
+    return ("%.1f lbs."):format(value / 10)
+  end
+
   local function wrapLines(lines, width)
     local output = {}
     for _, source in ipairs(lines or {}) do
@@ -133,12 +145,12 @@ return function(ctx)
               columns = 3,
               items = {
                 { label = "HEIGHT",
-                  value = current.caught and current.height or "?" },
+                  value = current.caught and displayHeight(current.height) or "?" },
                 { label = "WEIGHT",
-                  value = current.caught and current.weight or "?" },
+                  value = current.caught and displayWeight(current.weight) or "?" },
                 { label = "STATUS", value = status(current), tone = "accent" },
                 { label = "REGION", value = current.region or "JOHTO" },
-                { label = "CAUGHT", value = tostring(current.caughtCount or 0) },
+                { label = "CAUGHT", value = current.caught and "1" or "0" },
                 { label = "CLASS", value = current.kind or "UNKNOWN" },
               },
             },
