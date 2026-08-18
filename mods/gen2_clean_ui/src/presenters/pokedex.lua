@@ -179,7 +179,7 @@ return function(ctx)
         },
         regions = {
           {
-            id = "species-list", role = "content",
+            id = "species-list", role = "content", frame = true,
             components = {
               { type = "label",
                 text = "NO.   NAME                       STATUS" },
@@ -197,11 +197,12 @@ return function(ctx)
             },
           },
           {
-            id = "preview", role = "content",
+            id = "preview", role = "content", frame = true,
             components = previewComponents,
           },
           {
             id = "progress", role = "content", dock = "bottom-right",
+            frame = true,
             preferredHeight = 86,
             components = {
               { type = "metadata", items = {
