@@ -29,6 +29,10 @@ local function assetKey(key)
     or key:find("asset", 1, true) ~= nil
     or key:find("portrait", 1, true) ~= nil
     or key:find("art", 1, true) ~= nil
+    or key:find("preview", 1, true) ~= nil
+    or key:find("icon", 1, true) ~= nil
+    or key:find("avatar", 1, true) ~= nil
+    or key:find("card", 1, true) ~= nil
 end
 
 local function visit(G, value, key, mode, seen)
