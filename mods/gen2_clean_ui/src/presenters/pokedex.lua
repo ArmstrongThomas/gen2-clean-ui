@@ -153,7 +153,8 @@ return function(ctx)
           components = {
             { type = "heading", text = "POKÉDEX ENTRY" },
             { type = "text", lines = entryLines, style = "heading",
-              wrap = true, truncate = false, marginLeft = 16 },
+              wrap = true, truncate = false, marginLeft = 16,
+              marginRight = 16 },
           },
         },
       },

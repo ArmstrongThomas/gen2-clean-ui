@@ -19,7 +19,8 @@ local function componentHeight(component, font, pad, regionHeight)
     return math.max(line, math.min(regionHeight, math.floor(regionHeight * 0.58)))
   elseif kind == "text" then
     local lines = component.renderLines or component.lines
-    return math.max(line, #(lines or {}) * line + pad)
+    local lineHeight = component.renderLineHeight or line
+    return math.max(line, #(lines or {}) * lineHeight + pad)
   elseif kind == "metadata" or kind == "list" then
     local count = component.visible or #component.items
     if kind == "metadata" and component.columns then
@@ -94,11 +95,15 @@ local function drawComponent(G, component, rect, layout, font, theme)
     local textStyle = component.style or "body"
     local textX = x + math.floor((tonumber(component.marginLeft) or 0)
       * layout.scale)
-    local textWidth = math.max(1, width - (textX - x))
+    local rightInset = math.floor((tonumber(component.marginRight) or 0)
+      * layout.scale)
+    local textWidth = math.max(1, width - (textX - x) - rightInset)
     local lines = component.renderLines or component.lines or {}
+    local lineHeight = component.renderLineHeight or
+      (font:getHeight() + pad * 0.35)
     for index, line in ipairs(lines) do
       printText(G, layout, font, theme, line, textX, y
-        + (index - 1) * (font:getHeight() + pad * 0.35), textWidth,
+        + (index - 1) * lineHeight, textWidth,
         textStyle, nil, component.truncate == false
           and { truncate = false } or nil)
     end
@@ -266,10 +271,26 @@ function DocumentRender.draw(G, model, layout, font, theme)
           component.renderLines = {}
           for _, sourceLine in ipairs(component.lines or {}) do
             local wrapped = MenuRender.wrapStyledLines(layout, font, sourceLine,
-              region.rect.w - pad * 2, component.style or "body")
+              region.rect.w - pad * 2
+                - math.floor((tonumber(component.marginLeft) or 0)
+                  * layout.scale)
+                - math.floor((tonumber(component.marginRight) or 0)
+                  * layout.scale),
+              component.style or "body")
             for _, wrappedLine in ipairs(wrapped) do
               component.renderLines[#component.renderLines + 1] = wrappedLine
             end
+          end
+        end
+        if component.type == "text" then
+          component.renderLineHeight = font:getHeight() + pad * 0.35
+          local firstLine = component.renderLines
+            and component.renderLines[1] or (component.lines or {})[1]
+          if firstLine then
+            local run = MenuRender.resolveTextRun(layout, font, firstLine,
+              math.huge, MenuRender.textStyleOptions(component.style or "body"))
+            component.renderLineHeight = math.max(component.renderLineHeight,
+              run.height + pad * 0.35)
           end
         end
         local desiredHeight = componentHeight(component, font, pad,
