@@ -95,7 +95,28 @@ function DocumentLayout.measure(base, model, font, _density)
       gridRows = math.max(gridRows, row + (region.gridRowSpan or 1) - 1)
       columns = math.max(columns, column + (region.gridColumnSpan or 1) - 1)
     end
-    cellWidth = (body.w - pad * (columns - 1)) / columns
+    local columnWidths, fixedWidth, flexibleColumns = {}, 0, 0
+    for column = 1, columns do
+      local preferred
+      for _, region in ipairs(contentRegions) do
+        if (region.gridColumn or 1) == column
+            and (region.gridColumnSpan or 1) == 1
+            and region.preferredWidth then
+          preferred = math.max(preferred or 0,
+            math.floor(region.preferredWidth * scale))
+        end
+      end
+      columnWidths[column] = preferred
+      if preferred then fixedWidth = fixedWidth + preferred
+      else flexibleColumns = flexibleColumns + 1 end
+    end
+    local remainingWidth = math.max(1, body.w - pad * (columns - 1)
+      - fixedWidth)
+    for column = 1, columns do
+      columnWidths[column] = columnWidths[column]
+        or remainingWidth / math.max(1, flexibleColumns)
+    end
+    cellWidth = columnWidths[1]
     local rowHeights, fixedHeight, flexibleRows = {}, 0, 0
     for row = 1, gridRows do
       local preferred
@@ -123,7 +144,10 @@ function DocumentLayout.measure(base, model, font, _density)
       local row = region.gridRow or (math.floor((index - 1) / columns) + 1)
       local columnSpan = region.gridColumnSpan or 1
       local rowSpan = region.gridRowSpan or 1
-      local x = body.x + (column - 1) * (cellWidth + pad)
+      local x = body.x
+      for previous = 1, column - 1 do
+        x = x + columnWidths[previous] + pad
+      end
       local y = top
       for previous = 1, row - 1 do
         y = y + rowHeights[previous] + pad
@@ -133,11 +157,16 @@ function DocumentLayout.measure(base, model, font, _density)
         height = height + rowHeights[currentRow]
       end
       height = height + pad * (math.min(gridRows, row + rowSpan - 1) - row)
+      local width = 0
+      for currentColumn = column,
+          math.min(columns, column + columnSpan - 1) do
+        width = width + columnWidths[currentColumn]
+      end
+      width = width + pad
+        * (math.min(columns, column + columnSpan - 1) - column)
       regionLayouts[#regionLayouts + 1] = {
         source = region,
-        rect = Rect.new(x, y,
-          cellWidth * columnSpan + pad * (columnSpan - 1),
-          math.max(1, height)),
+        rect = Rect.new(x, y, width, math.max(1, height)),
       }
     end
   else

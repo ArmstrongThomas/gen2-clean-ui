@@ -116,7 +116,8 @@ return function(ctx)
       regions = {
         {
           id = "identity", role = "content",
-          gridRow = 1, gridColumn = 1, preferredHeight = 240,
+          gridRow = 1, gridColumn = 1, preferredWidth = 240,
+          preferredHeight = 240,
           components = identity,
         },
         {
