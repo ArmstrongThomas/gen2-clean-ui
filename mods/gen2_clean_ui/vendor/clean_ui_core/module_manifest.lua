@@ -71,6 +71,7 @@ return {
       "presentation.menu_render" },
     ["presentation.model"] = {},
     ["presentation.runtime"] = { "foundation.data", "foundation.result",
+      "diagnostics.bounds",
       "geometry.viewport",
       "text.font_catalog", "layout.solver", "surfaces.transaction",
       "presentation.model",
