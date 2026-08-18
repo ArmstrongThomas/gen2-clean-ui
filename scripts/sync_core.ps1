@@ -78,7 +78,8 @@ try {
     New-Item -ItemType Directory -Force -Path $parent | Out-Null
     Copy-Item -LiteralPath $file.FullName -Destination $destination
   }
-  $sourceAssets = Join-Path (Split-Path -Parent $sourceRuntime) "assets"
+  $coreSourceRoot = Split-Path -Parent (Split-Path -Parent $sourceRuntime)
+  $sourceAssets = Join-Path $coreSourceRoot "assets"
   if ([IO.Directory]::Exists($sourceAssets)) {
     foreach ($file in (Get-ChildItem -LiteralPath $sourceAssets -File -Recurse |
         Sort-Object FullName)) {
