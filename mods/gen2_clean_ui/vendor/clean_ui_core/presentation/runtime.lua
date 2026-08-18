@@ -348,6 +348,7 @@ function Runtime.new(core)
 
   function self:drawModel(model, layout, font, theme)
     local ok, code, message
+    Bounds.setAssetDebug(self.debugAssets)
     if model.kind == "document" then
       ok, code, message = DocumentRender.draw(
         love.graphics, model, layout, font, theme)
@@ -370,9 +371,6 @@ function Runtime.new(core)
     if ok == true then
       if self.debugContainers then
         Bounds.draw(love.graphics, layout, "containers")
-      end
-      if self.debugAssets then
-        Bounds.draw(love.graphics, layout, "assets")
       end
     end
     return ok, code, message

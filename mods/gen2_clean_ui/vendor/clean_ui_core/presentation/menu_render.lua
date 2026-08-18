@@ -1,6 +1,7 @@
 local requireCore = ...
 local Color = requireCore("design.color")
 local Frame = requireCore("design.frame")
+local Bounds = requireCore("diagnostics.bounds")
 
 local MenuRender = {}
 local imageCache = {}
@@ -632,6 +633,9 @@ local function drawSprite(G, descriptor, rect, animationClock)
     return nil, quad and "sprite_quad_draw_failed" or "sprite_draw_failed",
       tostring(drawError)
   end
+  Bounds.drawAsset(G, {
+    x = x, y = y, w = outputWidth, h = outputHeight,
+  })
   return true
 end
 

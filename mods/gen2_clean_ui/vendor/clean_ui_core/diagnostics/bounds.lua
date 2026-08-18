@@ -2,6 +2,11 @@ local requireCore = ...
 local Copy = requireCore("foundation.copy")
 
 local Bounds = {}
+local assetDebug = false
+
+function Bounds.setAssetDebug(enabled)
+  assetDebug = enabled == true
+end
 
 function Bounds.collect(layout)
   return Copy.deep({
@@ -55,6 +60,15 @@ function Bounds.draw(G, layout, mode)
     G.setColor(0.1, 0.95, 1, 1)
   end
   visit(G, layout, "layout", mode, {})
+  if previous and G.setColor then G.setColor(unpack(previous)) end
+end
+
+function Bounds.drawAsset(G, rect)
+  if not assetDebug or not G or type(G.rectangle) ~= "function"
+      or not rectangle(rect) then return end
+  local previous = G.getColor and { G.getColor() } or nil
+  G.setColor(0.1, 0.95, 1, 1)
+  G.rectangle("line", rect.x, rect.y, rect.w, rect.h)
   if previous and G.setColor then G.setColor(unpack(previous)) end
 end
 
