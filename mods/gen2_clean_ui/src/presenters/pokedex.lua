@@ -189,7 +189,7 @@ return function(ctx)
             },
           },
           {
-            id = "scrollbar", role = "content", preferredWidth = 42,
+            id = "scrollbar", role = "content", preferredWidth = 34,
             frame = true,
             components = {
               {
