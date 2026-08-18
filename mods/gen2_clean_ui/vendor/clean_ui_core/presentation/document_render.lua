@@ -142,6 +142,26 @@ end
 
 local function drawHeaderSlot(G, component, layout, font, theme, side)
   if type(component) ~= "table" then return true end
+  if component.type == "tabs" then
+    local values = component.values or {}
+    local pad = math.max(8, math.floor(10 * layout.scale))
+    local groupX = layout.header.x + layout.header.w * 0.5
+    local groupW = layout.header.x + layout.header.w - pad - groupX
+    local tabWidth = groupW / math.max(1, #values)
+    local y = layout.header.y
+      + math.floor((layout.header.h - font:getHeight()) / 2)
+    for index, value in ipairs(values) do
+      local tabX = groupX + (index - 1) * tabWidth
+      local style = index == component.active and "accent" or "label"
+      printText(G, layout, font, theme, value, tabX, y, tabWidth, style)
+      if index == component.active then
+        Color.set(G, theme.colors.gen2Accent or theme.colors.focus)
+        G.rectangle("fill", tabX, y + font:getHeight() + 2,
+          math.max(1, tabWidth - pad), math.max(1, math.floor(layout.scale)))
+      end
+    end
+    return true
+  end
   local text = tostring(component.text or "")
   local style = component.style
     or (component.type == "heading" and "heading" or "label")

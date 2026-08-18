@@ -92,17 +92,14 @@ return function(ctx)
       contentLayout = "grid",
       gridColumns = 3,
       gridRows = 3,
-      regions = {
-        {
-          id = "page-header", role = "header",
-          components = {
-            {
-              type = "tabs",
-              values = { "INFO", "AREA", "EVOLUTION", "MOVES", "CRY", "PRINT" },
-              active = activeTab,
-            },
-          },
+      header = {
+        right = {
+          type = "tabs",
+          values = { "INFO", "AREA", "EVOLUTION", "MOVES", "CRY", "PRINT" },
+          active = activeTab,
         },
+      },
+      regions = {
         {
           id = "identity", role = "content", frame = true,
           gridRow = 1, gridColumn = 1, preferredHeight = 230,
@@ -159,7 +156,7 @@ return function(ctx)
       controls = "LEFT/RIGHT PAGE   A SELECT   B BACK",
       focus = {
         initial = tostring(selectedAction or 1),
-        order = { "page-header", "identity", "metadata", "entry" },
+        order = { "identity", "metadata", "entry" },
       },
     }
   end
