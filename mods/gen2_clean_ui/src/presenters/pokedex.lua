@@ -143,6 +143,7 @@ return function(ctx)
             {
               type = "metadata",
               columns = 3,
+              leaders = true,
               items = {
                 { label = "HEIGHT",
                   value = current.caught and displayHeight(current.height) or "?" },
@@ -160,6 +161,8 @@ return function(ctx)
           id = "entry", role = "content", frame = true,
           gridRow = 3, gridColumn = 1, gridColumnSpan = 3,
           components = {
+            { type = "label", text = "▣" },
+            { type = "divider", orientation = "vertical" },
             { type = "heading", text = "POKÉDEX ENTRY" },
             { type = "text", lines = entryLines },
           },

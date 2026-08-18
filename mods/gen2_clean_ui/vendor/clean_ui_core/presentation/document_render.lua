@@ -62,7 +62,12 @@ local function drawComponent(G, component, rect, layout, font, theme)
   local kind = component.type
   if kind == "divider" then
     Color.set(G, theme.colors.muted)
-    G.rectangle("fill", x, y, width, math.max(1, math.floor(layout.scale)))
+    if component.orientation == "vertical" then
+      G.rectangle("fill", x, rect.y + pad, math.max(1, math.floor(layout.scale)),
+        math.max(1, rect.h - pad * 2))
+    else
+      G.rectangle("fill", x, y, width, math.max(1, math.floor(layout.scale)))
+    end
     return
   elseif kind == "heading" then
     printText(G, layout, font, theme, component.text, x, y, width, "heading",
@@ -118,12 +123,18 @@ local function drawComponent(G, component, rect, layout, font, theme)
           rowY - math.floor(pad * 0.35), columnWidth - selectionInset * 2,
           font:getHeight() + math.floor(pad * 0.7))
       end
-      printText(G, layout, font, theme, item.label, rowX,
-        rowY, columnWidth * 0.55,
-        item.selected and "strong" or "label")
       local value = item.value == nil and "" or tostring(item.value)
-      printText(G, layout, font, theme, value, rowX + columnWidth * 0.55,
-        rowY, columnWidth * 0.45, (item.selected or item.tone == "accent")
+      local labelWidth, valueX = columnWidth * 0.55, rowX + columnWidth * 0.55
+      if component.leaders then
+        labelWidth, valueX = columnWidth * 0.35, rowX + columnWidth * 0.6
+        printText(G, layout, font, theme, ". . . .", rowX + columnWidth * 0.37,
+          rowY, columnWidth * 0.2, "muted")
+      end
+      printText(G, layout, font, theme, item.label, rowX, rowY, labelWidth,
+        item.selected and "strong" or "label")
+      printText(G, layout, font, theme, value, valueX, rowY,
+        columnWidth * (component.leaders and 0.4 or 0.45),
+        (item.selected or item.tone == "accent")
           and "accent" or "value")
     end
     if kind == "list" and type(component.scrollbar) == "table" then
