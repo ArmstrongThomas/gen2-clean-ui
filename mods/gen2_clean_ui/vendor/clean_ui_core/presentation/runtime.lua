@@ -16,6 +16,7 @@ local AnimationLayout = requireCore("presentation.animation_layout")
 local AnimationRender = requireCore("presentation.animation_render")
 local DocumentLayout = requireCore("presentation.document_layout")
 local DocumentRender = requireCore("presentation.document_render")
+local Bounds = requireCore("diagnostics.bounds")
 
 local Runtime = {}
 
@@ -103,7 +104,8 @@ function Runtime.new(core)
   local self = { core=core, mod=core.mod, provider=core.provider,
     candidate=nil, canvas=nil, canvasW=nil, canvasH=nil,
     menuWidths=setmetatable({}, { __mode = "k" }), frameId=0,
-    frameSerial=0, lastGame=nil }
+    frameSerial=0, lastGame=nil,
+    debugContainers=false, debugAssets=false, debugKeys={} }
   self.fonts = FontCatalog.new(love and love.graphics,
     core.fontPaths or {
       plainPixel = core.config.plainPixelPath
@@ -345,19 +347,44 @@ function Runtime.new(core)
   end
 
   function self:drawModel(model, layout, font, theme)
+    local result
     if model.kind == "document" then
-      return DocumentRender.draw(love.graphics, model, layout, font, theme)
+      result = DocumentRender.draw(love.graphics, model, layout, font, theme)
     elseif model.kind == "menu" or model.kind == "device"
         or model.kind == "map" then
-      return MenuRender.draw(love.graphics, model, layout, font, theme)
+      result = MenuRender.draw(love.graphics, model, layout, font, theme)
     elseif model.kind == "dialogue" or model.kind == "choice" then
-      return DialogueRender.draw(love.graphics, model, layout, font, theme)
+      result = DialogueRender.draw(love.graphics, model, layout, font, theme)
     elseif model.kind == "battle" then
-      return BattleRender.draw(love.graphics, model, layout, font, theme)
+      result = BattleRender.draw(love.graphics, model, layout, font, theme)
     elseif model.kind == "animation" then
-      return AnimationRender.draw(love.graphics, model, layout, font, theme)
+      result = AnimationRender.draw(love.graphics, model, layout, font, theme)
+    else
+      return nil, "unsupported_presentation"
     end
-    return nil, "unsupported_presentation"
+    if result == true then
+      if self.debugContainers then
+        Bounds.draw(love.graphics, layout, "containers")
+      end
+      if self.debugAssets then
+        Bounds.draw(love.graphics, layout, "assets")
+      end
+    end
+    return result
+  end
+
+  function self:debugInput()
+    local keyboard = love and love.keyboard
+    if not keyboard or type(keyboard.isDown) ~= "function" then return end
+    for key, field in pairs({ f7 = "debugContainers", f8 = "debugAssets" }) do
+      local ok, down = pcall(keyboard.isDown, key)
+      down = ok and down == true
+      if down and not self.debugKeys[key] then
+        self[field] = not self[field]
+        self:invalidate("debug_toggle")
+      end
+      self.debugKeys[key] = down
+    end
   end
 
   function self:measureMenu(base, model, font, density)
@@ -568,6 +595,11 @@ function Runtime.new(core)
       return Result.err("hooks_unavailable", "presentation hooks are unavailable")
     end
     local subscriptions = {}
+    subscriptions[#subscriptions + 1] = self.mod.hooks:wrap("input.step",
+      function(nextFn, game, dt)
+        self:debugInput()
+        return nextFn(game, dt)
+      end, 95000)
     if self.mod.events and self.mod.events.on then
       subscriptions[#subscriptions + 1] = self.mod.events:on(
         "mod.options_changed", function(event)
