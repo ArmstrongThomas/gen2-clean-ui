@@ -56,7 +56,7 @@ function DocumentLayout.measure(base, model, font, _density)
     dockTotal = dockTotal + height
   end
   if #dockRegions > 0 then dockTotal = dockTotal + pad * #dockRegions end
-  local available = math.max(1, body.y + body.h - top)
+  local available = math.max(1, body.y + body.h - top - pad)
   local columns = model.document.contentLayout == "columns"
     and #contentRegions or (#contentRegions > 1 and 2 or 1)
   local dockByColumn = {}
@@ -101,7 +101,7 @@ function DocumentLayout.measure(base, model, font, _density)
         math.max(1, cellHeight - (dockByColumn[column + 1] or 0))),
     }
   end
-  local dockBottom = body.y + body.h
+  local dockBottom = body.y + body.h - pad
   for index, region in ipairs(dockRegions) do
     local height = dockHeights[index]
     local column = region.dock == "bottom-left" and 0 or columns - 1
