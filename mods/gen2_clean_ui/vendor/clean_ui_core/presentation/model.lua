@@ -491,13 +491,20 @@ local function documentShape(value, name)
         path .. ".components[" .. tostring(componentIndex) .. "]")
       if not valid then return nil, componentError end
     end
-    for _, field in ipairs({ "priority", "minWidth", "preferredWidth",
-      "gridRow", "gridColumn", "gridRowSpan", "gridColumnSpan" }) do
+    for _, field in ipairs({ "priority", "minWidth", "preferredWidth" }) do
       if region[field] ~= nil
           and (type(region[field]) ~= "number" or region[field] ~= region[field]
             or region[field] < 0) then
         return nil, path .. "." .. field
           .. " must be a finite non-negative number"
+      end
+    end
+    for _, field in ipairs({ "gridRow", "gridColumn", "gridRowSpan",
+      "gridColumnSpan" }) do
+      if region[field] ~= nil
+          and (type(region[field]) ~= "number" or region[field] % 1 ~= 0
+            or region[field] < 1) then
+        return nil, path .. "." .. field .. " must be a positive integer"
       end
     end
     if region.preferredHeight ~= nil
