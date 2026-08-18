@@ -137,8 +137,8 @@ local function drawHeaderSlot(G, component, layout, font, theme, side)
   return true
 end
 
-local function drawRegionBackground(G, region, layout, theme)
-  if region.frame then
+local function drawRegionBackground(G, source, region, layout, theme)
+  if source.frame then
     local panelTheme = {
       colors = {
         ink = theme.colors.muted,
@@ -178,7 +178,7 @@ function DocumentRender.draw(G, model, layout, font, theme)
   G.rectangle("fill", layout.header.x,
     layout.header.y + layout.header.h - 1, layout.header.w, 1)
   for _, region in ipairs(layout.document or {}) do
-    drawRegionBackground(G, region.source, region, theme)
+    drawRegionBackground(G, region.source, region, layout, theme)
     local pad = math.max(8, math.floor(10 * layout.scale))
     local clipped = type(G.setScissor) == "function"
     if clipped then
