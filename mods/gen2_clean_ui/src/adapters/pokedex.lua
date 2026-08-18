@@ -228,6 +228,8 @@ return function(ctx)
     return value == "PSYCHIC_TYPE" and "PSYCHIC" or value
   end
 
+  local effectiveAreaRegion
+
   local function currentSnapshot(state, current)
     if type(current) ~= "table" then return nil end
     local species = Data.id(rawget(current, "species"))
@@ -315,7 +317,7 @@ return function(ctx)
     return type(save) == "table" and save or {}
   end
 
-  local function effectiveAreaRegion(state, data, save)
+  effectiveAreaRegion = function(state, data, save)
     local requested = rawget(state, "areaRegion")
     if requested == "johto" or requested == "kanto" then return requested end
     local position = nested(save, "position")
