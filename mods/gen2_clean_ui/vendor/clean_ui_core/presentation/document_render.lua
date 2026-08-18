@@ -20,6 +20,9 @@ local function componentHeight(component, font, pad, regionHeight)
     return math.max(line, #component.lines * line + pad)
   elseif kind == "metadata" or kind == "list" then
     local count = component.visible or #component.items
+    if kind == "metadata" and component.columns then
+      count = math.ceil(count / component.columns)
+    end
     return math.max(line, count * line + pad)
   elseif kind == "scrollbar" then
     return math.max(line, regionHeight)
@@ -93,22 +96,34 @@ local function drawComponent(G, component, rect, layout, font, theme)
     local last = kind == "list" and math.min(#(component.items or {}),
       first + (component.visible or #component.items) - 1)
       or #(component.items or {})
+    local metadataRows = component.columns
+      and math.ceil(#(component.items or {}) / component.columns) or 0
     for index = first, last do
       local item = component.items[index]
-      local rowIndex = index - first + 1
+      local rowIndex, columnIndex
+      if kind == "metadata" and component.columns then
+        rowIndex = (index - 1) % metadataRows + 1
+        columnIndex = math.floor((index - 1) / metadataRows)
+      else
+        rowIndex = index - first + 1
+        columnIndex = 0
+      end
+      local columnWidth = width / math.max(1, component.columns or 1)
       local rowY = y + (rowIndex - 1) * (font:getHeight() + pad * 0.35)
+      local rowX = x + columnIndex * columnWidth
       if item.selected then
         local selectionInset = math.max(2, math.floor(layout.scale * 2))
         Color.set(G, theme.colors.selection)
-        G.rectangle("fill", rect.x + selectionInset,
-          rowY - math.floor(pad * 0.35), rect.w - selectionInset * 2,
+        G.rectangle("fill", rowX - selectionInset,
+          rowY - math.floor(pad * 0.35), columnWidth - selectionInset * 2,
           font:getHeight() + math.floor(pad * 0.7))
       end
-      printText(G, layout, font, theme, item.label, x, rowY, width * 0.55,
+      printText(G, layout, font, theme, item.label, rowX,
+        rowY, columnWidth * 0.55,
         item.selected and "strong" or "label")
       local value = item.value == nil and "" or tostring(item.value)
-      printText(G, layout, font, theme, value, x + width * 0.55, rowY,
-        width * 0.45, (item.selected or item.tone == "accent")
+      printText(G, layout, font, theme, value, rowX + columnWidth * 0.55,
+        rowY, columnWidth * 0.45, (item.selected or item.tone == "accent")
           and "accent" or "value")
     end
     if kind == "list" and type(component.scrollbar) == "table" then

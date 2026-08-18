@@ -424,6 +424,11 @@ local function documentComponentShape(value, name)
     local count, collectionError = collection(value.items, name .. ".items",
       "table")
     if not count then return nil, collectionError end
+    if componentType == "metadata" and value.columns ~= nil
+        and (type(value.columns) ~= "number" or value.columns ~= math.floor(value.columns)
+          or value.columns < 1) then
+      return nil, name .. ".columns must be a positive integer"
+    end
     for index, item in ipairs(value.items) do
       local path = name .. ".items[" .. tostring(index) .. "]"
       if not nonEmptyString(item.label) then

@@ -88,9 +88,6 @@ return function(ctx)
         type = "image", asset = art.path, id = "species-art",
       }
     end
-    identity[#identity + 1] = {
-      type = "label", text = dexNumber(current.dex), align = "center",
-    }
     return {
       contentLayout = "grid",
       gridColumns = 3,
@@ -117,6 +114,7 @@ return function(ctx)
           components = {
             { type = "heading", text = current.name or "ENTRY" },
             { type = "label", text = tostring(current.kind or "UNKNOWN") },
+            { type = "heading", text = dexNumber(current.dex) },
             { type = "badges", values = Data.copy(current.types or {}) },
           },
         },
@@ -135,6 +133,7 @@ return function(ctx)
           components = {
             {
               type = "metadata",
+              columns = 3,
               items = {
                 { label = "HEIGHT",
                   value = current.caught and current.height or "?" },
@@ -304,8 +303,7 @@ return function(ctx)
       description = current.pageLines and #current.pageLines > 0
         and current.pageLines or (model.entry.newEntry
           and "A/B CONTINUE" or "LEFT/RIGHT ACTION   A CHOOSE   B LIST"),
-      title = (current.name or "ENTRY") .. "  /  INFO "
-        .. tostring(current.page or 1),
+      title = (current.name or "ENTRY") .. " / " .. dexNumber(current.dex),
       art = Data.copy(current.art),
       entry = Data.copy(current),
       document = entryDocument(current, model.entry.selectedAction),
