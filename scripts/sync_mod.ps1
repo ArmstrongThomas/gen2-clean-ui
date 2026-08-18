@@ -55,20 +55,23 @@ function CopyExactTree([string]$Destination) {
 CopyExactTree $launcherTarget
 Write-Host "Synced launcher target: $launcherTarget"
 
-$verificationRelative = "vendor\clean_ui_core\presentation\runtime.lua"
-$sourceVerification = Join-Path $source $verificationRelative
-$targetVerification = Join-Path $launcherTarget $verificationRelative
-if (-not [IO.File]::Exists($sourceVerification)) {
-  throw "Verification file is missing from source: $sourceVerification"
-}
-if (-not [IO.File]::Exists($targetVerification)) {
-  throw "Verification file is missing from launcher target: $targetVerification"
-}
-$sourceHash = Get-Sha256Hex $sourceVerification
-$targetHash = Get-Sha256Hex $targetVerification
-Write-Host "Verification file: $verificationRelative"
-Write-Host "Source SHA-256:    $sourceHash"
-Write-Host "AppData SHA-256:   $targetHash"
-if ($sourceHash -ne $targetHash) {
-  throw "AppData verification hash does not match the synced source"
+foreach ($verificationRelative in @(
+    "vendor\clean_ui_core\presentation\runtime.lua",
+    "vendor\clean_ui_core\diagnostics\bounds.lua")) {
+  $sourceVerification = Join-Path $source $verificationRelative
+  $targetVerification = Join-Path $launcherTarget $verificationRelative
+  if (-not [IO.File]::Exists($sourceVerification)) {
+    throw "Verification file is missing from source: $sourceVerification"
+  }
+  if (-not [IO.File]::Exists($targetVerification)) {
+    throw "Verification file is missing from launcher target: $targetVerification"
+  }
+  $sourceHash = Get-Sha256Hex $sourceVerification
+  $targetHash = Get-Sha256Hex $targetVerification
+  Write-Host "Verification file: $verificationRelative"
+  Write-Host "Source SHA-256:    $sourceHash"
+  Write-Host "AppData SHA-256:   $targetHash"
+  if ($sourceHash -ne $targetHash) {
+    throw "AppData verification hash does not match the synced source: $verificationRelative"
+  }
 }
