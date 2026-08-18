@@ -201,7 +201,8 @@ local function resolveTextRun(layout, baseFont, value, maximum, options)
     end
   end
   local active = run and run.font or baseFont
-  local fitted = textFit(active, text, limit)
+  local fitted = options and options.truncate == false
+    and text or textFit(active, text, limit)
   return {
     font=active,
     text=fitted,
@@ -219,7 +220,7 @@ local function wrapStyledLines(layout, baseFont, value, maximum, style)
   local options = textStyleOptions(style)
   for word in text:gmatch("%S+") do
     local candidate = current == "" and word or (current .. " " .. word)
-    local run = resolveTextRun(layout, baseFont, candidate, maximum, options)
+    local run = resolveTextRun(layout, baseFont, candidate, math.huge, options)
     if current ~= "" and run.width > maximum then
       output[#output + 1] = current
       current = word

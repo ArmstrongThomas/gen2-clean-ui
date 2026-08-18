@@ -6,9 +6,10 @@ local MenuRender = requireCore("presentation.menu_render")
 local DocumentRender = {}
 
 local function printText(G, layout, font, theme, text, x, y, width, style,
-    align)
+    align, options)
   return MenuRender.printStyledFitted(G, layout, font, theme, text, x, y,
-    width, style or "body", align and { align = align } or nil)
+    width, style or "body", options
+      or (align and { align = align } or nil))
 end
 
 local function componentHeight(component, font, pad, regionHeight)
@@ -98,7 +99,8 @@ local function drawComponent(G, component, rect, layout, font, theme)
     for index, line in ipairs(lines) do
       printText(G, layout, font, theme, line, textX, y
         + (index - 1) * (font:getHeight() + pad * 0.35), textWidth,
-        textStyle)
+        textStyle, nil, component.truncate == false
+          and { truncate = false } or nil)
     end
   elseif kind == "badges" then
     local scissor = {}
