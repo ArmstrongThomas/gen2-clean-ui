@@ -57,8 +57,10 @@ function DocumentLayout.measure(base, model, font, _density)
   end
   if #dockRegions > 0 then dockTotal = dockTotal + pad * #dockRegions end
   local available = math.max(1, body.y + body.h - top - pad)
-  local columns = model.document.contentLayout == "columns"
-    and #contentRegions or (#contentRegions > 1 and 2 or 1)
+  local isGrid = model.document.contentLayout == "grid"
+  local columns = isGrid and (model.document.gridColumns or 3)
+    or model.document.contentLayout == "columns"
+      and #contentRegions or (#contentRegions > 1 and 2 or 1)
   local dockByColumn = {}
   for index, region in ipairs(dockRegions) do
     local column = region.dock == "bottom-left" and 0 or columns - 1
@@ -85,21 +87,76 @@ function DocumentLayout.measure(base, model, font, _density)
       end
     end
   end
-  local cellHeight = math.max(1, available / math.max(1,
-    math.ceil(#contentRegions / columns)))
-  for index, region in ipairs(contentRegions) do
-    local column = (index - 1) % columns
-    local row = math.floor((index - 1) / columns)
-    local x = body.x
-    for previous = 1, column do
-      x = x + (widths[previous] or cellWidth) + pad
+  if isGrid then
+    local gridRows = model.document.gridRows or 1
+    for index, region in ipairs(contentRegions) do
+      local column = region.gridColumn or ((index - 1) % columns) + 1
+      local row = region.gridRow or (math.floor((index - 1) / columns) + 1)
+      gridRows = math.max(gridRows, row + (region.gridRowSpan or 1) - 1)
+      columns = math.max(columns, column + (region.gridColumnSpan or 1) - 1)
     end
-    regionLayouts[#regionLayouts + 1] = {
-      source = region,
-      rect = Rect.new(x, top + row * (cellHeight + pad),
-        widths[index] or cellWidth,
-        math.max(1, cellHeight - (dockByColumn[column + 1] or 0))),
-    }
+    cellWidth = (body.w - pad * (columns - 1)) / columns
+    local rowHeights, fixedHeight, flexibleRows = {}, 0, 0
+    for row = 1, gridRows do
+      local preferred
+      for index, region in ipairs(contentRegions) do
+        local regionRow = region.gridRow
+          or (math.floor((index - 1) / columns) + 1)
+        if regionRow == row and (region.gridRowSpan or 1) == 1
+            and region.preferredHeight then
+          preferred = math.max(preferred or 0,
+            math.floor(region.preferredHeight * scale))
+        end
+      end
+      rowHeights[row] = preferred
+      if preferred then fixedHeight = fixedHeight + preferred
+      else flexibleRows = flexibleRows + 1 end
+    end
+    local remainingHeight = math.max(1, available - pad * (gridRows - 1)
+      - fixedHeight)
+    for row = 1, gridRows do
+      rowHeights[row] = rowHeights[row]
+        or remainingHeight / math.max(1, flexibleRows)
+    end
+    for index, region in ipairs(contentRegions) do
+      local column = region.gridColumn or ((index - 1) % columns) + 1
+      local row = region.gridRow or (math.floor((index - 1) / columns) + 1)
+      local columnSpan = region.gridColumnSpan or 1
+      local rowSpan = region.gridRowSpan or 1
+      local x = body.x + (column - 1) * (cellWidth + pad)
+      local y = top
+      for previous = 1, row - 1 do
+        y = y + rowHeights[previous] + pad
+      end
+      local height = 0
+      for currentRow = row, math.min(gridRows, row + rowSpan - 1) do
+        height = height + rowHeights[currentRow]
+      end
+      height = height + pad * (math.min(gridRows, row + rowSpan - 1) - row)
+      regionLayouts[#regionLayouts + 1] = {
+        source = region,
+        rect = Rect.new(x, y,
+          cellWidth * columnSpan + pad * (columnSpan - 1),
+          math.max(1, height)),
+      }
+    end
+  else
+    local cellHeight = math.max(1, available / math.max(1,
+      math.ceil(#contentRegions / columns)))
+    for index, region in ipairs(contentRegions) do
+      local column = (index - 1) % columns
+      local row = math.floor((index - 1) / columns)
+      local x = body.x
+      for previous = 1, column do
+        x = x + (widths[previous] or cellWidth) + pad
+      end
+      regionLayouts[#regionLayouts + 1] = {
+        source = region,
+        rect = Rect.new(x, top + row * (cellHeight + pad),
+          widths[index] or cellWidth,
+          math.max(1, cellHeight - (dockByColumn[column + 1] or 0))),
+      }
+    end
   end
   local dockBottom = body.y + body.h - pad
   for index, region in ipairs(dockRegions) do

@@ -252,6 +252,12 @@ return function(ctx)
     elseif type(typeCache[species]) == "table" then
       types = Data.copy(typeCache[species])
     end
+    local caughtCount = 0
+    for _, row in ipairs(rawget(state, "rows") or {}) do
+      if type(row) == "table" and rawget(row, "caught") == true then
+        caughtCount = caughtCount + 1
+      end
+    end
     return {
       species = species,
       name = monName(state, species),
@@ -261,6 +267,9 @@ return function(ctx)
       weight = Data.scalar(entry and rawget(entry, "weight")),
       seen = rawget(current, "seen") == true,
       caught = rawget(current, "caught") == true,
+      caughtCount = caughtCount,
+      region = effectiveAreaRegion(state, screenData(state), activeSave(state))
+        :upper(),
       page = page,
       pages = {
         splitEntryText(entry and rawget(entry, "text")),

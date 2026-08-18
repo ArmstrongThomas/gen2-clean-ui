@@ -491,7 +491,8 @@ local function documentShape(value, name)
         path .. ".components[" .. tostring(componentIndex) .. "]")
       if not valid then return nil, componentError end
     end
-    for _, field in ipairs({ "priority", "minWidth", "preferredWidth" }) do
+    for _, field in ipairs({ "priority", "minWidth", "preferredWidth",
+      "gridRow", "gridColumn", "gridRowSpan", "gridColumnSpan" }) do
       if region[field] ~= nil
           and (type(region[field]) ~= "number" or region[field] ~= region[field]
             or region[field] < 0) then
@@ -542,7 +543,16 @@ local function documentShape(value, name)
     end
   end
   if value.contentLayout ~= nil and value.contentLayout ~= "columns" then
-    return nil, name .. ".contentLayout must be columns when present"
+    if value.contentLayout ~= "grid" then
+      return nil, name .. ".contentLayout must be columns or grid when present"
+    end
+  end
+  for _, field in ipairs({ "gridColumns", "gridRows" }) do
+    if value[field] ~= nil
+        and (type(value[field]) ~= "number" or value[field] % 1 ~= 0
+          or value[field] < 1) then
+      return nil, name .. "." .. field .. " must be a positive integer"
+    end
   end
   return true
 end

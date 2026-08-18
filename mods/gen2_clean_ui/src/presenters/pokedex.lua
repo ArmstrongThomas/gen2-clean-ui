@@ -53,59 +53,107 @@ return function(ctx)
     return "UNSEEN"
   end
 
+  local function wrapLines(lines, width)
+    local output = {}
+    for _, source in ipairs(lines or {}) do
+      local text = tostring(source or "")
+      while #text > width do
+        local split = width
+        for index = width, 1, -1 do
+          if text:sub(index, index) == " " then
+            split = index - 1
+            break
+          end
+        end
+        output[#output + 1] = text:sub(1, split)
+        text = text:sub(split + 2)
+      end
+      output[#output + 1] = text
+    end
+    return output
+  end
+
   local function entryDocument(current, selectedAction)
     local art = sprite(current.art)
     local activeTab = ({ [1] = 1, [2] = 2, [3] = 5, [4] = 6 })
       [selectedAction]
-    local components = {
-      { type = "heading", text = current.name or "ENTRY" },
-      { type = "label", text = dexNumber(current.dex) .. " · "
-        .. tostring(current.kind or "UNKNOWN") },
-    }
+    local entryLines = wrapLines(current.pageLines, 54)
+    local summaryLines = {}
+    for index = 1, math.min(#entryLines, 4) do
+      summaryLines[#summaryLines + 1] = entryLines[index]
+    end
+    local identity = {}
     if art then
-      components[#components + 1] = {
+      identity[#identity + 1] = {
         type = "image", asset = art.path, id = "species-art",
       }
     end
-    components[#components + 1] = {
-      type = "badges", values = Data.copy(current.types or {}),
+    identity[#identity + 1] = {
+      type = "label", text = dexNumber(current.dex), align = "center",
     }
     return {
+      contentLayout = "grid",
+      gridColumns = 3,
+      gridRows = 3,
       regions = {
         {
           id = "page-header", role = "header",
           components = {
             {
               type = "tabs",
-              values = { "INFO", "AREA", "EVO", "MOVES/TM", "CRY", "PRNT" },
+              values = { "INFO", "AREA", "EVOLUTION", "MOVES", "CRY", "PRINT" },
               active = activeTab,
             },
           },
         },
         {
-          id = "identity", role = "content", components = components,
+          id = "identity", role = "content", frame = true,
+          gridRow = 1, gridColumn = 1, preferredHeight = 230,
+          components = identity,
         },
         {
-          id = "metadata", role = "content",
+          id = "summary", role = "content", frame = true,
+          gridRow = 1, gridColumn = 2, preferredHeight = 230,
+          components = {
+            { type = "heading", text = current.name or "ENTRY" },
+            { type = "label", text = tostring(current.kind or "UNKNOWN") },
+            { type = "badges", values = Data.copy(current.types or {}) },
+          },
+        },
+        {
+          id = "description", role = "content", frame = true,
+          gridRow = 1, gridColumn = 3, preferredHeight = 230,
+          components = {
+            { type = "heading", text = "FIELD NOTES" },
+            { type = "text", lines = summaryLines },
+          },
+        },
+        {
+          id = "metadata", role = "content", frame = true,
+          gridRow = 2, gridColumn = 1, gridColumnSpan = 3,
+          preferredHeight = 112,
           components = {
             {
               type = "metadata",
               items = {
-                { label = "NUMBER", value = dexNumber(current.dex) },
                 { label = "HEIGHT",
                   value = current.caught and current.height or "?" },
                 { label = "WEIGHT",
                   value = current.caught and current.weight or "?" },
                 { label = "STATUS", value = status(current), tone = "accent" },
+                { label = "REGION", value = current.region or "JOHTO" },
+                { label = "CAUGHT", value = tostring(current.caughtCount or 0) },
+                { label = "CLASS", value = current.kind or "UNKNOWN" },
               },
             },
           },
         },
         {
-          id = "entry", role = "content",
+          id = "entry", role = "content", frame = true,
+          gridRow = 3, gridColumn = 1, gridColumnSpan = 3,
           components = {
             { type = "heading", text = "POKÉDEX ENTRY" },
-            { type = "text", lines = Data.copy(current.pageLines or {}) },
+            { type = "text", lines = entryLines },
           },
         },
       },
