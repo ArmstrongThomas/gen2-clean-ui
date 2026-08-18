@@ -148,15 +148,17 @@ return function(ctx)
     end
     previewComponents[#previewComponents + 1] = {
       type = "heading", text = current.name or "-----",
+      align = "center",
     }
     previewComponents[#previewComponents + 1] = {
-      type = "label", text = dexNumber(current.dex),
+      type = "label", text = dexNumber(current.dex), align = "center",
     }
     previewComponents[#previewComponents + 1] = {
       type = "badges", values = Data.copy(current.types or {}),
+      align = "center",
     }
     previewComponents[#previewComponents + 1] = {
-      type = "label", text = status(current),
+      type = "label", text = status(current), align = "center",
     }
     return {
       rows = rows,

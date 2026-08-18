@@ -327,8 +327,17 @@ local function drawBadges(G, values, rect, font, theme, scale, palettes,
   return y + height
 end
 
-local function drawTypeBadges(G, types, rect, font, theme, scale)
+local function drawTypeBadges(G, types, rect, font, theme, scale, align)
   if type(types) ~= "table" then return rect and rect.y or 0 end
+  if align == "center" and rect and #types > 0 then
+    local gap = math.max(2, math.floor(4 * scale))
+    local badge = badgeWidth(font, scale, "ELECTRIC", math.floor(30 * scale))
+    local total = badge * #types + gap * (#types - 1)
+    rect = {
+      x = rect.x + math.floor(math.max(0, rect.w - total) / 2),
+      y = rect.y, w = total, h = rect.h,
+    }
+  end
   return drawBadges(G, types, rect, font, theme, scale, TYPE_COLORS,
     badgeWidth(font, scale, "ELECTRIC", math.floor(30 * scale)))
 end

@@ -5,7 +5,11 @@ local MenuRender = requireCore("presentation.menu_render")
 
 local DocumentRender = {}
 
-local function printText(G, layout, font, theme, text, x, y, width, style)
+local function printText(G, layout, font, theme, text, x, y, width, style,
+    align)
+  if align == "center" then
+    x = x + math.max(0, math.floor((width - font:getWidth(tostring(text))) / 2))
+  end
   return MenuRender.printStyledFitted(G, layout, font, theme, text, x, y,
     width, style or "body")
 end
@@ -61,9 +65,11 @@ local function drawComponent(G, component, rect, layout, font, theme)
     G.rectangle("fill", x, y, width, math.max(1, math.floor(layout.scale)))
     return
   elseif kind == "heading" then
-    printText(G, layout, font, theme, component.text, x, y, width, "heading")
+    printText(G, layout, font, theme, component.text, x, y, width, "heading",
+      component.align)
   elseif kind == "label" then
-    printText(G, layout, font, theme, component.text, x, y, width, "label")
+    printText(G, layout, font, theme, component.text, x, y, width, "label",
+      component.align)
   elseif kind == "tabs" then
     local values = component.values or {}
     local tabWidth = width / math.max(1, #values)
@@ -84,7 +90,7 @@ local function drawComponent(G, component, rect, layout, font, theme)
     end
   elseif kind == "badges" then
     MenuRender.drawTypeBadges(G, component.values, rect, font, theme,
-      layout.scale)
+      layout.scale, component.align)
   elseif kind == "metadata" or kind == "list" then
     local first = kind == "list" and (component.scroll or 0) + 1 or 1
     local last = kind == "list" and math.min(#(component.items or {}),
