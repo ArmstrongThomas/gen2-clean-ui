@@ -22,7 +22,9 @@ return function(ctx)
   local function sprite(art)
     if type(art) ~= "table" or type(art.sprite) ~= "string"
         or art.sprite == "" then return nil end
-    local descriptor = { path=art.sprite, zoom = 1.5 }
+    local descriptor = {
+      path = art.sprite, zoom = 1.5, debugBounds = "sprite",
+    }
     if type(art.palette) == "table" then
       descriptor.palette = Data.copy(art.palette)
     end
@@ -100,6 +102,7 @@ return function(ctx)
     if art then
       identity[#identity + 1] = {
         type = "image", asset = art.path, id = "species-art",
+        debugBounds = art.debugBounds,
       }
     end
     return {
@@ -118,6 +121,7 @@ return function(ctx)
           id = "identity", role = "content",
           gridRow = 1, gridColumn = 1, preferredWidth = 280,
           preferredHeight = 280,
+          debugBounds = "region",
           components = identity,
         },
         {

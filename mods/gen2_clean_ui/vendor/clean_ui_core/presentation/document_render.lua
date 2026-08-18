@@ -254,6 +254,11 @@ function DocumentRender.draw(G, model, layout, font, theme)
     layout.header.y + layout.header.h - 1, layout.header.w, 1)
   for _, region in ipairs(layout.document or {}) do
     drawRegionBackground(G, region.source, region, layout, theme)
+    if region.source.debugBounds == "region" then
+      G.setColor(1, 0, 1, 1)
+      G.rectangle("line", region.rect.x, region.rect.y,
+        region.rect.w, region.rect.h)
+    end
     local pad = math.max(8, math.floor(10 * layout.scale))
     local clipped = type(G.setScissor) == "function"
     if clipped then
@@ -312,6 +317,11 @@ function DocumentRender.draw(G, model, layout, font, theme)
         local ok, code, message = drawComponent(G, component, componentRect,
           layout, font, theme)
         if ok ~= true then return nil, code, message end
+        if component.debugBounds == "sprite" then
+          G.setColor(0, 1, 1, 1)
+          G.rectangle("line", componentRect.x, componentRect.y,
+            componentRect.w, componentRect.h)
+        end
         cursor = cursor + height
         if cursor >= region.rect.y + region.rect.h then break end
       end
