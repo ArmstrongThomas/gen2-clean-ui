@@ -89,9 +89,14 @@ local function drawComponent(G, component, rect, layout, font, theme)
       end
     end
   elseif kind == "text" then
+    local textStyle = component.style or "body"
+    local textX = x + math.floor((tonumber(component.marginLeft) or 0)
+      * layout.scale)
+    local textWidth = math.max(1, width - (textX - x))
     for index, line in ipairs(component.lines or {}) do
-      printText(G, layout, font, theme, line, x, y
-        + (index - 1) * (font:getHeight() + pad * 0.35), width, "body")
+      printText(G, layout, font, theme, line, textX, y
+        + (index - 1) * (font:getHeight() + pad * 0.35), textWidth,
+        textStyle)
     end
   elseif kind == "badges" then
     MenuRender.drawTypeBadges(G, component.values, rect, font, theme,

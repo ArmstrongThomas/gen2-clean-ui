@@ -152,7 +152,8 @@ return function(ctx)
           gridRow = 3, gridColumn = 1, gridColumnSpan = 3,
           components = {
             { type = "heading", text = "POKÉDEX ENTRY" },
-            { type = "text", lines = entryLines },
+            { type = "text", lines = entryLines, style = "heading",
+              marginLeft = 16 },
           },
         },
       },
