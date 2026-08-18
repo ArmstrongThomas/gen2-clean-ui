@@ -78,6 +78,18 @@ try {
     New-Item -ItemType Directory -Force -Path $parent | Out-Null
     Copy-Item -LiteralPath $file.FullName -Destination $destination
   }
+  $sourceAssets = Join-Path (Split-Path -Parent $sourceRuntime) "assets"
+  if ([IO.Directory]::Exists($sourceAssets)) {
+    foreach ($file in (Get-ChildItem -LiteralPath $sourceAssets -File -Recurse |
+        Sort-Object FullName)) {
+      if ($file.LinkType) { throw "Core assets may not contain links: $($file.FullName)" }
+      $relative = $file.FullName.Substring($sourceAssets.Length + 1)
+      $destination = Join-Path $stagedVendor (Join-Path "assets" $relative)
+      $parent = Split-Path -Parent $destination
+      New-Item -ItemType Directory -Force -Path $parent | Out-Null
+      Copy-Item -LiteralPath $file.FullName -Destination $destination
+    }
+  }
 
   $files = @()
   foreach ($file in (Get-ChildItem -LiteralPath $stagedVendor -File -Recurse |
