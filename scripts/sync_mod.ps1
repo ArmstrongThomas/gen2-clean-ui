@@ -57,7 +57,9 @@ Write-Host "Synced launcher target: $launcherTarget"
 
 foreach ($verificationRelative in @(
     "vendor\clean_ui_core\presentation\runtime.lua",
-    "vendor\clean_ui_core\diagnostics\bounds.lua")) {
+    "vendor\clean_ui_core\diagnostics\bounds.lua",
+    "vendor\clean_ui_core\presentation\menu_render.lua",
+    "vendor\clean_ui_core\module_manifest.lua")) {
   $sourceVerification = Join-Path $source $verificationRelative
   $targetVerification = Join-Path $launcherTarget $verificationRelative
   if (-not [IO.File]::Exists($sourceVerification)) {
