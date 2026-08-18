@@ -229,6 +229,8 @@ return function(ctx)
   end
 
   local effectiveAreaRegion
+  local screenData
+  local activeSave
 
   local function currentSnapshot(state, current)
     if type(current) ~= "table" then return nil end
@@ -301,7 +303,7 @@ return function(ctx)
     return landmark < 0x2e and "johto" or "kanto"
   end
 
-  local function screenData(state)
+  screenData = function(state)
     local data = rawget(state, "data")
     if type(data) == "table" then return data end
     local game = rawget(state, "game")
@@ -309,7 +311,7 @@ return function(ctx)
     return type(data) == "table" and data or {}
   end
 
-  local function activeSave(state)
+  activeSave = function(state)
     local game = rawget(state, "game")
     local save = type(game) == "table" and rawget(game, "save") or nil
     if type(save) == "table" then return save end
