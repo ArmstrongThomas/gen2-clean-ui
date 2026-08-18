@@ -595,11 +595,6 @@ function Runtime.new(core)
       return Result.err("hooks_unavailable", "presentation hooks are unavailable")
     end
     local subscriptions = {}
-    subscriptions[#subscriptions + 1] = self.mod.hooks:wrap("input.step",
-      function(nextFn, game, dt)
-        self:debugInput()
-        return nextFn(game, dt)
-      end, 95000)
     if self.mod.events and self.mod.events.on then
       subscriptions[#subscriptions + 1] = self.mod.events:on(
         "mod.options_changed", function(event)
@@ -653,6 +648,7 @@ function Runtime.new(core)
       end, 90000)
     subscriptions[#subscriptions + 1] = self.mod.hooks:wrap("render.hud",
       function(nextFn, game, viewport)
+        self:debugInput()
         if type(game) == "table" then self.lastGame = game end
         nextFn(game, viewport)
         local candidate = self.candidate
