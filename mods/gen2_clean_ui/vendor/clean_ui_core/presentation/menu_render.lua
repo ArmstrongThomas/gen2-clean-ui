@@ -195,7 +195,9 @@ local function resolveTextRun(layout, baseFont, value, maximum, options)
   if not limit or limit < 0 then limit = math.huge end
   local run
   if type(layout) == "table" and type(layout.textRun) == "function" then
-    local ok, candidate = pcall(layout.textRun, text, limit, options)
+    local fittingLimit = options and options.truncate == false
+      and math.huge or limit
+    local ok, candidate = pcall(layout.textRun, text, fittingLimit, options)
     if ok and type(candidate) == "table" and candidate.font then
       run = candidate
     end
