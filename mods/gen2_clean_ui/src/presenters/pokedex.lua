@@ -95,19 +95,19 @@ return function(ctx)
       header = {
         right = {
           type = "tabs",
-          values = { "INFO", "AREA", "EVOLUTION", "MOVES", "CRY", "PRINT" },
+          values = { "INFO", "AREA", "EVO", "MOVES", "CRY", "PRINT" },
           active = activeTab,
         },
       },
       regions = {
         {
-          id = "identity", role = "content", frame = true,
-          gridRow = 1, gridColumn = 1, preferredHeight = 230,
+          id = "identity", role = "content",
+          gridRow = 1, gridColumn = 1, preferredHeight = 175,
           components = identity,
         },
         {
-          id = "summary", role = "content", frame = true,
-          gridRow = 1, gridColumn = 2, preferredHeight = 230,
+          id = "summary", role = "content",
+          gridRow = 1, gridColumn = 2, preferredHeight = 175,
           components = {
             { type = "heading", text = current.name or "ENTRY" },
             { type = "label", text = tostring(current.kind or "UNKNOWN") },
@@ -116,8 +116,8 @@ return function(ctx)
           },
         },
         {
-          id = "description", role = "content", frame = true,
-          gridRow = 1, gridColumn = 3, preferredHeight = 230,
+          id = "description", role = "content",
+          gridRow = 1, gridColumn = 3, preferredHeight = 175,
           components = {
             { type = "heading", text = "FIELD NOTES" },
             { type = "text", lines = summaryLines },
@@ -126,7 +126,7 @@ return function(ctx)
         {
           id = "metadata", role = "content", frame = true,
           gridRow = 2, gridColumn = 1, gridColumnSpan = 3,
-          preferredHeight = 112,
+          preferredHeight = 90,
           components = {
             {
               type = "metadata",
