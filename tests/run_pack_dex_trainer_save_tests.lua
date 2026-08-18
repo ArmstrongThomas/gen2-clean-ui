@@ -282,6 +282,11 @@ fallbackState.rows[1].types = { "GRASS" }
 local fallbackDex = assert(Pokedex.extract(fallbackState))
 check(fallbackDex.model.current.types[1] == "GRASS",
   "Pokedex preserves current-row types during partial source refresh")
+local cachedState = Data.copy(fallbackState)
+cachedState.rows[1].types = nil
+local cachedDex = assert(Pokedex.extract(cachedState))
+check(cachedDex.model.current.types[1] == "GRASS",
+  "Pokedex reuses cached types during a transient source refresh")
 local duplicateTypeState = Data.copy(dexState)
 duplicateTypeState.index = 3
 local duplicateType = assert(Pokedex.extract(duplicateTypeState))

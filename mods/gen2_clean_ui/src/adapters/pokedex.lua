@@ -2,6 +2,7 @@ return function(ctx)
   local Data = ctx.load("adapters.data")
   local Actions = ctx.load("adapters.actions")
   local Pokedex = {}
+  local typeCache = {}
 
   local MODES = { "NEW", "OLD", "A-Z" }
   local ENTRY_ACTIONS = { "PAGE", "AREA", "CRY", "PRNT" }
@@ -245,6 +246,11 @@ return function(ctx)
         types[#types + 1] = typeName
         seenTypes[typeName] = true
       end
+    end
+    if #types > 0 then
+      typeCache[species] = Data.copy(types)
+    elseif type(typeCache[species]) == "table" then
+      types = Data.copy(typeCache[species])
     end
     return {
       species = species,
