@@ -189,7 +189,7 @@ return function(ctx)
             },
           },
           {
-            id = "scrollbar", role = "content", preferredWidth = 34,
+            id = "scrollbar", role = "content", preferredWidth = 28,
             frame = true,
             components = {
               {
@@ -202,7 +202,8 @@ return function(ctx)
             },
           },
           {
-            id = "preview", role = "content", frame = true,
+            id = "preview", role = "content", preferredWidth = 390,
+            frame = true,
             components = previewComponents,
           },
           {

@@ -206,6 +206,9 @@ function DocumentRender.draw(G, model, layout, font, theme)
     end
     if clipped then G.setScissor() end
   end
+  Color.set(G, theme.colors.muted)
+  G.rectangle("fill", layout.footer.x, layout.footer.y - 1,
+    layout.footer.w, 1)
   local controls = model.controls or (model.document and model.document.controls)
   if type(controls) == "string" then
     printText(G, layout, font, theme, controls, layout.footer.x,
