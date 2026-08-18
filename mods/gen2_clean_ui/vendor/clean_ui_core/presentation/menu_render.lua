@@ -535,7 +535,7 @@ end
 -- fractional rectangles. Whole-pixel magnification and exact reciprocal
 -- reduction prevent the GPU from giving neighboring source pixels different
 -- widths. The final fallback is reserved for a non-divisible source crop.
-local function spritePlacement(rect, width, height)
+local function spritePlacement(rect, width, height, zoom)
   local x1 = pixelRound(rect.x)
   local y1 = pixelRound(rect.y)
   local x2 = math.max(x1 + 1, pixelRound(rect.x + rect.w))
@@ -545,13 +545,12 @@ local function spritePlacement(rect, width, height)
   local sourceHeight = math.max(1, height)
   local fit = math.min(availableWidth / sourceWidth,
     availableHeight / sourceHeight)
+  fit = fit * math.max(0.01, tonumber(zoom) or 1)
   if fit <= 0 then return x1, y1, 0, 0, 0, 0 end
 
   local scale = pixelScale(sourceWidth, sourceHeight, fit)
-  local outputWidth = math.max(1, math.min(availableWidth,
-    pixelRound(sourceWidth * scale)))
-  local outputHeight = math.max(1, math.min(availableHeight,
-    pixelRound(sourceHeight * scale)))
+  local outputWidth = math.max(1, pixelRound(sourceWidth * scale))
+  local outputHeight = math.max(1, pixelRound(sourceHeight * scale))
   local x = pixelRound(x1 + (availableWidth - outputWidth) * 0.5)
   local y = pixelRound(y1 + (availableHeight - outputHeight) * 0.5)
   return x, y, outputWidth / sourceWidth, outputHeight / sourceHeight,
@@ -604,7 +603,7 @@ local function drawSprite(G, descriptor, rect, animationClock)
   local sourceWidth = crop and crop.w or iw
   local sourceHeight = crop and crop.h or ih
   local x, y, scaleX, scaleY, outputWidth, outputHeight = spritePlacement(
-    rect, sourceWidth, sourceHeight)
+    rect, sourceWidth, sourceHeight, drawDescriptor.zoom)
   if outputWidth <= 0 or outputHeight <= 0 then return true end
   local previous = G.getShader and G.getShader() or nil
   local palette = drawDescriptor.palette

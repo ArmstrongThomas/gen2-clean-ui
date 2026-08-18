@@ -22,7 +22,7 @@ return function(ctx)
   local function sprite(art)
     if type(art) ~= "table" or type(art.sprite) ~= "string"
         or art.sprite == "" then return nil end
-    local descriptor = { path=art.sprite }
+    local descriptor = { path=art.sprite, zoom = 1.5 }
     if type(art.palette) == "table" then
       descriptor.palette = Data.copy(art.palette)
     end
