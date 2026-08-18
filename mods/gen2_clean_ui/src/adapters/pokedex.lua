@@ -242,6 +242,12 @@ return function(ctx)
     if type(rawTypes) ~= "table" then
       rawTypes = rawget(current, "types")
     end
+    local firstPage = splitEntryText(entry and rawget(entry, "text"))
+    local secondPage = splitEntryText(entry and rawget(entry, "text2"))
+    local entryLines = Data.copy(firstPage)
+    for _, line in ipairs(secondPage) do
+      entryLines[#entryLines + 1] = line
+    end
     local types, seenTypes = {}, {}
     for index = 1, 2 do
       local typeName = type(rawTypes) == "table"
@@ -275,12 +281,8 @@ return function(ctx)
       region = effectiveAreaRegion(state, screenData(state), activeSave(state))
         :upper(),
       page = page,
-      pages = {
-        splitEntryText(entry and rawget(entry, "text")),
-        splitEntryText(entry and rawget(entry, "text2")),
-      },
-      pageLines = splitEntryText(entry and rawget(entry,
-        page == 2 and "text2" or "text")),
+      pages = { firstPage, secondPage },
+      pageLines = entryLines,
       types = types,
       art = artSnapshot(state, species),
       reference = referenceSnapshot(state, species),
