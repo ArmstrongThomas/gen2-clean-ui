@@ -37,7 +37,7 @@ function DocumentLayout.measure(base, model, font, _density)
       contentRegions[#contentRegions + 1] = region
     end
   end
-  local top = body.y
+  local top = body.y + pad
   for _, region in ipairs(headerRegions) do
     local height = heightFor(font, scale, 2)
     regionLayouts[#regionLayouts + 1] = {
@@ -45,7 +45,18 @@ function DocumentLayout.measure(base, model, font, _density)
     }
     top = top + height + pad
   end
-  local available = math.max(1, body.y + body.h - top)
+  local dockHeights = {}
+  local dockTotal = 0
+  for index, region in ipairs(dockRegions) do
+    local height = region.preferredHeight
+      and math.max(1, math.floor(region.preferredHeight * scale))
+      or heightFor(font, scale, 2)
+    height = math.min(body.h, height)
+    dockHeights[index] = height
+    dockTotal = dockTotal + height
+  end
+  if #dockRegions > 0 then dockTotal = dockTotal + pad * #dockRegions end
+  local available = math.max(1, body.y + body.h - top - dockTotal)
   local columns = model.document.contentLayout == "columns"
     and #contentRegions or (#contentRegions > 1 and 2 or 1)
   local cellWidth = (body.w - pad * (columns - 1)) / columns
@@ -62,8 +73,10 @@ function DocumentLayout.measure(base, model, font, _density)
       end
     end
     local remaining = math.max(1, body.w - pad * (columns - 1) - fixed)
-    for index, width in ipairs(widths) do
-      if not width then widths[index] = remaining / math.max(1, flexible) end
+    for index = 1, columns do
+      if not widths[index] then
+        widths[index] = remaining / math.max(1, flexible)
+      end
     end
   end
   local cellHeight = math.max(1, available / math.max(1,
@@ -82,11 +95,8 @@ function DocumentLayout.measure(base, model, font, _density)
     }
   end
   local dockBottom = body.y + body.h
-  for _, region in ipairs(dockRegions) do
-    local height = region.preferredHeight
-      and math.max(1, math.floor(region.preferredHeight * scale))
-      or heightFor(font, scale, 2)
-    height = math.min(body.h, height)
+  for index, region in ipairs(dockRegions) do
+    local height = dockHeights[index]
     local column = region.dock == "bottom-left" and 0 or columns - 1
     local x = body.x
     for previous = 1, column do
