@@ -212,6 +212,25 @@ local function resolveTextRun(layout, baseFont, value, maximum, options)
   }
 end
 
+local function wrapStyledLines(layout, baseFont, value, maximum, style)
+  local text = tostring(value or "")
+  local output = {}
+  local current = ""
+  local options = textStyleOptions(style)
+  for word in text:gmatch("%S+") do
+    local candidate = current == "" and word or (current .. " " .. word)
+    local run = resolveTextRun(layout, baseFont, candidate, maximum, options)
+    if current ~= "" and run.width > maximum then
+      output[#output + 1] = current
+      current = word
+    else
+      current = candidate
+    end
+  end
+  if current ~= "" or #output == 0 then output[#output + 1] = current end
+  return output
+end
+
 local function printFitted(G, layout, baseFont, color, value, x, y, maximum,
     options)
   local run = resolveTextRun(layout, baseFont, value, maximum, options)
@@ -1721,6 +1740,7 @@ MenuRender.textStyles = TEXT_STYLES
 MenuRender.textStyleOptions = textStyleOptions
 MenuRender.drawText = printStyled
 MenuRender.resolveTextRun = resolveTextRun
+MenuRender.wrapStyledLines = wrapStyledLines
 MenuRender.printFitted = printFitted
 MenuRender.printStyledFitted = printStyledFitted
 

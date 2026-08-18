@@ -17,7 +17,8 @@ local function componentHeight(component, font, pad, regionHeight)
   if kind == "image" then
     return math.max(line, math.min(regionHeight, math.floor(regionHeight * 0.58)))
   elseif kind == "text" then
-    return math.max(line, #component.lines * line + pad)
+    local lines = component.renderLines or component.lines
+    return math.max(line, #(lines or {}) * line + pad)
   elseif kind == "metadata" or kind == "list" then
     local count = component.visible or #component.items
     if kind == "metadata" and component.columns then
@@ -93,14 +94,23 @@ local function drawComponent(G, component, rect, layout, font, theme)
     local textX = x + math.floor((tonumber(component.marginLeft) or 0)
       * layout.scale)
     local textWidth = math.max(1, width - (textX - x))
-    for index, line in ipairs(component.lines or {}) do
+    local lines = component.renderLines or component.lines or {}
+    for index, line in ipairs(lines) do
       printText(G, layout, font, theme, line, textX, y
         + (index - 1) * (font:getHeight() + pad * 0.35), textWidth,
         textStyle)
     end
   elseif kind == "badges" then
+    local scissor = {}
+    if type(G.getScissor) == "function" then
+      scissor.x, scissor.y, scissor.w, scissor.h = G.getScissor()
+    end
+    if type(G.setScissor) == "function" then G.setScissor() end
     MenuRender.drawTypeBadges(G, component.values, rect, font, theme,
       layout.scale, component.align)
+    if scissor.x and type(G.setScissor) == "function" then
+      G.setScissor(scissor.x, scissor.y, scissor.w, scissor.h)
+    end
   elseif kind == "metadata" or kind == "list" then
     local first = kind == "list" and (component.scroll or 0) + 1 or 1
     local last = kind == "list" and math.min(#(component.items or {}),
@@ -243,15 +253,36 @@ function DocumentRender.draw(G, model, layout, font, theme)
       G.setScissor(region.rect.x, region.rect.y, region.rect.w, region.rect.h)
     end
     local cursor = region.rect.y
-    for _, component in ipairs(region.source.components or {}) do
+    for componentIndex, component in ipairs(region.source.components or {}) do
       if component.type == "scrollbar" and component.anchor then
         local ok, code, message = drawComponent(G, component, region.rect,
           layout, font, theme)
         if ok ~= true then return nil, code, message end
       else
         local remaining = math.max(1, region.rect.y + region.rect.h - cursor)
-        local height = math.min(remaining,
-          componentHeight(component, font, pad, region.rect.h))
+        if component.type == "text" and component.wrap then
+          component.renderLines = {}
+          for _, sourceLine in ipairs(component.lines or {}) do
+            local wrapped = MenuRender.wrapStyledLines(layout, font, sourceLine,
+              region.rect.w - pad * 2, component.style or "body")
+            for _, wrappedLine in ipairs(wrapped) do
+              component.renderLines[#component.renderLines + 1] = wrappedLine
+            end
+          end
+        end
+        local desiredHeight = componentHeight(component, font, pad,
+          region.rect.h)
+        if component.type == "image" then
+          local reserved = 0
+          for following = componentIndex + 1,
+              #(region.source.components or {}) do
+            reserved = reserved + componentHeight(
+              region.source.components[following], font, pad, region.rect.h)
+          end
+          desiredHeight = math.min(desiredHeight,
+            math.max(1, remaining - reserved))
+        end
+        local height = math.min(remaining, desiredHeight)
         local componentRect = {
           x = region.rect.x, y = cursor, w = region.rect.w, h = height,
         }

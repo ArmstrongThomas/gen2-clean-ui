@@ -91,7 +91,7 @@ return function(ctx)
       [selectedAction]
     local entryText = table.concat(current.pageLines or {}, " ")
     entryText = entryText:gsub("(%a)%- (%a)", "%1%2")
-    local entryLines = wrapLines({ entryText }, 64)
+    local entryLines = { entryText }
     local identity = {}
     if art then
       identity[#identity + 1] = {
@@ -153,7 +153,7 @@ return function(ctx)
           components = {
             { type = "heading", text = "POKÉDEX ENTRY" },
             { type = "text", lines = entryLines, style = "heading",
-              marginLeft = 16 },
+              wrap = true, marginLeft = 16 },
           },
         },
       },
