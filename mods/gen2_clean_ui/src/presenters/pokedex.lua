@@ -143,7 +143,6 @@ return function(ctx)
             {
               type = "metadata",
               columns = 3,
-              leaders = true,
               items = {
                 { label = "HEIGHT",
                   value = current.caught and displayHeight(current.height) or "?" },
