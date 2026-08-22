@@ -244,10 +244,7 @@ return function(ctx)
     end
     local firstPage = splitEntryText(entry and rawget(entry, "text"))
     local secondPage = splitEntryText(entry and rawget(entry, "text2"))
-    local entryLines = Data.copy(firstPage)
-    for _, line in ipairs(secondPage) do
-      entryLines[#entryLines + 1] = line
-    end
+    local entryLines = Data.copy(page == 2 and secondPage or firstPage)
     local types, seenTypes = {}, {}
     for index = 1, 2 do
       local typeName = type(rawTypes) == "table"

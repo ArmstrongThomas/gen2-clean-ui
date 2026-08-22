@@ -307,17 +307,17 @@ check(dexEntryView.sourceView == "entry" and dexEntryView.kind == "document"
   and dexEntryView.selected == 3
   and dexEntryView.art.paletteKey == "CHIKORITA"
   and dexEntryView.details.title == "CHIKORITA"
-  and dexEntryView.title == "CHIKORITA  /  INFO 2"
+  and dexEntryView.title == "CHIKORITA / No.152"
   and dexEntryView.details.typeBadges[1] == "GRASS"
   and dexEntryView.details.fields[1].value == "No.152",
   "Pokedex entry presenter retains action, preview, and color-art data")
-check(dexEntryView.document.regions[1].components[1].type == "tabs"
-  and dexEntryView.document.regions[1].components[1].values[1] == "INFO"
-  and dexEntryView.document.regions[1].components[1].values[4] == "MOVES/TM"
-  and dexEntryView.document.regions[1].components[1].values[5] == "CRY"
-  and dexEntryView.document.regions[1].components[1].values[6] == "PRNT"
-  and dexEntryView.document.regions[1].components[1].active == 5
-  and dexEntryView.document.regions[4].components[2].lines[1]
+ check(dexEntryView.document.header.right.type == "tabs"
+  and dexEntryView.document.header.right.values[1] == "INFO"
+  and dexEntryView.document.header.right.values[4] == "MOVES"
+  and dexEntryView.document.header.right.values[5] == "CRY"
+  and dexEntryView.document.header.right.values[6] == "PRINT"
+  and dexEntryView.document.header.right.active == 5
+  and dexEntryView.document.regions[3].components[2].lines[1]
     == "Its leaf senses warmth.",
   "Pokedex INFO uses the shared document page contract")
 
