@@ -3,7 +3,7 @@
     "status": "ready",
     "core": {
         "tag": "0.1.0-alpha.13-local",
-        "commit": "c95b987ef4b55e0f47a4cd8e22c04a5ab29ca3d3"
+        "commit": "73a7d2138854b17320d92208b359fecd14fc06ad"
     },
     "files": [
         {
@@ -68,8 +68,8 @@
         },
         {
             "path": "diagnostics/bounds.lua",
-            "sha256": "8d60e1b116daae106c645f9b12c237f9e0419abb0bcd5c4f06374c19454d37b5",
-            "size": 490
+            "sha256": "ea73f40a2367702113b0cd5ce3f50433b82849ed2939f8df4c1465c11fe950bf",
+            "size": 2368
         },
         {
             "path": "foundation/copy.lua",
@@ -193,8 +193,8 @@
         },
         {
             "path": "module_manifest.lua",
-            "sha256": "77c2e76596e9547b37a90cdb7625abcef8c45d286f11ac4ccc585154ba68ac9d",
-            "size": 5013
+            "sha256": "6fa6d46ef4bf02404568488501d6faa7a649c5bf3488c1e8a15c6bb22458afdc",
+            "size": 5069
         },
         {
             "path": "presentation/animation_layout.lua",
@@ -228,13 +228,13 @@
         },
         {
             "path": "presentation/document_layout.lua",
-            "sha256": "27963d67b1b08161535d0baa3aaa269fb17ca1e0eac2e05b286f546dd9780837",
-            "size": 4205
+            "sha256": "553b35f6c2538f14ebcb21990c0a0d530212566dd0671432cbfd674429d8a274",
+            "size": 8264
         },
         {
             "path": "presentation/document_render.lua",
-            "sha256": "c9b242f977f6f8f03964ed8e5ba16431bc14ba03a26231116e64fe5ed73eec3b",
-            "size": 9143
+            "sha256": "e4345da39541df028d1dca9d9915391f432d20743a78f4d2ae72ee11edd6a044",
+            "size": 14288
         },
         {
             "path": "presentation/menu_layout.lua",
@@ -243,13 +243,13 @@
         },
         {
             "path": "presentation/menu_render.lua",
-            "sha256": "1645cb8043b125337391d883a01dfbd5212406a8e8de2b38019039277cca9931",
-            "size": 73518
+            "sha256": "6220009df2a8187acda4ada016cfd3d4d53c8052636d22f54371e2f948f5b4e3",
+            "size": 75138
         },
         {
             "path": "presentation/model.lua",
-            "sha256": "1e5723253dbe4fd19d2984413fbb8a7527989a8472bd2b3d15c8c16e0f56f26f",
-            "size": 36235
+            "sha256": "286eb5e407d6e714d448ffb96a18e83b7e49bb6b64a16402e5230fe146c5c5f3",
+            "size": 37391
         },
         {
             "path": "presentation/pipeline.lua",
@@ -258,8 +258,8 @@
         },
         {
             "path": "presentation/runtime.lua",
-            "sha256": "c1be1c7d0bf3574dc4058381f5bd5518aea58e5761407650ac8e18f3a7262b9f",
-            "size": 28567
+            "sha256": "c6a31d7bc3c743462450f244af387a104d066b971b29f9bb5aaefa144b692184",
+            "size": 30120
         },
         {
             "path": "shell/content.lua",
