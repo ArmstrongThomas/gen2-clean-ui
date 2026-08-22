@@ -37,8 +37,15 @@ local syntaxFiles = {
 }
 
 local function collectLua(directory, prefix)
-  local pipe = assert(io.popen('dir /b /s "' .. directory:gsub("/", "\\")
-    .. '\\*.lua"'))
+  local isWindows = package.config:sub(1, 1) == "\\"
+  local command
+  if isWindows then
+    command = 'dir /b /s "' .. directory:gsub("/", "\\") .. '\\*.lua"'
+  else
+    command = 'find "' .. directory:gsub('"', '\\"')
+      .. '" -type f -name "*.lua" -print'
+  end
+  local pipe = assert(io.popen(command))
   for path in pipe:lines() do
     local normalized = path:gsub("\\", "/")
     syntaxFiles[#syntaxFiles + 1] = normalized:sub(#root + 2)

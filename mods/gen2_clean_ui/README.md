@@ -1,7 +1,7 @@
-# Gen2 Clean UI 0.3.0
+# Gen2 Clean UI 0.4.0
 
 This is the modular Pokémon Gold product for the Clean UI rebuild. Version
-0.3.0 is the current development line following the 0.2.0 release.
+0.4.0 is the current development line following the 0.2.0 release.
 
 Battle UI is deliberately deferred as of 2026-08-15. The previous Clean UI
 battle adapters, presenters, detached renderer, ownership latch, and battle
@@ -17,7 +17,14 @@ The Pokegear family is likewise native for now: `Gen2Pokegear` and
 not registered as active replacements. Their adapters and presenters remain
 inactive reference code for a later redesign.
 
-Gen2 Party and Summary are the first active 0.3.0 visual redesign slice. The
+Gen2 Party and Summary remain active 0.3.0 foundations. The 0.4.0 visual
+redesign now begins with the Pokédex: the reachable Info and Habitat pages use
+clearer page-specific hierarchy, detached reference data, and map-backed
+landmark markers while preserving native source navigation. Evolution,
+level-up move, and TM/HM pages are model-ready but await a compatible
+mod-owned navigation seam.
+
+Gen2 Party and Summary were the first active 0.3.0 visual redesign slice. The
 detached presentation uses a six-slot party list, animated icon sheets, the
 supplied male/female sprite sheet, HP/status/type data, and source-ordered
 JOURNAL / MOVES / DETAILS tabs. Core provides reusable PlainPixel hierarchy

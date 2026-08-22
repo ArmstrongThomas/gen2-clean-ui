@@ -1,6 +1,7 @@
 local requireCore = ...
 local Color = requireCore("design.color")
 local Frame = requireCore("design.frame")
+local Bounds = requireCore("diagnostics.bounds")
 
 local MenuRender = {}
 local imageCache = {}
@@ -195,13 +196,16 @@ local function resolveTextRun(layout, baseFont, value, maximum, options)
   if not limit or limit < 0 then limit = math.huge end
   local run
   if type(layout) == "table" and type(layout.textRun) == "function" then
-    local ok, candidate = pcall(layout.textRun, text, limit, options)
+    local fittingLimit = options and options.truncate == false
+      and math.huge or limit
+    local ok, candidate = pcall(layout.textRun, text, fittingLimit, options)
     if ok and type(candidate) == "table" and candidate.font then
       run = candidate
     end
   end
   local active = run and run.font or baseFont
-  local fitted = textFit(active, text, limit)
+  local fitted = options and options.truncate == false
+    and text or textFit(active, text, limit)
   return {
     font=active,
     text=fitted,
@@ -210,6 +214,25 @@ local function resolveTextRun(layout, baseFont, value, maximum, options)
     fits=run and run.fits ~= false or true,
     policy=run and run.policy or nil,
   }
+end
+
+local function wrapStyledLines(layout, baseFont, value, maximum, style)
+  local text = tostring(value or "")
+  local output = {}
+  local current = ""
+  local options = textStyleOptions(style)
+  for word in text:gmatch("%S+") do
+    local candidate = current == "" and word or (current .. " " .. word)
+    local run = resolveTextRun(layout, baseFont, candidate, math.huge, options)
+    if current ~= "" and run.width > maximum then
+      output[#output + 1] = current
+      current = word
+    else
+      current = candidate
+    end
+  end
+  if current ~= "" or #output == 0 then output[#output + 1] = current end
+  return output
 end
 
 local function printFitted(G, layout, baseFont, color, value, x, y, maximum,
@@ -224,6 +247,9 @@ local function printStyledFitted(G, layout, baseFont, theme, value, x, y,
     maximum, style, options)
   local run = resolveTextRun(layout, baseFont, value, maximum,
     textStyleOptions(style, options))
+  if type(options) == "table" and options.align == "center" then
+    x = x + math.max(0, math.floor((maximum - run.width) / 2))
+  end
   local offset = math.floor((fontHeight(baseFont) - run.height) / 2)
   printStyled(G, run.font, theme, run.text, x, y + offset, style)
   return run
@@ -283,7 +309,9 @@ local function drawBadge(G, label, rect, palette, font, scale)
     inner.w, borderSize)
   G.rectangle("fill", inner.x + inner.w - borderSize, inner.y,
     borderSize, inner.h)
-  printAt(G, font, text, label, inner.x + math.max(2, math.floor(4 * scale)),
+  local labelWidth = font:getWidth(label)
+  printAt(G, font, text, label,
+    inner.x + math.floor((inner.w - labelWidth) / 2),
     inner.y + math.floor((inner.h - font:getHeight()) / 2))
 end
 
@@ -311,7 +339,9 @@ local function drawBadges(G, values, rect, font, theme, scale, palettes,
     if x > rect.x and x + width > rect.x + rect.w then
       x, y = rect.x, y + height + gap
     end
-    if y + height > rect.y + rect.h then break end
+    local availableHeight = rect.y + rect.h - y
+    if availableHeight <= 0 then break end
+    height = math.min(height, availableHeight)
     local available = math.max(1, rect.x + rect.w - x)
     local badgeActualWidth = fixedWidth or math.min(width, available)
     -- Fixed type/status chips are sized from the longest supported label, so
@@ -327,8 +357,17 @@ local function drawBadges(G, values, rect, font, theme, scale, palettes,
   return y + height
 end
 
-local function drawTypeBadges(G, types, rect, font, theme, scale)
+local function drawTypeBadges(G, types, rect, font, theme, scale, align)
   if type(types) ~= "table" then return rect and rect.y or 0 end
+  if align == "center" and rect and #types > 0 then
+    local gap = math.max(2, math.floor(4 * scale))
+    local badge = badgeWidth(font, scale, "ELECTRIC", math.floor(30 * scale))
+    local total = badge * #types + gap * (#types - 1)
+    rect = {
+      x = rect.x + math.floor(math.max(0, rect.w - total) / 2),
+      y = rect.y, w = total, h = rect.h,
+    }
+  end
   return drawBadges(G, types, rect, font, theme, scale, TYPE_COLORS,
     badgeWidth(font, scale, "ELECTRIC", math.floor(30 * scale)))
 end
@@ -497,7 +536,7 @@ end
 -- fractional rectangles. Whole-pixel magnification and exact reciprocal
 -- reduction prevent the GPU from giving neighboring source pixels different
 -- widths. The final fallback is reserved for a non-divisible source crop.
-local function spritePlacement(rect, width, height)
+local function spritePlacement(rect, width, height, zoom)
   local x1 = pixelRound(rect.x)
   local y1 = pixelRound(rect.y)
   local x2 = math.max(x1 + 1, pixelRound(rect.x + rect.w))
@@ -507,13 +546,12 @@ local function spritePlacement(rect, width, height)
   local sourceHeight = math.max(1, height)
   local fit = math.min(availableWidth / sourceWidth,
     availableHeight / sourceHeight)
+  fit = fit * math.max(0.01, tonumber(zoom) or 1)
   if fit <= 0 then return x1, y1, 0, 0, 0, 0 end
 
   local scale = pixelScale(sourceWidth, sourceHeight, fit)
-  local outputWidth = math.max(1, math.min(availableWidth,
-    pixelRound(sourceWidth * scale)))
-  local outputHeight = math.max(1, math.min(availableHeight,
-    pixelRound(sourceHeight * scale)))
+  local outputWidth = math.max(1, pixelRound(sourceWidth * scale))
+  local outputHeight = math.max(1, pixelRound(sourceHeight * scale))
   local x = pixelRound(x1 + (availableWidth - outputWidth) * 0.5)
   local y = pixelRound(y1 + (availableHeight - outputHeight) * 0.5)
   return x, y, outputWidth / sourceWidth, outputHeight / sourceHeight,
@@ -566,7 +604,7 @@ local function drawSprite(G, descriptor, rect, animationClock)
   local sourceWidth = crop and crop.w or iw
   local sourceHeight = crop and crop.h or ih
   local x, y, scaleX, scaleY, outputWidth, outputHeight = spritePlacement(
-    rect, sourceWidth, sourceHeight)
+    rect, sourceWidth, sourceHeight, drawDescriptor.zoom)
   if outputWidth <= 0 or outputHeight <= 0 then return true end
   local previous = G.getShader and G.getShader() or nil
   local palette = drawDescriptor.palette
@@ -595,6 +633,9 @@ local function drawSprite(G, descriptor, rect, animationClock)
     return nil, quad and "sprite_quad_draw_failed" or "sprite_draw_failed",
       tostring(drawError)
   end
+  Bounds.drawAsset(G, {
+    x = x, y = y, w = outputWidth, h = outputHeight,
+  })
   return true
 end
 
@@ -1699,11 +1740,13 @@ end
 MenuRender.drawSprite = drawSprite
 MenuRender.drawTypeBadges = drawTypeBadges
 MenuRender.drawStatusBadge = drawStatusBadge
+MenuRender.drawSprite = drawSprite
 MenuRender.resolveGenderIcon = resolveGenderIcon
 MenuRender.textStyles = TEXT_STYLES
 MenuRender.textStyleOptions = textStyleOptions
 MenuRender.drawText = printStyled
 MenuRender.resolveTextRun = resolveTextRun
+MenuRender.wrapStyledLines = wrapStyledLines
 MenuRender.printFitted = printFitted
 MenuRender.printStyledFitted = printStyledFitted
 

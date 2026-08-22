@@ -146,38 +146,42 @@ return function(ctx)
   local function pokedexBase(state)
     local ok, code, detail = V.fields(state, {
       save = "table", data = "table", dex = "table", pokemon = "table",
-      palettes = "table", rows = "table", modeIndex = "number",
-      index = "number", scroll = "number", view = "string", page = "number",
-      entryAction = "number", optionIndex = "number", searchIndex = "number",
-      unownIndex = "number", searchType = "table",
+      palettes = "table", rows = "table",
+      modeIndex = { "number", "nil" }, index = { "number", "nil" },
+      scroll = { "number", "nil" }, view = { "string", "nil" },
+      page = { "number", "nil" },
+      entryAction = { "number", "nil" }, optionIndex = { "number", "nil" },
+      searchIndex = { "number", "nil" }, unownIndex = { "number", "nil" },
+      searchType = { "table", "nil" },
     })
     if not ok then return nil, code, detail end
     ok, code, detail = V.array(state.rows, "rows", 1)
     if not ok then return nil, code, detail end
-    ok, code, detail = V.integer(state.modeIndex, "modeIndex", 1, 3)
+    ok, code, detail = V.integer(state.modeIndex or 1, "modeIndex", 1, 3)
     if not ok then return nil, code, detail end
-    ok, code, detail = V.index(state.index, "index", #state.rows)
+    ok, code, detail = V.index(state.index or 1, "index", #state.rows)
     if not ok then return nil, code, detail end
-    ok, code, detail = V.nonNegative(state.scroll, "scroll")
+    ok, code, detail = V.nonNegative(state.scroll or 0, "scroll")
     if not ok then return nil, code, detail end
-    return V.array(state.searchType, "searchType", 2, function(value)
+    return V.array(state.searchType or { 0, 0 }, "searchType", 2,
+      function(value)
       return V.integer(value, "searchType", 0)
     end)
   end
 
   local function pokedexMode(state)
-    local ok, code, detail = V.enum(state.view, "view",
+    local ok, code, detail = V.enum(state.view or "list", "view",
       { "list", "entry", "area", "option", "search", "unown" })
     if not ok then return nil, code, detail end
-    ok, code, detail = V.integer(state.page, "page", 1, 2)
+    ok, code, detail = V.integer(state.page or 1, "page", 1, 2)
     if not ok then return nil, code, detail end
-    ok, code, detail = V.integer(state.entryAction, "entryAction", 1, 4)
+    ok, code, detail = V.integer(state.entryAction or 1, "entryAction", 1, 4)
     if not ok then return nil, code, detail end
-    ok, code, detail = V.integer(state.optionIndex, "optionIndex", 1)
+    ok, code, detail = V.integer(state.optionIndex or 1, "optionIndex", 1)
     if not ok then return nil, code, detail end
-    ok, code, detail = V.integer(state.searchIndex, "searchIndex", 1)
+    ok, code, detail = V.integer(state.searchIndex or 1, "searchIndex", 1)
     if not ok then return nil, code, detail end
-    ok, code, detail = V.integer(state.unownIndex, "unownIndex", 0)
+    ok, code, detail = V.integer(state.unownIndex or 0, "unownIndex", 0)
     if not ok then return nil, code, detail end
     if state.searchResults ~= nil then
       ok, code, detail = V.array(state.searchResults, "searchResults", 0)

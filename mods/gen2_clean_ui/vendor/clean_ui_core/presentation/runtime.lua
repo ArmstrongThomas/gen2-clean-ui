@@ -14,6 +14,9 @@ local BattleLayout = requireCore("presentation.battle_layout")
 local BattleRender = requireCore("presentation.battle_render")
 local AnimationLayout = requireCore("presentation.animation_layout")
 local AnimationRender = requireCore("presentation.animation_render")
+local DocumentLayout = requireCore("presentation.document_layout")
+local DocumentRender = requireCore("presentation.document_render")
+local Bounds = requireCore("diagnostics.bounds")
 
 local Runtime = {}
 
@@ -101,7 +104,8 @@ function Runtime.new(core)
   local self = { core=core, mod=core.mod, provider=core.provider,
     candidate=nil, canvas=nil, canvasW=nil, canvasH=nil,
     menuWidths=setmetatable({}, { __mode = "k" }), frameId=0,
-    frameSerial=0, lastGame=nil }
+    frameSerial=0, lastGame=nil,
+    debugContainers=false, debugAssets=false, debugKeys={} }
   self.fonts = FontCatalog.new(love and love.graphics,
     core.fontPaths or {
       plainPixel = core.config.plainPixelPath
@@ -110,7 +114,9 @@ function Runtime.new(core)
   local function fitsCandidate(envelope, model, policy, density, priorEntries)
     local _, font = self.fonts:resolve(policy)
     if not font then return false end
-    if model.kind == "menu" or model.kind == "device"
+    if model.kind == "document" then
+      return DocumentLayout.fits(envelope, model, font, density)
+    elseif model.kind == "menu" or model.kind == "device"
         or model.kind == "map" then
       return MenuLayout.fits(envelope, model, font, density)
     elseif model.kind == "dialogue" or model.kind == "choice" then
@@ -132,28 +138,42 @@ function Runtime.new(core)
       and not path:find(":", 1, true)
       and path:lower():match("%.png$") ~= nil
   end
+  local function resolveAssetPath(assetPath)
+    if type(assetPath) == "string"
+        and assetPath:sub(1, 14) == "clean_ui_core/" then
+      return "vendor/clean_ui_core/" .. assetPath:sub(15)
+    end
+    return assetPath
+  end
   MenuRender.setSourceImageLoader(function(path, assetPath)
+    local resolvedAssetPath = resolveAssetPath(assetPath)
     if type(sourceImage) == "function" then
-      local ok, image = pcall(sourceImage, path, assetPath)
+      local ok, image = pcall(sourceImage, path, resolvedAssetPath)
       if ok and image ~= nil then return image end
     end
-    -- A product may expose a deliberately narrow, mod-local asset path for
-    -- authored UI art. This is used by the gender sheet so an unavailable
-    -- generated override can never turn into a font glyph fallback.
-    if type(assetPath) == "string" and assetApi
+    if type(resolvedAssetPath) == "string" and assetApi
         and type(assetApi.image) == "function" then
-      local ok, image = pcall(assetApi.image, assetApi, assetPath)
+      local ok, image = pcall(assetApi.image, assetApi, resolvedAssetPath)
       if ok and image ~= nil then return image end
     end
-    if type(assetPath) == "string" and assetApi
+    if type(resolvedAssetPath) == "string" and assetApi
         and type(assetApi.path) == "function"
         and love and love.graphics
         and type(love.graphics.newImage) == "function" then
-      local ok, fullPath = pcall(assetApi.path, assetApi, assetPath)
+      local ok, fullPath = pcall(assetApi.path, assetApi, resolvedAssetPath)
       if ok and type(fullPath) == "string" then
         local imageOk, image = pcall(love.graphics.newImage, fullPath)
         if imageOk and image ~= nil then return image end
       end
+    end
+    if type(resolvedAssetPath) == "string"
+        and resolvedAssetPath:sub(1, 21) == "vendor/clean_ui_core/"
+        and core.mod and type(core.mod.path) == "string"
+        and love and love.graphics
+        and type(love.graphics.newImage) == "function" then
+      local fullPath = core.mod.path .. "/" .. resolvedAssetPath
+      local imageOk, image = pcall(love.graphics.newImage, fullPath)
+      if imageOk and image ~= nil then return image end
     end
     if generatedPng(path) and love and love.graphics
         and type(love.graphics.newImage) == "function" then
@@ -268,6 +288,28 @@ function Runtime.new(core)
         model.lines = expanded
       end
     end
+    if model.kind == "document" and type(model.document) == "table" then
+      local regions = model.document.regions or {}
+      for _, region in ipairs(regions) do
+        local components = region.components or {}
+        if level == "EMPTY" then
+          region.components = {}
+        elseif level == "MINIMAL" and #components > 1 then
+          region.components = { components[1] }
+        elseif level == "DENSE" or level == "OVERFLOW" then
+          local target = level == "DENSE" and math.max(#components, 4)
+            or math.max(#components, 8)
+          local expanded = {}
+          for index = 1, target do
+            local sourceComponent = #components > 0
+              and components[((index - 1) % #components) + 1]
+              or { type = "label", text = "FIXTURE COMPONENT" }
+            expanded[index] = Data.snapshot(sourceComponent)
+          end
+          region.components = expanded
+        end
+      end
+    end
     return model
   end
 
@@ -287,7 +329,9 @@ function Runtime.new(core)
 
   function self:measureModel(base, model, font, density, priorEntries)
     local layout
-    if model.kind == "menu" or model.kind == "device"
+    if model.kind == "document" then
+      layout = DocumentLayout.measure(base, model, font, density)
+    elseif model.kind == "menu" or model.kind == "device"
         or model.kind == "map" then
       layout = MenuLayout.measure(base, model, font, density)
     elseif model.kind == "dialogue" or model.kind == "choice" then
@@ -303,17 +347,47 @@ function Runtime.new(core)
   end
 
   function self:drawModel(model, layout, font, theme)
-    if model.kind == "menu" or model.kind == "device"
+    local ok, code, message
+    Bounds.setAssetDebug(self.debugAssets)
+    if model.kind == "document" then
+      ok, code, message = DocumentRender.draw(
+        love.graphics, model, layout, font, theme)
+    elseif model.kind == "menu" or model.kind == "device"
         or model.kind == "map" then
-      return MenuRender.draw(love.graphics, model, layout, font, theme)
+      ok, code, message = MenuRender.draw(
+        love.graphics, model, layout, font, theme)
     elseif model.kind == "dialogue" or model.kind == "choice" then
-      return DialogueRender.draw(love.graphics, model, layout, font, theme)
+      ok, code, message = DialogueRender.draw(
+        love.graphics, model, layout, font, theme)
     elseif model.kind == "battle" then
-      return BattleRender.draw(love.graphics, model, layout, font, theme)
+      ok, code, message = BattleRender.draw(
+        love.graphics, model, layout, font, theme)
     elseif model.kind == "animation" then
-      return AnimationRender.draw(love.graphics, model, layout, font, theme)
+      ok, code, message = AnimationRender.draw(
+        love.graphics, model, layout, font, theme)
+    else
+      return nil, "unsupported_presentation"
     end
-    return nil, "unsupported_presentation"
+    if ok == true then
+      if self.debugContainers then
+        Bounds.draw(love.graphics, layout, "containers")
+      end
+    end
+    return ok, code, message
+  end
+
+  function self:debugInput()
+    local keyboard = love and love.keyboard
+    if not keyboard or type(keyboard.isDown) ~= "function" then return end
+    for key, field in pairs({ f7 = "debugContainers", f8 = "debugAssets" }) do
+      local ok, down = pcall(keyboard.isDown, key)
+      down = ok and down == true
+      if down and not self.debugKeys[key] then
+        self[field] = not self[field]
+        self:invalidate("debug_toggle")
+      end
+      self.debugKeys[key] = down
+    end
   end
 
   function self:measureMenu(base, model, font, density)
@@ -324,7 +398,8 @@ function Runtime.new(core)
     if type(request) ~= "table" then
       return Solver.solve(request)
     end
-    if type(model) == "table" and (model.kind == "menu"
+    if type(model) == "table" and (model.kind == "document"
+        or model.kind == "menu"
         or model.kind == "device" or model.kind == "map"
         or model.kind == "dialogue" or model.kind == "choice"
         or model.kind == "animation" or model.kind == "battle") then
@@ -430,7 +505,7 @@ function Runtime.new(core)
           textSize=self:option("text_size", "auto"),
           fontFamily=self:option("font", "openttd_mono"),
           density=self:option("density", "auto") }
-        if model.kind == "menu" or model.kind == "device"
+        if model.kind == "document" or model.kind == "menu"
             or model.kind == "map" or model.kind == "dialogue"
             or model.kind == "choice" or model.kind == "animation"
             or model.kind == "battle" then
@@ -576,6 +651,7 @@ function Runtime.new(core)
       end, 90000)
     subscriptions[#subscriptions + 1] = self.mod.hooks:wrap("render.hud",
       function(nextFn, game, viewport)
+        self:debugInput()
         if type(game) == "table" then self.lastGame = game end
         nextFn(game, viewport)
         local candidate = self.candidate

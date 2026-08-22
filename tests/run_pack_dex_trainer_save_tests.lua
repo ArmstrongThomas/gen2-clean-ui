@@ -180,11 +180,23 @@ local dexState = {
   } },
   pokemon = {
     CHIKORITA = { name="CHIKORITA", types={"GRASS"},
+      evolutions = { { method="LEVEL", into="BAYLEEF", level=16 } },
+      levelMoves = { { level=1, move="TACKLE" },
+        { level=6, move="RAZOR_LEAF" } },
+      tmhm = { "TM01" },
       spriteFront="pokemon/chikorita/front.png" },
     CYNDAQUIL = { name="CYNDAQUIL", types={"FIRE"},
       spriteFront="pokemon/cyndaquil/front.png" },
-    TOTODILE = { name="TOTODILE", types={"WATER"},
+    TOTODILE = { name="TOTODILE", types={"WATER", "WATER"},
       spriteFront="pokemon/totodile/front.png" },
+  },
+  moves = {
+    TACKLE = { name="TACKLE", type="NORMAL", power=35, accuracy=95,
+      description="A physical attack." },
+    RAZOR_LEAF = { name="RAZOR LEAF", type="GRASS", power=55, accuracy=95,
+      description="Sharp leaves strike." },
+    TM01 = { name="DYNAMICPUNCH", type="FIGHTING", power=100, accuracy=50,
+      description="A powerful punch." },
   },
   palettes = { pokemon = {
     CHIKORITA = { normal={ {120,210,100}, {40,120,55} } },
@@ -210,13 +222,29 @@ check(dexList.model.rows[1].art.sprite == "pokemon/chikorita/front.png"
 check(dexList.model.rows[3].disabled and dexList.model.totals.seen == 2
   and dexList.model.totals.caught == 1,
   "Pokedex snapshots seen/caught visibility and totals")
+check(dexList.model.current.reference.evolutions[1].into == "BAYLEEF"
+  and dexList.model.current.reference.evolutions[1].requirement == "LEVEL 16"
+  and true,
+  "Pokedex snapshots evolution targets and readable requirements")
+check(dexList.model.current.reference.levelMoves[2].name == "RAZOR LEAF"
+  and dexList.model.current.reference.levelMoves[2].power == 55,
+  "Pokedex resolves level-up move metadata from game data")
+check(dexList.model.current.reference.tmhm[1].move == "TM01"
+  and dexList.model.current.reference.tmhm[1].type == "FIGHTING",
+  "Pokedex snapshots TM/HM compatibility and move metadata")
 local dexListView = assert(PokedexPresenter.convert(dexList.model))
+local CorePresentationModel = assert(loadfile(root
+  .. "/mods/gen2_clean_ui/vendor/clean_ui_core/presentation/model.lua"))()
+local listModelValid, listModelCode, listModelDetail =
+  CorePresentationModel.validate(dexListView)
+check(listModelValid, ("Pokedex list document validates: %s %s")
+  :format(tostring(listModelCode), tostring(listModelDetail)))
 check(dexListView.schema == "clean_ui.v3.presentation.v1"
   and dexListView.apiVersion == 3,
   "Pokedex presenter emits the canonical V3 model")
-check(dexListView.kind == "menu" and dexListView.preset == "L"
+check(dexListView.kind == "document" and dexListView.preset == "L"
   and dexListView.selected == 1,
-  "Pokedex list uses stable L presentation")
+  "Pokedex list uses the document index presentation")
 check(dexListView.details.sprite.path == "pokemon/chikorita/front.png"
   and dexListView.details.sprite.palette[2][1] == 120,
   "Pokedex presentation carries its full-color sprite descriptor")
@@ -225,12 +253,46 @@ check(dexListView.details.title == "CHIKORITA"
   and dexListView.details.fields[1].value == "No.152"
   and dexListView.details.fields[2].value == "OWNED"
   and dexListView.details.typeBadges[1] == "GRASS"
-  and dexListView.rows[1].label == "No.152 CHIKORITA"
-  and dexListView.rows[1].right == "OWNED",
+  and dexListView.title == "POKEDEX  /  NEW"
+  and dexListView.rows[1].label == "152   CHIKORITA"
+  and dexListView.rows[1].right == "OWNED"
+  and dexListView.document.header.right.type == "label"
+  and dexListView.document.header.right.text
+    == "MODE: NEW  ·  001–251"
+  and dexListView.document.regions[1].components[1].text
+    == "NO.   NAME                       STATUS"
+  and dexListView.document.regions[1].components[2].scroll == 0
+  and dexListView.document.regions[1].frame == true
+  and dexListView.document.regions[2].id == "scrollbar"
+  and dexListView.document.regions[2].frame == true
+  and dexListView.document.regions[2].components[1].type == "scrollbar"
+  and dexListView.document.regions[3].id == "preview"
+  and dexListView.document.regions[3].frame == true
+  and dexListView.document.regions[4].dock == "bottom-right"
+  and dexListView.document.regions[4].frame == true
+  and dexListView.document.regions[4].components[1].items[1].value
+    == ". . . .  2",
   "Pokedex list uses a Gen1 Modern-inspired number/status preview rail")
 check(dexListView.description:find("SEEN 2", 1, true)
   and dexListView.description:find("OWNED 1", 1, true),
   "Pokedex footer keeps totals and clean navigation hints")
+local fallbackState = Data.copy(dexState)
+fallbackState.pokemon.CHIKORITA.types = nil
+fallbackState.rows[1].types = { "GRASS" }
+local fallbackDex = assert(Pokedex.extract(fallbackState))
+check(fallbackDex.model.current.types[1] == "GRASS",
+  "Pokedex preserves current-row types during partial source refresh")
+local cachedState = Data.copy(fallbackState)
+cachedState.rows[1].types = nil
+local cachedDex = assert(Pokedex.extract(cachedState))
+check(cachedDex.model.current.types[1] == "GRASS",
+  "Pokedex reuses cached types during a transient source refresh")
+local duplicateTypeState = Data.copy(dexState)
+duplicateTypeState.index = 3
+local duplicateType = assert(Pokedex.extract(duplicateTypeState))
+check(#duplicateType.model.current.types == 1
+  and duplicateType.model.current.types[1] == "WATER",
+  "Pokedex removes duplicate single-type data from the snapshot")
 
 dexState.view, dexState.page, dexState.entryAction = "entry", 2, 3
 local dexEntry = assert(Pokedex.extract(dexState))
@@ -241,12 +303,23 @@ check(dexEntry.model.entry.selectedAction == 3
   and dexEntry.model.entry.actions[3].id == "cry",
   "Pokedex entry preserves the native action cursor")
 local dexEntryView = assert(PokedexPresenter.convert(dexEntry.model))
-check(dexEntryView.sourceView == "entry" and dexEntryView.selected == 3
+check(dexEntryView.sourceView == "entry" and dexEntryView.kind == "document"
+  and dexEntryView.selected == 3
   and dexEntryView.art.paletteKey == "CHIKORITA"
   and dexEntryView.details.title == "CHIKORITA"
+  and dexEntryView.title == "CHIKORITA  /  INFO 2"
   and dexEntryView.details.typeBadges[1] == "GRASS"
   and dexEntryView.details.fields[1].value == "No.152",
   "Pokedex entry presenter retains action, preview, and color-art data")
+check(dexEntryView.document.regions[1].components[1].type == "tabs"
+  and dexEntryView.document.regions[1].components[1].values[1] == "INFO"
+  and dexEntryView.document.regions[1].components[1].values[4] == "MOVES/TM"
+  and dexEntryView.document.regions[1].components[1].values[5] == "CRY"
+  and dexEntryView.document.regions[1].components[1].values[6] == "PRNT"
+  and dexEntryView.document.regions[1].components[1].active == 5
+  and dexEntryView.document.regions[4].components[2].lines[1]
+    == "Its leaf senses warmth.",
+  "Pokedex INFO uses the shared document page contract")
 
 dexState.view, dexState.areaRegion = "area", "johto"
 local dexArea = assert(Pokedex.extract(dexState))
@@ -254,8 +327,10 @@ check(#dexArea.model.area.nests == 1
   and dexArea.model.area.nests[1].name == "ROUTE 29",
   "Pokedex AREA computes read-only native grass nests")
 check(dexArea.model.area.region == "johto"
-  and PokedexPresenter.convert(dexArea.model).sourceView == "area",
-  "Pokedex AREA preserves region and produces a complete view")
+  and PokedexPresenter.convert(dexArea.model).sourceView == "area"
+  and PokedexPresenter.convert(dexArea.model).mapView == true
+  and PokedexPresenter.convert(dexArea.model).map.rows[1].name == "ROUTE 29",
+  "Pokedex AREA preserves region and produces a map-backed view")
 
 dexState.view, dexState.areaRegion = "option", nil
 local dexOptions = assert(Pokedex.extract(dexState))

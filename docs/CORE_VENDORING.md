@@ -34,8 +34,8 @@ The current development lock is ready and records the exact vendored snapshot:
 
 ```json
 { "schema_version": 1, "status": "ready",
-  "core": { "tag": "0.1.0-alpha.12-local",
-    "commit": "6a41dd56654fe1dca4b787c6a749684cbc16d39c" } }
+  "core": { "tag": "0.1.0-alpha.13-local",
+    "commit": "6ce8ed044a4b970f3b74484d7592c43d1b6efd3e" } }
 ```
 
 The host source checkout is not part of this lock and must never be copied into

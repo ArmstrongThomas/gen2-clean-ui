@@ -2,9 +2,7 @@
 param(
   [Parameter(Mandatory = $true)][string]$Source,
   [Parameter(Mandatory = $true)][string]$LauncherTarget,
-  [Parameter(Mandatory = $true)][string]$LauncherModsRoot,
-  [Parameter(Mandatory = $true)][string]$DevTarget,
-  [Parameter(Mandatory = $true)][string]$DevRoot
+  [Parameter(Mandatory = $true)][string]$LauncherModsRoot
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,8 +11,6 @@ Set-StrictMode -Version Latest
 $source = [IO.Path]::GetFullPath($Source)
 $launcherTarget = [IO.Path]::GetFullPath($LauncherTarget)
 $launcherModsRoot = [IO.Path]::GetFullPath($LauncherModsRoot)
-$devTarget = [IO.Path]::GetFullPath($DevTarget)
-$devRoot = [IO.Path]::GetFullPath($DevRoot)
 
 if (-not [IO.Directory]::Exists($source)) { throw "Source directory is missing: $source" }
 if (-not [IO.File]::Exists((Join-Path $source "manifest.json"))) {
@@ -22,6 +18,19 @@ if (-not [IO.File]::Exists((Join-Path $source "manifest.json"))) {
 }
 if ([IO.Path]::GetDirectoryName($launcherTarget) -ne $launcherModsRoot) {
   throw "Refusing unexpected launcher mod target: $launcherTarget"
+}
+
+function Get-Sha256Hex([string]$Path) {
+  $sha = [Security.Cryptography.SHA256]::Create()
+  $stream = $null
+  try {
+    $stream = [IO.File]::OpenRead($Path)
+    return ([BitConverter]::ToString($sha.ComputeHash($stream))).Replace("-", "")
+  }
+  finally {
+    if ($null -ne $stream) { $stream.Dispose() }
+    $sha.Dispose()
+  }
 }
 
 function IsReparsePoint([IO.FileSystemInfo]$Item) {
@@ -46,25 +55,25 @@ function CopyExactTree([string]$Destination) {
 CopyExactTree $launcherTarget
 Write-Host "Synced launcher target: $launcherTarget"
 
-if (-not (Test-Path -LiteralPath $devRoot)) {
-  Write-Host "Dev checkout not present; skipped: $devRoot"
-  exit 0
-}
-if ([IO.Path]::GetDirectoryName($devTarget) -ne
-    [IO.Path]::GetFullPath((Join-Path $devRoot "mods"))) {
-  throw "Refusing unexpected dev mod target: $devTarget"
-}
-
-if (Test-Path -LiteralPath $devTarget) {
-  $devExisting = Get-Item -LiteralPath $devTarget -Force
-  if (IsReparsePoint $devExisting) {
-    $resolved = [string]($devExisting.Target | Select-Object -First 1)
-    if ($resolved -and [IO.Path]::GetFullPath($resolved) -ieq $source) {
-      Write-Host "Dev target is already a junction to the source; skipped: $devTarget"
-      exit 0
-    }
-    throw "Refusing to overwrite reparse-point dev target: $devTarget"
+foreach ($verificationRelative in @(
+    "vendor\clean_ui_core\presentation\runtime.lua",
+    "vendor\clean_ui_core\diagnostics\bounds.lua",
+    "vendor\clean_ui_core\presentation\menu_render.lua",
+    "vendor\clean_ui_core\module_manifest.lua")) {
+  $sourceVerification = Join-Path $source $verificationRelative
+  $targetVerification = Join-Path $launcherTarget $verificationRelative
+  if (-not [IO.File]::Exists($sourceVerification)) {
+    throw "Verification file is missing from source: $sourceVerification"
+  }
+  if (-not [IO.File]::Exists($targetVerification)) {
+    throw "Verification file is missing from launcher target: $targetVerification"
+  }
+  $sourceHash = Get-Sha256Hex $sourceVerification
+  $targetHash = Get-Sha256Hex $targetVerification
+  Write-Host "Verification file: $verificationRelative"
+  Write-Host "Source SHA-256:    $sourceHash"
+  Write-Host "AppData SHA-256:   $targetHash"
+  if ($sourceHash -ne $targetHash) {
+    throw "AppData verification hash does not match the synced source: $verificationRelative"
   }
 }
-CopyExactTree $devTarget
-Write-Host "Synced dev target: $devTarget"

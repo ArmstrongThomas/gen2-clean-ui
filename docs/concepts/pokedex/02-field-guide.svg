@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760">
+  <rect width="1200" height="760" fill="#dfe7e4"/>
+  <g font-family="monospace" font-weight="700" fill="#1c3032">
+    <text x="34" y="42" font-size="22">CONCEPT 02 / FIELD GUIDE</text>
+    <g transform="translate(30 70)">
+      <rect width="350" height="650" rx="8" fill="#edf3ef" stroke="#1c3032" stroke-width="3"/>
+      <text x="25" y="45" font-size="23">FIELD GUIDE</text><text x="25" y="72" font-size="13" fill="#607579">251 SPECIES / 37 OWNED</text>
+      <rect x="22" y="95" width="306" height="45" fill="#b6d4cb"/><text x="36" y="124" font-size="15">PIDGEY       No.016</text>
+      <g font-size="15"><text x="30" y="185">BEEDRILL</text><text x="270" y="185">015</text><text x="30" y="230">PIDGEY</text><text x="270" y="230">016</text><text x="30" y="275">PIDGEOTTO</text><text x="270" y="275">017</text><text x="30" y="320">PIDGEOT</text><text x="270" y="320">018</text><text x="30" y="365">RATTATA</text><text x="270" y="365">019</text></g>
+      <text x="25" y="690" font-size="13" fill="#607579">A VIEW   SELECT FILTER   B BACK</text>
+    </g>
+    <g transform="translate(425 70)">
+      <rect width="350" height="650" rx="8" fill="#edf3ef" stroke="#1c3032" stroke-width="3"/>
+      <text x="25" y="42" font-size="22">No.016 / PIDGEY</text><text x="25" y="70" font-size="13" fill="#607579">FIELD GUIDE ENTRY</text>
+      <rect x="22" y="92" width="306" height="220" fill="#c5d7d0"/>
+      <circle cx="175" cy="195" r="75" fill="#e5e9df"/>
+      <path d="M130 205l45-58 65 31-28 34 20 28-68 20-38-25z" fill="#ba7b95" stroke="#1c3032" stroke-width="5"/>
+      <text x="28" y="355" font-size="17">PIDGEY</text><text x="28" y="387" font-size="14">THE TINY BIRD POKéMON</text>
+      <text x="28" y="440" font-size="15">TYPE</text><text x="180" y="440" font-size="15">NORMAL / FLYING</text>
+      <text x="28" y="480" font-size="15">HEIGHT</text><text x="180" y="480" font-size="15">1.0 m</text>
+      <text x="28" y="520" font-size="15">WEIGHT</text><text x="180" y="520" font-size="15">18.0 kg</text>
+      <text x="25" y="620" font-size="13" fill="#607579">LEFT/RIGHT ENTRY   A TABS</text>
+    </g>
+    <g transform="translate(820 70)">
+      <rect width="350" height="650" rx="8" fill="#edf3ef" stroke="#1c3032" stroke-width="3"/>
+      <text x="25" y="42" font-size="22">HABITAT / PIDGEY</text><text x="25" y="70" font-size="13" fill="#607579">JOHTO / DAY</text>
+      <rect x="22" y="95" width="306" height="270" fill="#c5d7d0" stroke="#1c3032" stroke-width="2"/>
+      <path d="M35 300h280M60 130l70 90 55-50 80 95M45 180l80-22 70 74 105-52" fill="none" stroke="#56786c" stroke-width="9"/>
+      <circle cx="130" cy="220" r="12" fill="#c34d65"/><circle cx="250" cy="244" r="12" fill="#2367c9"/>
+      <g font-size="15"><text x="30" y="415">ROUTE 29</text><text x="30" y="455">ROUTE 30</text><text x="30" y="495">ROUTE 31</text><text x="30" y="535">ROUTE 35</text></g>
+      <text x="25" y="620" font-size="13" fill="#607579">A OPEN ROUTE   B RETURN</text>
+    </g>
+  </g>
+</svg>

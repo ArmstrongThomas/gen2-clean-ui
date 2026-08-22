@@ -2,6 +2,7 @@ return function(ctx)
   local Data = ctx.load("adapters.data")
   local Actions = ctx.load("adapters.actions")
   local Pokedex = {}
+  local typeCache = {}
 
   local MODES = { "NEW", "OLD", "A-Z" }
   local ENTRY_ACTIONS = { "PAGE", "AREA", "CRY", "PRNT" }
@@ -50,7 +51,90 @@ return function(ctx)
   local function pokemonEntry(state, species)
     local pokemon = rawget(state, "pokemon")
     local value = type(pokemon) == "table" and rawget(pokemon, species) or nil
+    if type(value) ~= "table" then
+      local game = rawget(state, "game")
+      local data = type(game) == "table" and rawget(game, "data") or nil
+      pokemon = type(data) == "table" and rawget(data, "pokemon") or nil
+      value = type(pokemon) == "table" and rawget(pokemon, species) or nil
+    end
     return type(value) == "table" and value or nil
+  end
+
+  local function moveDefinition(state, move)
+    local moves = rawget(state, "moves")
+    local value = type(moves) == "table" and rawget(moves, move) or nil
+    if type(value) ~= "table" then
+      local game = rawget(state, "game")
+      local data = type(game) == "table" and rawget(game, "data") or nil
+      moves = type(data) == "table" and rawget(data, "moves") or nil
+      value = type(moves) == "table" and rawget(moves, move) or nil
+    end
+    return type(value) == "table" and value or nil
+  end
+
+  local function evolutionRequirement(row)
+    if type(row) ~= "table" then return "" end
+    local method = Data.text(rawget(row, "method"), "")
+    local level = rawget(row, "level")
+    local item = Data.text(rawget(row, "item"), "")
+    local time = Data.text(rawget(row, "time"), "")
+    local comparison = Data.text(rawget(row, "comparison"), "")
+    if level ~= nil then return "LEVEL " .. tostring(level) end
+    if item ~= "" then return item:gsub("_", " ") end
+    if time ~= "" then return time:gsub("_", " ") end
+    if comparison ~= "" then return comparison:gsub("_", " ") end
+    return method:gsub("_", " ")
+  end
+
+  local function referenceSnapshot(state, species)
+    local definition = pokemonEntry(state, species)
+    if not definition then return nil end
+    local evolutions, levelMoves, machines = {}, {}, {}
+    for _, row in ipairs(rawget(definition, "evolutions") or {}) do
+      if type(row) == "table" then
+        evolutions[#evolutions + 1] = {
+          into = Data.id(rawget(row, "into")),
+          requirement = evolutionRequirement(row),
+          method = Data.id(rawget(row, "method")),
+          level = Data.integer(rawget(row, "level"), 0),
+          item = Data.id(rawget(row, "item")),
+          time = Data.id(rawget(row, "time")),
+          comparison = Data.id(rawget(row, "comparison")),
+        }
+      end
+    end
+    for _, row in ipairs(rawget(definition, "levelMoves") or {}) do
+      if type(row) == "table" then
+        local move = Data.id(rawget(row, "move"))
+        local moveRow = moveDefinition(state, move)
+        levelMoves[#levelMoves + 1] = {
+          level = Data.integer(rawget(row, "level"), 0),
+          move = move,
+          name = Data.text(moveRow and rawget(moveRow, "name"), move),
+          type = Data.text(moveRow and rawget(moveRow, "type"), ""),
+          power = Data.integer(moveRow and rawget(moveRow, "power"), 0),
+          accuracy = Data.integer(moveRow and rawget(moveRow, "accuracy"), 0),
+          description = Data.text(moveRow and rawget(moveRow, "description"), ""),
+        }
+      end
+    end
+    for _, move in ipairs(rawget(definition, "tmhm") or {}) do
+      local moveId = Data.id(move)
+      local moveRow = moveDefinition(state, moveId)
+      machines[#machines + 1] = {
+        move = moveId,
+        name = Data.text(moveRow and rawget(moveRow, "name"), moveId),
+        type = Data.text(moveRow and rawget(moveRow, "type"), ""),
+        power = Data.integer(moveRow and rawget(moveRow, "power"), 0),
+        accuracy = Data.integer(moveRow and rawget(moveRow, "accuracy"), 0),
+        description = Data.text(moveRow and rawget(moveRow, "description"), ""),
+      }
+    end
+    return {
+      evolutions = evolutions,
+      levelMoves = levelMoves,
+      tmhm = machines,
+    }
   end
 
   local function monName(state, species)
@@ -139,13 +223,51 @@ return function(ctx)
     return output
   end
 
+  local function displayType(value)
+    value = Data.text(value, "")
+    return value == "PSYCHIC_TYPE" and "PSYCHIC" or value
+  end
+
+  local effectiveAreaRegion
+  local screenData
+  local activeSave
+
   local function currentSnapshot(state, current)
     if type(current) ~= "table" then return nil end
     local species = Data.id(rawget(current, "species"))
     local entry = dexEntry(state, species)
     local page = Data.integer(rawget(state, "page"), 1)
     local definition = pokemonEntry(state, species)
-    local types = definition and rawget(definition, "types") or nil
+    local rawTypes = definition and rawget(definition, "types") or nil
+    if type(rawTypes) ~= "table" then
+      rawTypes = rawget(current, "types")
+    end
+    local firstPage = splitEntryText(entry and rawget(entry, "text"))
+    local secondPage = splitEntryText(entry and rawget(entry, "text2"))
+    local entryLines = Data.copy(firstPage)
+    for _, line in ipairs(secondPage) do
+      entryLines[#entryLines + 1] = line
+    end
+    local types, seenTypes = {}, {}
+    for index = 1, 2 do
+      local typeName = type(rawTypes) == "table"
+        and displayType(rawget(rawTypes, index)) or ""
+      if typeName ~= "" and not seenTypes[typeName] then
+        types[#types + 1] = typeName
+        seenTypes[typeName] = true
+      end
+    end
+    if #types > 0 then
+      typeCache[species] = Data.copy(types)
+    elseif type(typeCache[species]) == "table" then
+      types = Data.copy(typeCache[species])
+    end
+    local caughtCount = 0
+    for _, row in ipairs(rawget(state, "rows") or {}) do
+      if type(row) == "table" and rawget(row, "caught") == true then
+        caughtCount = caughtCount + 1
+      end
+    end
     return {
       species = species,
       name = monName(state, species),
@@ -155,15 +277,15 @@ return function(ctx)
       weight = Data.scalar(entry and rawget(entry, "weight")),
       seen = rawget(current, "seen") == true,
       caught = rawget(current, "caught") == true,
+      caughtCount = caughtCount,
+      region = effectiveAreaRegion(state, screenData(state), activeSave(state))
+        :upper(),
       page = page,
-      pages = {
-        splitEntryText(entry and rawget(entry, "text")),
-        splitEntryText(entry and rawget(entry, "text2")),
-      },
-      pageLines = splitEntryText(entry and rawget(entry,
-        page == 2 and "text2" or "text")),
-      types = Data.array(types, 2),
+      pages = { firstPage, secondPage },
+      pageLines = entryLines,
+      types = types,
       art = artSnapshot(state, species),
+      reference = referenceSnapshot(state, species),
     }
   end
 
@@ -183,7 +305,7 @@ return function(ctx)
     return landmark < 0x2e and "johto" or "kanto"
   end
 
-  local function screenData(state)
+  screenData = function(state)
     local data = rawget(state, "data")
     if type(data) == "table" then return data end
     local game = rawget(state, "game")
@@ -191,7 +313,7 @@ return function(ctx)
     return type(data) == "table" and data or {}
   end
 
-  local function activeSave(state)
+  activeSave = function(state)
     local game = rawget(state, "game")
     local save = type(game) == "table" and rawget(game, "save") or nil
     if type(save) == "table" then return save end
@@ -199,7 +321,7 @@ return function(ctx)
     return type(save) == "table" and save or {}
   end
 
-  local function effectiveAreaRegion(state, data, save)
+  effectiveAreaRegion = function(state, data, save)
     local requested = rawget(state, "areaRegion")
     if requested == "johto" or requested == "kanto" then return requested end
     local position = nested(save, "position")

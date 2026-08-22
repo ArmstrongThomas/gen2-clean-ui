@@ -1,320 +1,330 @@
 {
-    "schema_version":  1,
-    "status":  "ready",
-    "core":  {
-                 "tag":  "0.1.0-alpha.12-local",
-                 "commit":  "6a41dd56654fe1dca4b787c6a749684cbc16d39c"
-             },
-    "files":  [
-                  {
-                      "path":  "bootstrap.lua",
-                      "sha256":  "e8dc375b71673b3f8f8e8698d7ab01b31bd8455994e681ac93b35790260581d8",
-                      "size":  3621
-                  },
-                  {
-                      "path":  "components/dropdown.lua",
-                      "sha256":  "ab545bc03157c73e1791d613b1ef4c65d650001b3af4558b3f13a372bb73eef0",
-                      "size":  2339
-                  },
-                  {
-                      "path":  "components/dropdown_layout.lua",
-                      "sha256":  "3c1b0364dea5b75acc44a858ba13df55e0d3287f322296fe6c37d615766d5e81",
-                      "size":  2031
-                  },
-                  {
-                      "path":  "components/dropdown_state.lua",
-                      "sha256":  "38db6d04fc349ef4f3c19414ef5b302fcedab44507984f25f1c083b4f6b4f6d0",
-                      "size":  3775
-                  },
-                  {
-                      "path":  "components/modal.lua",
-                      "sha256":  "519c5a7fb22bceea9b9db60a09c6f583d4d7c80ac68e2e626484650a7aaaeb88",
-                      "size":  2650
-                  },
-                  {
-                      "path":  "core.lua",
-                      "sha256":  "e907bb30800826aef904ed7f7ce247eba6fe72280ed27bc93db5bc4203f795e3",
-                      "size":  15816
-                  },
-                  {
-                      "path":  "design/color.lua",
-                      "sha256":  "354da4e6a939929b41fc985c779ada262e410989d97372da6884aecb21082c67",
-                      "size":  570
-                  },
-                  {
-                      "path":  "design/contrast.lua",
-                      "sha256":  "f2e8bf454964cdca33bcdd9d855eac8b50bd4774314092462ad27ba057932df2",
-                      "size":  1049
-                  },
-                  {
-                      "path":  "design/frame.lua",
-                      "sha256":  "fe4ade259b10a897ee6afabe6243c62b94f0196fde46e139e7891255d878dffe",
-                      "size":  1005
-                  },
-                  {
-                      "path":  "design/presets.lua",
-                      "sha256":  "a4d62c0d779177a6cf54cd86369dc316eb88875775827b272a4931a18ec16756",
-                      "size":  1107
-                  },
-                  {
-                      "path":  "design/themes.lua",
-                      "sha256":  "af706ab0f39f76eea1a9450272d7f37f1354cc9a6f8ec38a572ce0289ac4abaa",
-                      "size":  6687
-                  },
-                  {
-                      "path":  "design/tokens.lua",
-                      "sha256":  "eb58e3bd58da4def9a2c130cc2b92b8a17cd23e0d9c037d0f31d743ea2768261",
-                      "size":  491
-                  },
-                  {
-                      "path":  "diagnostics/bounds.lua",
-                      "sha256":  "8d60e1b116daae106c645f9b12c237f9e0419abb0bcd5c4f06374c19454d37b5",
-                      "size":  490
-                  },
-                  {
-                      "path":  "foundation/copy.lua",
-                      "sha256":  "ac00d8a5f03afccd2141ac86a10c4d769f6879583770456da2fa48108bd2694f",
-                      "size":  354
-                  },
-                  {
-                      "path":  "foundation/data.lua",
-                      "sha256":  "4915902a33fd08a3bba25d35fecddb564eb9be40ef9b1484e36efd83e4fb6cf8",
-                      "size":  1191
-                  },
-                  {
-                      "path":  "foundation/guard.lua",
-                      "sha256":  "73d61f6b81bac5e3d15f6582330a7007a055e78edc84a719122dd0f6cc418738",
-                      "size":  411
-                  },
-                  {
-                      "path":  "foundation/id.lua",
-                      "sha256":  "ccd90d3326dcab2d963d721ae67ecd04ab0f7a78916920cf8c1f27db0ca54c3a",
-                      "size":  445
-                  },
-                  {
-                      "path":  "foundation/order.lua",
-                      "sha256":  "354d6dceb0136d1b7c8ce309e168c1411dfc0c96b72cb6fb1de9b6276755ec6c",
-                      "size":  735
-                  },
-                  {
-                      "path":  "foundation/result.lua",
-                      "sha256":  "188cf5629b090009e6f33ee80b0274583a71215ebf8047bd146665ba6795b7d1",
-                      "size":  739
-                  },
-                  {
-                      "path":  "foundation/semver.lua",
-                      "sha256":  "a1bf590443d5d51110e23f1e54c51c9c97bf5378b719bd19d0e17db2e208e074",
-                      "size":  655
-                  },
-                  {
-                      "path":  "gallery/catalog.lua",
-                      "sha256":  "b829509d495608ecaaef590ffac3ee8e8403474cbd0bfd81332e60f37f96f6ef",
-                      "size":  1210
-                  },
-                  {
-                      "path":  "geometry/placement.lua",
-                      "sha256":  "9d6d4e2d46be93250aba8a22ec39531ca032671a7862943e10552bc27c673446",
-                      "size":  885
-                  },
-                  {
-                      "path":  "geometry/rect.lua",
-                      "sha256":  "6c81d93876d65d7fd9aba0b654a4c71a9de5cd2faee2e459fa5e6c04d258f64f",
-                      "size":  1597
-                  },
-                  {
-                      "path":  "geometry/viewport.lua",
-                      "sha256":  "c13ec77ef96c81b3c11538014a00275bd9028b03dab6fecf412d161e9c1ed664",
-                      "size":  1991
-                  },
-                  {
-                      "path":  "input/focus.lua",
-                      "sha256":  "51fee47fc2c9bf610477e39433584ed73ca538d827ee94c609930e02b5e505da",
-                      "size":  625
-                  },
-                  {
-                      "path":  "input/overlay_stack.lua",
-                      "sha256":  "fc6471e9f9e618c87c6ba4de91ca66ae9e1579283a79513c8ab59a562424f5ee",
-                      "size":  395
-                  },
-                  {
-                      "path":  "integration/catalog.lua",
-                      "sha256":  "7f2dc6790a5257d619665930318dd9d2d5795ed5a52fe8471c7b23ddb71fccb8",
-                      "size":  3114
-                  },
-                  {
-                      "path":  "integration/mod_menus.lua",
-                      "sha256":  "6a0ec30e516a909b9b5c0386a0bfa6902373af05de533c068b0df4c887e48666",
-                      "size":  1164
-                  },
-                  {
-                      "path":  "integration/pins.lua",
-                      "sha256":  "57afe72d0f403d04d1c8ffcb132884ff2c3d112033883fb851e7f7f2f4c04314",
-                      "size":  1671
-                  },
-                  {
-                      "path":  "integration/settings.lua",
-                      "sha256":  "0548ab4c0c13bcc78bd4c29956121c6c5c0273d0f19f6c7fcc73b68325650ec5",
-                      "size":  7169
-                  },
-                  {
-                      "path":  "integration/start_menu.lua",
-                      "sha256":  "e990d612b51c88887643db45c03251d09303b9b93be246045ccc05a492950150",
-                      "size":  2068
-                  },
-                  {
-                      "path":  "layout/details.lua",
-                      "sha256":  "2e2d9d0052c24b1f8a67fbd78161cef560222e62bc783a31590cbce4b4956229",
-                      "size":  3312
-                  },
-                  {
-                      "path":  "layout/envelope.lua",
-                      "sha256":  "2c3f010c000b8c9e450dd2409f65abde22d16dc3a00906010827314cb75dd3b0",
-                      "size":  2393
-                  },
-                  {
-                      "path":  "layout/list.lua",
-                      "sha256":  "5091d6a6e8cee591be17a39ce9c76a6aaa7c889d0f81fa47cc81be63510bfb52",
-                      "size":  1053
-                  },
-                  {
-                      "path":  "layout/scale.lua",
-                      "sha256":  "c1c46cdace7e5907cc4529b1a89b5699b791015f0afd803f25c1b579b578298f",
-                      "size":  681
-                  },
-                  {
-                      "path":  "layout/session.lua",
-                      "sha256":  "5e3c19c7460e733e918a8727763ea3bcd119a706fa6c3cadbcc6bd78e49c8ea9",
-                      "size":  750
-                  },
-                  {
-                      "path":  "layout/solver.lua",
-                      "sha256":  "6c27d9c00f3d23a77b262a54850d0437953bd9c28d799b03cdbeb23c48783162",
-                      "size":  2602
-                  },
-                  {
-                      "path":  "module_manifest.lua",
-                      "sha256":  "be6bbb6ee39b16d7012022af3ae9052213cd3e284fd86308380db70dded73005",
-                      "size":  4774
-                  },
-                  {
-                      "path":  "presentation/animation_layout.lua",
-                      "sha256":  "95fe1bd74d4055c1ff6cc29b5feb5c87ff55a3c147186fab16779877188dc230",
-                      "size":  2626
-                  },
-                  {
-                      "path":  "presentation/animation_render.lua",
-                      "sha256":  "10ac6f70f628d431c59852a20394b24d97fc8804681727d8b638ae065f69df43",
-                      "size":  10750
-                  },
-                  {
-                      "path":  "presentation/battle_layout.lua",
-                      "sha256":  "c3768430ea213aff6de57bea3962b1c1ba00f6f5685cd0a22c784d30aa18a09c",
-                      "size":  9645
-                  },
-                  {
-                      "path":  "presentation/battle_render.lua",
-                      "sha256":  "3253c7d33eacd915ecb79b7711824f932dc5c852d42640606cb326cf0f75a8ff",
-                      "size":  17892
-                  },
-                  {
-                      "path":  "presentation/dialogue_layout.lua",
-                      "sha256":  "d03af810b3e6490d5d2ba1dfef2d734fd040f7edac59005d42f79828698590be",
-                      "size":  7734
-                  },
-                  {
-                      "path":  "presentation/dialogue_render.lua",
-                      "sha256":  "ed75a30a38b547490c870531b96057b073c5820f8382abb372e573e39bfe2773",
-                      "size":  3495
-                  },
-                  {
-                      "path":  "presentation/menu_layout.lua",
-                      "sha256":  "a435b4c2067f3dbd7d027401e28bfb0a1ff457e78c7fcc23768b4b132109d0be",
-                      "size":  31168
-                  },
-                  {
-                      "path":  "presentation/menu_render.lua",
-                      "sha256":  "41931ac21c51572d8a5ee9bae7df243e52e0aa5e5f5ced2766d75bd0dcb5f033",
-                      "size":  73483
-                  },
-                  {
-                      "path":  "presentation/model.lua",
-                      "sha256":  "0dbc722321404c8bb2f2c1c939ec5c40e8139df46bc72078eeb7d92aafe680e2",
-                      "size":  28674
-                  },
-                  {
-                      "path":  "presentation/pipeline.lua",
-                      "sha256":  "d4adc078596c441e608599f2f736ad39870a9423cb03781109a65996ac4e78af",
-                      "size":  2856
-                  },
-                  {
-                      "path":  "presentation/runtime.lua",
-                      "sha256":  "78c5ac62a966f4711b2d518d109139a431e3ee4fedb3918c3c3424b18e9f6191",
-                      "size":  27117
-                  },
-                  {
-                      "path":  "shell/content.lua",
-                      "sha256":  "3d1df824335917f5900a985b554e0d7edf3d502f80484b4403b44f40ca65ad81",
-                      "size":  10370
-                  },
-                  {
-                      "path":  "shell/layout.lua",
-                      "sha256":  "713617b6f78f0018cc0bed408dbe92ab5411ca2e5927ac2682a16fdfb695922a",
-                      "size":  5794
-                  },
-                  {
-                      "path":  "shell/render.lua",
-                      "sha256":  "cb2352b24e3e01d7a1fcf45eee3055fbcabdf581036507a3768b03b76ccd2934",
-                      "size":  8733
-                  },
-                  {
-                      "path":  "shell/runtime.lua",
-                      "sha256":  "587baa67f7ba497678311e9d00dccd2a0b6e6e43a7648e168af50024bdeab048",
-                      "size":  31907
-                  },
-                  {
-                      "path":  "shell/state.lua",
-                      "sha256":  "02738b39c378422ba886db2623e1b06a4d515c3b746da021f59b618f06e48f1c",
-                      "size":  2692
-                  },
-                  {
-                      "path":  "surfaces/transaction.lua",
-                      "sha256":  "6a73385b19e4aa1de92a47cc424da5f3a8da5dd5a26659a219fd0e9790de7bd4",
-                      "size":  3932
-                  },
-                  {
-                      "path":  "text/font_catalog.lua",
-                      "sha256":  "d9183a217fe36d03e843a45cae6a60bf634d6c8b4ddc0918a12a26cc61d75805",
-                      "size":  5616
-                  },
-                  {
-                      "path":  "text/font_policy.lua",
-                      "sha256":  "7030cf58441c89eb497db752b24b0f48a5d78cc9cc7ce6c5e329606273c8618c",
-                      "size":  2222
-                  },
-                  {
-                      "path":  "v3/contract.lua",
-                      "sha256":  "c38ef1fd9ffeb2b95781ee3a35a3ac2ef35bd8b92dbdeb51ddff4fb60b0b2685",
-                      "size":  8137
-                  },
-                  {
-                      "path":  "v3/host.lua",
-                      "sha256":  "020d2cea81a0d65715d532a8110627f860b242247ff358b3f48332b1dd12e09c",
-                      "size":  1921
-                  },
-                  {
-                      "path":  "v3/panel.lua",
-                      "sha256":  "bc39ad15dd02351a2d13256262994eb97f227563433cbface3ec476b0bbdb42d",
-                      "size":  11943
-                  },
-                  {
-                      "path":  "v3/registry.lua",
-                      "sha256":  "efb10e91c7a677d148428db43ecc6190e229def3eca58c239c0a87a451d5f774",
-                      "size":  2645
-                  },
-                  {
-                      "path":  "version.lua",
-                      "sha256":  "5d98f2700c3aa7962950c421b6ab6bc56568d99ce0dac914bd612b58217a0c92",
-                      "size":  88
-                  }
-              ]
+    "schema_version": 1,
+    "status": "ready",
+    "core": {
+        "tag": "0.1.0-alpha.13-local",
+        "commit": "c95b987ef4b55e0f47a4cd8e22c04a5ab29ca3d3"
+    },
+    "files": [
+        {
+            "path": "bootstrap.lua",
+            "sha256": "e8dc375b71673b3f8f8e8698d7ab01b31bd8455994e681ac93b35790260581d8",
+            "size": 3621
+        },
+        {
+            "path": "components/dropdown.lua",
+            "sha256": "ab545bc03157c73e1791d613b1ef4c65d650001b3af4558b3f13a372bb73eef0",
+            "size": 2339
+        },
+        {
+            "path": "components/dropdown_layout.lua",
+            "sha256": "3c1b0364dea5b75acc44a858ba13df55e0d3287f322296fe6c37d615766d5e81",
+            "size": 2031
+        },
+        {
+            "path": "components/dropdown_state.lua",
+            "sha256": "38db6d04fc349ef4f3c19414ef5b302fcedab44507984f25f1c083b4f6b4f6d0",
+            "size": 3775
+        },
+        {
+            "path": "components/modal.lua",
+            "sha256": "519c5a7fb22bceea9b9db60a09c6f583d4d7c80ac68e2e626484650a7aaaeb88",
+            "size": 2650
+        },
+        {
+            "path": "core.lua",
+            "sha256": "729987fe5cd8e848eec0aba3c963fa142dbef1af56c8b27f0e6065ca50550f13",
+            "size": 15905
+        },
+        {
+            "path": "design/color.lua",
+            "sha256": "354da4e6a939929b41fc985c779ada262e410989d97372da6884aecb21082c67",
+            "size": 570
+        },
+        {
+            "path": "design/contrast.lua",
+            "sha256": "f2e8bf454964cdca33bcdd9d855eac8b50bd4774314092462ad27ba057932df2",
+            "size": 1049
+        },
+        {
+            "path": "design/frame.lua",
+            "sha256": "fe4ade259b10a897ee6afabe6243c62b94f0196fde46e139e7891255d878dffe",
+            "size": 1005
+        },
+        {
+            "path": "design/presets.lua",
+            "sha256": "a4d62c0d779177a6cf54cd86369dc316eb88875775827b272a4931a18ec16756",
+            "size": 1107
+        },
+        {
+            "path": "design/themes.lua",
+            "sha256": "af706ab0f39f76eea1a9450272d7f37f1354cc9a6f8ec38a572ce0289ac4abaa",
+            "size": 6687
+        },
+        {
+            "path": "design/tokens.lua",
+            "sha256": "eb58e3bd58da4def9a2c130cc2b92b8a17cd23e0d9c037d0f31d743ea2768261",
+            "size": 491
+        },
+        {
+            "path": "diagnostics/bounds.lua",
+            "sha256": "8d60e1b116daae106c645f9b12c237f9e0419abb0bcd5c4f06374c19454d37b5",
+            "size": 490
+        },
+        {
+            "path": "foundation/copy.lua",
+            "sha256": "ac00d8a5f03afccd2141ac86a10c4d769f6879583770456da2fa48108bd2694f",
+            "size": 354
+        },
+        {
+            "path": "foundation/data.lua",
+            "sha256": "4915902a33fd08a3bba25d35fecddb564eb9be40ef9b1484e36efd83e4fb6cf8",
+            "size": 1191
+        },
+        {
+            "path": "foundation/guard.lua",
+            "sha256": "73d61f6b81bac5e3d15f6582330a7007a055e78edc84a719122dd0f6cc418738",
+            "size": 411
+        },
+        {
+            "path": "foundation/id.lua",
+            "sha256": "ccd90d3326dcab2d963d721ae67ecd04ab0f7a78916920cf8c1f27db0ca54c3a",
+            "size": 445
+        },
+        {
+            "path": "foundation/order.lua",
+            "sha256": "354d6dceb0136d1b7c8ce309e168c1411dfc0c96b72cb6fb1de9b6276755ec6c",
+            "size": 735
+        },
+        {
+            "path": "foundation/result.lua",
+            "sha256": "188cf5629b090009e6f33ee80b0274583a71215ebf8047bd146665ba6795b7d1",
+            "size": 739
+        },
+        {
+            "path": "foundation/semver.lua",
+            "sha256": "a1bf590443d5d51110e23f1e54c51c9c97bf5378b719bd19d0e17db2e208e074",
+            "size": 655
+        },
+        {
+            "path": "gallery/catalog.lua",
+            "sha256": "b829509d495608ecaaef590ffac3ee8e8403474cbd0bfd81332e60f37f96f6ef",
+            "size": 1210
+        },
+        {
+            "path": "geometry/placement.lua",
+            "sha256": "9d6d4e2d46be93250aba8a22ec39531ca032671a7862943e10552bc27c673446",
+            "size": 885
+        },
+        {
+            "path": "geometry/rect.lua",
+            "sha256": "6c81d93876d65d7fd9aba0b654a4c71a9de5cd2faee2e459fa5e6c04d258f64f",
+            "size": 1597
+        },
+        {
+            "path": "geometry/viewport.lua",
+            "sha256": "c13ec77ef96c81b3c11538014a00275bd9028b03dab6fecf412d161e9c1ed664",
+            "size": 1991
+        },
+        {
+            "path": "input/focus.lua",
+            "sha256": "51fee47fc2c9bf610477e39433584ed73ca538d827ee94c609930e02b5e505da",
+            "size": 625
+        },
+        {
+            "path": "input/overlay_stack.lua",
+            "sha256": "fc6471e9f9e618c87c6ba4de91ca66ae9e1579283a79513c8ab59a562424f5ee",
+            "size": 395
+        },
+        {
+            "path": "integration/catalog.lua",
+            "sha256": "7f2dc6790a5257d619665930318dd9d2d5795ed5a52fe8471c7b23ddb71fccb8",
+            "size": 3114
+        },
+        {
+            "path": "integration/mod_menus.lua",
+            "sha256": "6a0ec30e516a909b9b5c0386a0bfa6902373af05de533c068b0df4c887e48666",
+            "size": 1164
+        },
+        {
+            "path": "integration/pins.lua",
+            "sha256": "57afe72d0f403d04d1c8ffcb132884ff2c3d112033883fb851e7f7f2f4c04314",
+            "size": 1671
+        },
+        {
+            "path": "integration/settings.lua",
+            "sha256": "0548ab4c0c13bcc78bd4c29956121c6c5c0273d0f19f6c7fcc73b68325650ec5",
+            "size": 7169
+        },
+        {
+            "path": "integration/start_menu.lua",
+            "sha256": "e990d612b51c88887643db45c03251d09303b9b93be246045ccc05a492950150",
+            "size": 2068
+        },
+        {
+            "path": "layout/details.lua",
+            "sha256": "2e2d9d0052c24b1f8a67fbd78161cef560222e62bc783a31590cbce4b4956229",
+            "size": 3312
+        },
+        {
+            "path": "layout/envelope.lua",
+            "sha256": "2c3f010c000b8c9e450dd2409f65abde22d16dc3a00906010827314cb75dd3b0",
+            "size": 2393
+        },
+        {
+            "path": "layout/list.lua",
+            "sha256": "5091d6a6e8cee591be17a39ce9c76a6aaa7c889d0f81fa47cc81be63510bfb52",
+            "size": 1053
+        },
+        {
+            "path": "layout/scale.lua",
+            "sha256": "c1c46cdace7e5907cc4529b1a89b5699b791015f0afd803f25c1b579b578298f",
+            "size": 681
+        },
+        {
+            "path": "layout/session.lua",
+            "sha256": "5e3c19c7460e733e918a8727763ea3bcd119a706fa6c3cadbcc6bd78e49c8ea9",
+            "size": 750
+        },
+        {
+            "path": "layout/solver.lua",
+            "sha256": "6c27d9c00f3d23a77b262a54850d0437953bd9c28d799b03cdbeb23c48783162",
+            "size": 2602
+        },
+        {
+            "path": "module_manifest.lua",
+            "sha256": "77c2e76596e9547b37a90cdb7625abcef8c45d286f11ac4ccc585154ba68ac9d",
+            "size": 5013
+        },
+        {
+            "path": "presentation/animation_layout.lua",
+            "sha256": "95fe1bd74d4055c1ff6cc29b5feb5c87ff55a3c147186fab16779877188dc230",
+            "size": 2626
+        },
+        {
+            "path": "presentation/animation_render.lua",
+            "sha256": "10ac6f70f628d431c59852a20394b24d97fc8804681727d8b638ae065f69df43",
+            "size": 10750
+        },
+        {
+            "path": "presentation/battle_layout.lua",
+            "sha256": "c3768430ea213aff6de57bea3962b1c1ba00f6f5685cd0a22c784d30aa18a09c",
+            "size": 9645
+        },
+        {
+            "path": "presentation/battle_render.lua",
+            "sha256": "3253c7d33eacd915ecb79b7711824f932dc5c852d42640606cb326cf0f75a8ff",
+            "size": 17892
+        },
+        {
+            "path": "presentation/dialogue_layout.lua",
+            "sha256": "d03af810b3e6490d5d2ba1dfef2d734fd040f7edac59005d42f79828698590be",
+            "size": 7734
+        },
+        {
+            "path": "presentation/dialogue_render.lua",
+            "sha256": "ed75a30a38b547490c870531b96057b073c5820f8382abb372e573e39bfe2773",
+            "size": 3495
+        },
+        {
+            "path": "presentation/document_layout.lua",
+            "sha256": "27963d67b1b08161535d0baa3aaa269fb17ca1e0eac2e05b286f546dd9780837",
+            "size": 4205
+        },
+        {
+            "path": "presentation/document_render.lua",
+            "sha256": "c9b242f977f6f8f03964ed8e5ba16431bc14ba03a26231116e64fe5ed73eec3b",
+            "size": 9143
+        },
+        {
+            "path": "presentation/menu_layout.lua",
+            "sha256": "a435b4c2067f3dbd7d027401e28bfb0a1ff457e78c7fcc23768b4b132109d0be",
+            "size": 31168
+        },
+        {
+            "path": "presentation/menu_render.lua",
+            "sha256": "1645cb8043b125337391d883a01dfbd5212406a8e8de2b38019039277cca9931",
+            "size": 73518
+        },
+        {
+            "path": "presentation/model.lua",
+            "sha256": "1e5723253dbe4fd19d2984413fbb8a7527989a8472bd2b3d15c8c16e0f56f26f",
+            "size": 36235
+        },
+        {
+            "path": "presentation/pipeline.lua",
+            "sha256": "d4adc078596c441e608599f2f736ad39870a9423cb03781109a65996ac4e78af",
+            "size": 2856
+        },
+        {
+            "path": "presentation/runtime.lua",
+            "sha256": "c1be1c7d0bf3574dc4058381f5bd5518aea58e5761407650ac8e18f3a7262b9f",
+            "size": 28567
+        },
+        {
+            "path": "shell/content.lua",
+            "sha256": "3d1df824335917f5900a985b554e0d7edf3d502f80484b4403b44f40ca65ad81",
+            "size": 10370
+        },
+        {
+            "path": "shell/layout.lua",
+            "sha256": "713617b6f78f0018cc0bed408dbe92ab5411ca2e5927ac2682a16fdfb695922a",
+            "size": 5794
+        },
+        {
+            "path": "shell/render.lua",
+            "sha256": "cb2352b24e3e01d7a1fcf45eee3055fbcabdf581036507a3768b03b76ccd2934",
+            "size": 8733
+        },
+        {
+            "path": "shell/runtime.lua",
+            "sha256": "587baa67f7ba497678311e9d00dccd2a0b6e6e43a7648e168af50024bdeab048",
+            "size": 31907
+        },
+        {
+            "path": "shell/state.lua",
+            "sha256": "02738b39c378422ba886db2623e1b06a4d515c3b746da021f59b618f06e48f1c",
+            "size": 2692
+        },
+        {
+            "path": "surfaces/transaction.lua",
+            "sha256": "6a73385b19e4aa1de92a47cc424da5f3a8da5dd5a26659a219fd0e9790de7bd4",
+            "size": 3932
+        },
+        {
+            "path": "text/font_catalog.lua",
+            "sha256": "d9183a217fe36d03e843a45cae6a60bf634d6c8b4ddc0918a12a26cc61d75805",
+            "size": 5616
+        },
+        {
+            "path": "text/font_policy.lua",
+            "sha256": "7030cf58441c89eb497db752b24b0f48a5d78cc9cc7ce6c5e329606273c8618c",
+            "size": 2222
+        },
+        {
+            "path": "v3/contract.lua",
+            "sha256": "c38ef1fd9ffeb2b95781ee3a35a3ac2ef35bd8b92dbdeb51ddff4fb60b0b2685",
+            "size": 8137
+        },
+        {
+            "path": "v3/host.lua",
+            "sha256": "020d2cea81a0d65715d532a8110627f860b242247ff358b3f48332b1dd12e09c",
+            "size": 1921
+        },
+        {
+            "path": "v3/panel.lua",
+            "sha256": "bc39ad15dd02351a2d13256262994eb97f227563433cbface3ec476b0bbdb42d",
+            "size": 11943
+        },
+        {
+            "path": "v3/registry.lua",
+            "sha256": "efb10e91c7a677d148428db43ecc6190e229def3eca58c239c0a87a451d5f774",
+            "size": 2645
+        },
+        {
+            "path": "version.lua",
+            "sha256": "47d7f4f4dbe799d053ef0c207161dc3a7382bf1d69232744d13abda516f1cc4c",
+            "size": 88
+        }
+    ]
 }
