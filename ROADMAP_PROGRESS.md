@@ -2,12 +2,12 @@
 
 Last verified: 2026-08-17
 Release floor: `0.1.87`  
-Current manifest: `0.4.0`
-Release policy: 0.2.0 is released; the current 0.4.0 development line carries
+Current manifest: `0.4.1`
+Release policy: 0.4.0 is released; the current 0.4.1 development line carries
 the Pokédex visual redesign and follow-up verification. No host-repository
 changes or screenshots are checked in.
 
-## Pokédex visual redesign — 0.4.0
+## Pokédex visual redesign — 0.4.1
 
 - [x] Audit the read-only host data and navigation boundaries.
 - [x] Add detached evolution, level-up move, and TM/HM reference snapshots.

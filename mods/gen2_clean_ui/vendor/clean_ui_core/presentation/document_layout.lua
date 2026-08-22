@@ -158,15 +158,17 @@ function DocumentLayout.measure(base, model, font, _density)
       end
       height = height + pad * (math.min(gridRows, row + rowSpan - 1) - row)
       local width = 0
-      for currentColumn = column,
-          math.min(columns, column + columnSpan - 1) do
-        width = width + columnWidths[currentColumn]
-      end
-      width = width + pad
-        * (math.min(columns, column + columnSpan - 1) - column)
+        for currentColumn = column,
+            math.min(columns, column + columnSpan - 1) do
+          width = width + columnWidths[currentColumn]
+        end
+        width = width + pad
+          * (math.min(columns, column + columnSpan - 1) - column)
       regionLayouts[#regionLayouts + 1] = {
         source = region,
-        rect = Rect.new(x, y, width, math.max(1, height)),
+        rect = Rect.new(x, y,
+          width,
+          math.max(1, height)),
       }
     end
   else

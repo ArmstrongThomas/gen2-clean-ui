@@ -3,9 +3,9 @@
 Release history for Gen2 Clean UI. Version 0.1.0 is an intentionally early,
 experimental public release.
 
-## 0.4.0 — Unreleased
+## 0.4.1 — Unreleased
 
-The 0.4.0 line begins the visual redesign of the Gen 2 Pokédex while keeping
+The 0.4.1 line continues the visual redesign of the Gen 2 Pokédex while keeping
 the host-owned navigation boundary intact. New reference pages are being
 prepared as drop-in data models before any additional navigation seams are
 introduced.
@@ -37,7 +37,7 @@ drop-in-compatible action seam is available.
 ## 0.3.0 — Unreleased
 
 The 0.2.0 release is complete. The 0.3.0 development history is retained
-below; the current manifest now targets 0.4.0.
+below; the current manifest now targets 0.4.1.
 the deferred battle and Pokegear boundaries remain unchanged while follow-up
 Clean UI work continues.
 

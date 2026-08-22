@@ -154,8 +154,8 @@ local function drawComponent(G, component, rect, layout, font, theme)
       end
       printText(G, layout, font, theme, item.label, rowX, rowY, labelWidth,
         item.selected and "strong" or "label")
-      printText(G, layout, font, theme, value, valueX, rowY,
-        columnWidth * (component.leaders and 0.4 or 0.45),
+      printText(G, layout, font, theme, value, valueX,
+        rowY, columnWidth * (component.leaders and 0.4 or 0.45),
         (item.selected or item.tone == "accent")
           and "accent" or "value")
     end

@@ -3,9 +3,24 @@
     "status": "ready",
     "core": {
         "tag": "0.1.0-alpha.13-local",
-        "commit": "73a7d2138854b17320d92208b359fecd14fc06ad"
+        "commit": "a0ce3235be96c007b623d05b9eb3664177c89894"
     },
     "files": [
+        {
+            "path": "assets/icons/gen2/gender10px.png",
+            "sha256": "f1b0b9da4f1bece5c5a2e1520fd0b8c4f8826135a088f948a0b57ae021453829",
+            "size": 385
+        },
+        {
+            "path": "assets/icons/gen2/gender16px.png",
+            "sha256": "e68f4033ec753c6e9c4071d915bf9d6ba9079749c26074e2c38063389c5ae82f",
+            "size": 501
+        },
+        {
+            "path": "assets/note24px.png",
+            "sha256": "e2ef5a520b2ad71d8c6e2e011759749d457a9f2b0a68cfe3b61a21f75595f1c4",
+            "size": 250
+        },
         {
             "path": "bootstrap.lua",
             "sha256": "e8dc375b71673b3f8f8e8698d7ab01b31bd8455994e681ac93b35790260581d8",
@@ -228,12 +243,12 @@
         },
         {
             "path": "presentation/document_layout.lua",
-            "sha256": "553b35f6c2538f14ebcb21990c0a0d530212566dd0671432cbfd674429d8a274",
-            "size": 8264
+            "sha256": "bb323a012e20b9ca136f381e8b59a377d086f604aa9db91b609107bd1e1f9f3b",
+            "size": 8296
         },
         {
             "path": "presentation/document_render.lua",
-            "sha256": "e4345da39541df028d1dca9d9915391f432d20743a78f4d2ae72ee11edd6a044",
+            "sha256": "56989407398a7f0ee6f886d5d879ce65367c8c0924afbe526555e9b254e6d269",
             "size": 14288
         },
         {
