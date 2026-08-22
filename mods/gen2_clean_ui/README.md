@@ -1,7 +1,7 @@
-# Gen2 Clean UI 0.4.0
+# Gen2 Clean UI 0.4.1
 
 This is the modular Pokémon Gold product for the Clean UI rebuild. Version
-0.4.0 is the current development line following the 0.2.0 release.
+0.4.1 is the current development line following the 0.4.0 release.
 
 Battle UI is deliberately deferred as of 2026-08-15. The previous Clean UI
 battle adapters, presenters, detached renderer, ownership latch, and battle
@@ -17,7 +17,7 @@ The Pokegear family is likewise native for now: `Gen2Pokegear` and
 not registered as active replacements. Their adapters and presenters remain
 inactive reference code for a later redesign.
 
-Gen2 Party and Summary remain active 0.3.0 foundations. The 0.4.0 visual
+Gen2 Party and Summary remain active 0.3.0 foundations. The 0.4.1 visual
 redesign now begins with the Pokédex: the reachable Info and Habitat pages use
 clearer page-specific hierarchy, detached reference data, and map-backed
 landmark markers while preserving native source navigation. Evolution,

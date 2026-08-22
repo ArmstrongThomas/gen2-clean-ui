@@ -1,7 +1,7 @@
 {
   "id": "gen2_clean_ui",
   "name": "Gen2 Clean UI",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "api": 2,
   "entry": "main.lua",
   "profile": "overhaul",

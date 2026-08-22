@@ -1,6 +1,6 @@
 # Gen2 Clean UI release status
 
-Current line: `0.4.0` (development). The `0.2.0` release is complete.
+Current line: `0.4.1` (development). The `0.4.0` release is complete.
 
 ## Battle UI deferment — 2026-08-15
 
@@ -19,7 +19,7 @@ The official renderer owns the complete Pokegear flow, including phone, clock,
 map/Fly, and radio surfaces. Existing adapters, presenters, and fixtures are
 retained only as inactive reference material for a later redesign.
 
-The Pokédex remains active. The 0.4.0 redesign now uses clearer Info and
+The Pokédex remains active. The 0.4.1 redesign now uses clearer Info and
 Habitat compositions, map-backed landmark markers, number-first rows,
 seen/owned markers, type badges, palette-aware detached sprites, totals, and
 navigation hints. Evolution, level-up move, and TM/HM reference data is
@@ -42,7 +42,7 @@ walkthrough confirms Clean UI ownership after sync; minor Mart bugs remain.
   solver probes required text across the shell and detached V3 presentation
   families and steps down before truncation; this is deterministic coverage,
   not live-launcher proof.
-- Current milestone: continue the 0.4.0 Pokédex visual redesign and
+- Current milestone: continue the 0.4.1 Pokédex visual redesign and
   verification. Battle is deferred and is not a release milestone for this
   worktree.
   Battle is deferred and is not a release milestone for this worktree.
@@ -63,7 +63,7 @@ walkthrough confirms Clean UI ownership after sync; minor Mart bugs remain.
   battle reference changes; it includes no screenshots or host-repository
   changes. The GitHub release archive remains workflow-generated after merge.
 
-- Manifest version: `0.4.0`.
+- Manifest version: `0.4.1`.
 - Host floor: `>=0.1.87 <2.0.0`.
 - Core lock: pinned to the `0.1.0-alpha.13-local` development snapshot recorded
   in `clean-ui-core.lock.json`; the shared settings compatibility fallback now
