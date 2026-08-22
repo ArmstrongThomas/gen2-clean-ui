@@ -224,7 +224,7 @@ check(partyModel.party[1].icon.animation.frames == 2
 check(partyModel.party[1].genderIcon.path
   == "assets/generated/icons/gen2/gender10px.png"
   and partyModel.party[1].genderIcon.assetPath
-    == "clean_ui_core/assets/icons/gen2/gender10px.png"
+    == "assets/generated/icons/gen2/gender10px.png"
   and partyModel.party[1].genderIcon.crop.x == 0
   and partyModel.party[1].genderIcon.crop.w == 10
   and partyModel.party[1].genderIcon.variants["16"].crop.x == 0
@@ -519,7 +519,7 @@ check(statusModel.heldItem.name == "BERRY"
 check(statusModel.pokemon.genderIcon.path
   == "assets/generated/icons/gen2/gender10px.png"
   and statusModel.pokemon.genderIcon.assetPath
-    == "clean_ui_core/assets/icons/gen2/gender10px.png"
+    == "assets/generated/icons/gen2/gender10px.png"
   and statusModel.pokemon.genderIcon.crop.x == 0,
   "Summary identity uses the same authored gender-sheet descriptor")
 local statusView = assert(PartyPresenters.convert(
