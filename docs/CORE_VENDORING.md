@@ -30,13 +30,11 @@ in one command. It expects the sibling checkout at `..\clean-ui-core` and
 stops before the launcher copy when that source or its lock verification is
 invalid.
 
-The current development lock is ready and records the exact vendored snapshot:
-
-```json
-{ "schema_version": 1, "status": "ready",
-  "core": { "tag": "0.1.0-alpha.13-local",
-    "commit": "6ce8ed044a4b970f3b74484d7592c43d1b6efd3e" } }
-```
+The current development lock is ready and records the exact vendored snapshot.
+Its commit is intentionally read from the synchronized Core checkout rather
+than copied into documentation; inspect `clean-ui-core.lock.json` for the
+current 40-character commit and file inventory. The synchronized Core snapshot
+may include shared presentation assets under `vendor/clean_ui_core/assets/`.
 
 The host source checkout is not part of this lock and must never be copied into
 or modified by the product repository. If the host API changes, update the
